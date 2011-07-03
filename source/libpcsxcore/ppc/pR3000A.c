@@ -3431,6 +3431,7 @@ done:
 #if 0
     MakeDataExecutable(ptr, ((u8*) ppcPtr)-((u8*) ptr));
 #else
+    /*
     u32 a = (u32) (u8*) ptr;
     while (a < (u32) (u8*) ppcPtr) {
         __asm__ __volatile__("icbi 0,%0" : : "r" (a));
@@ -3439,6 +3440,8 @@ done:
     }
     __asm__ __volatile__("sync");
     __asm__ __volatile__("isync");
+     */
+    memicbi(ptr,(u32) (u8*)ppcPtr);
 #endif
 
 #if 0

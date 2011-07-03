@@ -63,6 +63,12 @@ int iFVDisplay = 0;
 PSXPoint_t ptCursorPoint[8];
 unsigned short usCursorActive = 0;
 
+uint32_t      dwGPUVersion=0;
+int           iGPUHeight=512;
+int           iGPUHeightMask=511;
+int           GlobalTextIL=0;
+int           iTileCheat=0;
+
 //unsigned int   LUT16to32[65536];
 //unsigned int   RGBtoYUV[65536];
 int finalw, finalh;
@@ -232,6 +238,11 @@ void CreateDisplay(void) {
     Rect[5].u = top;
     Rect[5].v = left;
     Rect[5].color = 0xFF00FF00;    
+    
+    vb = Xe_CreateVertexBuffer(g_pVideoDevice, 6 * sizeof(DrawVerticeFormats));
+    void *v = Xe_VB_Lock(g_pVideoDevice, vb, 0, 6 *  sizeof(DrawVerticeFormats), XE_LOCK_WRITE);
+    memcpy(v, Rect, 6 * sizeof(DrawVerticeFormats));
+    Xe_VB_Unlock(g_pVideoDevice, vb);
 }
 
 #if 0
@@ -293,8 +304,8 @@ void BlitScreen32(unsigned char *surf, int32_t x, int32_t y) {
     }
 }
 #else
-
-void BlitScreen32(unsigned char *surf, int32_t x, int32_t y) {
+// Cout 4-5fps
+void BlitScreen32(unsigned char *surf, int32_t x, int32_t y) {  
     unsigned char *pD;
     unsigned int startxy;
     uint32_t lu;
@@ -385,7 +396,9 @@ void BlitScreen32(unsigned char *surf, int32_t x, int32_t y) {
 }
 #endif
 
-
+void ThBufferSwap(void){
+    
+}
 
 void DoBufferSwap(void) {
     //printf("DoBufferSwap\r\n");
@@ -412,14 +425,6 @@ void DoBufferSwap(void) {
     Xe_SetBlendOp(g_pVideoDevice, XE_BLENDOP_ADD);
     Xe_SetSrcBlend(g_pVideoDevice, XE_BLEND_SRCALPHA);
     Xe_SetDestBlend(g_pVideoDevice, XE_BLEND_INVSRCALPHA);
-
-    int len = 6 * sizeof (DrawVerticeFormats);
-
-    Xe_VBBegin(g_pVideoDevice, sizeof (DrawVerticeFormats));
-    Xe_VBPut(g_pVideoDevice, Rect, len);
-
-    vb = Xe_VBEnd(g_pVideoDevice);
-    Xe_VBPoolAdd(g_pVideoDevice, vb);    
     
     Xe_SetCullMode(g_pVideoDevice, XE_CULL_NONE);
     Xe_SetStreamSource(g_pVideoDevice, 0, vb, 0, sizeof (DrawVerticeFormats));
@@ -446,8 +451,6 @@ int Xinitialize() {
 
     bUsingTWin = FALSE;
 
-    InitMenu();
-
     bIsFirstFrame = FALSE; // done
 
     return 0;
@@ -455,8 +458,6 @@ int Xinitialize() {
 
 void Xcleanup() // X CLEANUP
 {
-    CloseMenu();
-
 }
 
 unsigned long ulInitDisplay(void) {

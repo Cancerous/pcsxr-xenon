@@ -35,7 +35,7 @@ int UseFrameSkip = 0;
 BOOL bInitCap = TRUE;
 float fps_skip = 0;
 float fps_cur = 0;
-
+unsigned long          ulKeybits=0;
 #define MAXLACE 16
 
 void CheckFrameRate(void) {

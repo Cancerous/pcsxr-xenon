@@ -29,8 +29,6 @@
 #include "cfg.h"
 #include "gpu.h"
 
-
-
 void ReadConfig(void) {
     // defaults
     iResX = 640;
