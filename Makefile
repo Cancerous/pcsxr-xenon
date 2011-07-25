@@ -25,7 +25,7 @@ INCLUDES	:=  include source/libpcsxcore/ppc source/libpcsxcore source source/mai
 # options for code generation
 #---------------------------------------------------------------------------------
 ASFLAGS	= -Wa,$(INCLUDE) -Wa,-a32
-CFLAGS	= -ffunction-sections -fdata-sections -g -O3 -Wall $(MACHDEP) $(INCLUDE) -DLOG_STDOUT -DLIBXENON -DPSXREC -D__BIG_ENDIAN__ -D__ppc__ -D__powerpc__ -D__POWERPC__ -DELF -D__BIGENDIAN__ -D__PPC__ -D__BIGENDIAN__
+CFLAGS	= -ffunction-sections -fdata-sections -g -Ofast -Wall $(MACHDEP) $(INCLUDE) -DLOG_STDOUT -DLIBXENON -DPSXREC -D__BIG_ENDIAN__ -D__ppc__ -D__powerpc__ -D__POWERPC__ -DELF -D__BIGENDIAN__ -D__PPC__ -D__BIGENDIAN__
 CXXFLAGS	=	$(CFLAGS)
 
 LDFLAGS	=	-g $(MACHDEP) -Wl,--gc-sections -Wl,-Map,$(notdir $@).map
