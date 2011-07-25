@@ -5,8 +5,6 @@
 extern "C" {
 #endif
 
-#include "psxcommon.h"
-    
 // header version
 #define _PPDK_HEADER_VERSION		3
 

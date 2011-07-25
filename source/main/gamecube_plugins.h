@@ -24,7 +24,7 @@
 #endif
 #include "Decode_XA.h"
 #include "PSEmu_Plugin_Defs.h"
-#include "../plugins.h"
+#include "plugins.h"
 
 #define SYMS_PER_LIB 32
 typedef struct {
@@ -146,7 +146,7 @@ void PEOPS_GPUmakeSnapshot(void);
 	      NULL }, } }
 	      
 #define PAD1_PLUGIN \
-	{ "PAD1",      \
+	{ "/PAD1",      \
 	  5,         \
 	  { { "PADinit",  \
 	      PAD__init }, \
@@ -161,7 +161,7 @@ void PEOPS_GPUmakeSnapshot(void);
 	       } } 
 	    
 #define PAD2_PLUGIN \
-	{ "PAD2",      \
+	{ "/PAD2",      \
 	  5,         \
 	  { { "PADinit",  \
 	      PAD__init }, \
@@ -176,7 +176,7 @@ void PEOPS_GPUmakeSnapshot(void);
 	       } }
 
 #define CDR_PLUGIN \
-	{ "CDR",      \
+	{ "/CDR",      \
 	  9,         \
 	  { { "CDRinit",  \
 	      CDR__init }, \
@@ -199,7 +199,7 @@ void PEOPS_GPUmakeSnapshot(void);
 	       } }
 
 #define SPU_NULL_PLUGIN \
-	{ "SPU",      \
+	{ "/SPU",      \
 	  18,         \
 	  { { "SPUinit",  \
 	      NULL_SPUinit }, \
@@ -238,7 +238,7 @@ void PEOPS_GPUmakeSnapshot(void);
 	       } }
 
 #define SPU_PEOPS_PLUGIN \
-	{ "SPU",      \
+	{ "/SPU",      \
 	  19,         \
 	  { { "SPUinit",  \
 	      PEOPS_SPUinit }, \
@@ -281,7 +281,7 @@ void PEOPS_GPUmakeSnapshot(void);
 	       } }
       
 #define GPU_NULL_PLUGIN \
-	{ "GPU",      \
+	{ "/GPU",      \
 	  10,         \
 	  { { "GPUinit",  \
 	      GPU__init }, \
@@ -306,7 +306,7 @@ void PEOPS_GPUmakeSnapshot(void);
 	       } }
 
 #define GPU_PEOPS_PLUGIN \
-	{ "GPU",      \
+	{ "/GPU",      \
 	  17,         \
 	  { { "GPUinit",  \
 	      PEOPS_GPUinit }, \

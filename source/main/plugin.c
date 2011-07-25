@@ -72,8 +72,6 @@ int _OpenPlugins() {
         SysMessage(_("Error Opening CDR Plugin"));
         return -1;
     }
-
-    SetCurrentDirectory(PcsxrDir);
     
     ret = GPU_open(NULL, "PCSXR", NULL);
     if (ret < 0) {
@@ -102,8 +100,6 @@ int _OpenPlugins() {
     PAD2_registerVibration(GPU_visualVibration);
     PAD2_registerCursor(GPU_cursor);
 
-    SetCurrentDirectory(PcsxrDir);
-    ShowCursor(FALSE);
     return 0;
 }
 

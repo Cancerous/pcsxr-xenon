@@ -63,7 +63,7 @@ static char *err = N_("Error Loading Symbol");
 static int errval;
 
 void *SysLoadLibrary(const char *lib) {
-    //printf("SysLoadLibrary : %s\r\n",lib);
+    printf("SysLoadLibrary : %s\r\n",lib);
     int i;
     for (i = 0; i < NUM_PLUGINS; i++)
         if ((plugins[i].lib != NULL) && (!strcmp(lib, plugins[i].lib)))
@@ -78,7 +78,7 @@ void *SysLoadSym(void *lib, const char *sym) {
     for (i = 0; i < plugin->numSyms; i++)
         if (plugin->syms[i].sym && !strcmp(sym, plugin->syms[i].sym))
         {
-            // printf("SysLoadSym : %s -> %p\r\n",sym,plugin->syms[i].pntr);
+             printf("SysLoadSym : %s -> %p\r\n",sym,plugin->syms[i].pntr);
             return plugin->syms[i].pntr;
         }
     printf("SysLoadSym : %s not found\r\n",sym);

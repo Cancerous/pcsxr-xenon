@@ -1,0 +1,26 @@
+.global draw_v_vsu_size
+.set draw_v_vsu_size, 0f-draw_v_vsu
+.global draw_v_vsu
+draw_v_vsu:
+	.incbin "vertex.vsu"
+0:
+
+.align 4
+
+.global draw_c_p_psu_size
+.set draw_c_p_psu_size, 0f-draw_c_p_psu
+.global draw_c_p_psu
+draw_c_p_psu:
+	.incbin "colored.psu"
+0:
+
+.align 4
+
+.global draw_t_p_psu_size
+.set draw_t_p_psu_size, 0f-draw_t_p_psu
+.global draw_t_p_psu
+draw_t_p_psu:
+	.incbin "textured.psu"
+0:
+
+.align 4

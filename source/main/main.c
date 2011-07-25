@@ -27,13 +27,20 @@
 
 #define cdfile "uda:/psxisos/MEGAMAN8.BIN"
 #define cdfile "uda:/psxisos/PSX_Tekken_3_(NTSC).Iso"
-#define cdfile "uda:/psxisos/Crash Bandicoot - Warped (USA).bin"
+ #define cdfile "uda:/psxisos/Crash Bandicoot - Warped (USA).bin"
+//#define cdfile "uda:/psxisos/Street Fighter Alpha - Warriors' Dreams (USA)/Street Fighter Alpha - Warriors' Dreams (USA) (Track 01).bin"
+//#define cdfile "uda:/psxisos/Soul Blade (USA) (v1.1).bin"
+
 //#define cdfile "uda:/psxisos/Final Fantasy VII (USA) (Disc 1).bin"
 //#define cdfile "uda:/psxisos/Strider 2 (USA)/Strider 2 (USA).bin"
+//#define cdfile "uda:/psxisos/CTR - Crash Team Racing (USA).bin"
+//#define cdfile "uda:/psxisos/Strider 2 (USA)/Strider 2 (USA).bin"
+
 void WriteSocket(char * buffer, int len) {
 
 }
 
+#if 0
 // 22 nov 2005 
 #define	RTC_BASE	1132614024UL//1005782400UL
  
@@ -61,19 +68,20 @@ int gettimeofday(struct timeval * tp, void * tzp){
     
     return 0;
 }
+#endif
 
 void usleep(int s){
     udelay(s);
 }
 
-void main() {
-    xenos_init(VIDEO_MODE_AUTO);
+int main() {
     //console_init();
     xenon_make_it_faster(XENON_SPEED_FULL);
+    xenos_init(VIDEO_MODE_AUTO);
     usb_init();
     usb_do_poll();
-    xenon_ata_init();
-    dvd_init();
+//    xenon_ata_init();
+//    dvd_init();
 /*    
     struct timeval tt;
     gettimeofday(&tt,0);
@@ -94,9 +102,10 @@ void main() {
     
     Config.HLE = 0;
     Config.Xa = 0;  //XA enabled
-    Config.Cdda = 1;
+    Config.Cdda = 0;
     Config.PsxAuto = 1; //Autodetect
     Config.Cpu = CPU_DYNAREC;
+    // Config.Cpu = CPU_INTERPRETER;
     Config.SlowBoot = 0; // Active bios
     
     // write not implemented ....
@@ -110,7 +119,7 @@ void main() {
     
     if (SysInit() == -1) {
         printf("SysInit() Error!\n");
-        return 0;
+        return -1;
     }
 
     GPU_clearDynarec(clearDynarec);
@@ -155,5 +164,11 @@ void main() {
     SysPrintf("Execute\r\n");
 
     psxCpu->Execute();
+    
+    printf("Pcsx exit ...\r\n");
+    return 0;
+}
 
+void cpuReset(){
+   EmuReset();
 }

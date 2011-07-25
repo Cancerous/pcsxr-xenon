@@ -31,39 +31,46 @@ int Log = 0;
 FILE *emuLog = NULL;
 
 int EmuInit() {
-    return psxInit();
+	return psxInit();
 }
 
 void EmuReset() {
-    FreeCheatSearchResults();
-    FreeCheatSearchMem();
+	FreeCheatSearchResults();
+	FreeCheatSearchMem();
 
-    psxReset();
+	psxReset();
 }
 
 void EmuShutdown() {
-    ClearAllCheats();
-    FreeCheatSearchResults();
-    FreeCheatSearchMem();
+	ClearAllCheats();
+	FreeCheatSearchResults();
+	FreeCheatSearchMem();
 
-    FreePPFCache();
+	FreePPFCache();
 
-    psxShutdown();
+	psxShutdown();
 }
 
 void EmuUpdate() {
-    // Do not allow hotkeys inside a softcall from HLE BIOS
-    if (!Config.HLE || !hleSoftCall)
-        SysUpdate();
+	// Do not allow hotkeys inside a softcall from HLE BIOS
+	if (!Config.HLE || !hleSoftCall)
+		SysUpdate();
 
-    ApplyCheats();
+	ApplyCheats();
 }
 
 void __Log(char *fmt, ...) {
-    va_list list;
-    char tmp[1024];
-    va_start(list, fmt);
-    vsprintf(tmp, fmt, list);
-    SysPrintf(tmp);
-    va_end(list);
+	va_list list;
+#ifdef LOG_STDOUT
+	char tmp[1024];
+#endif
+
+	va_start(list, fmt);
+#ifndef LOG_STDOUT
+	vfprintf(emuLog, fmt, list);
+#else
+	vsprintf(tmp, fmt, list);
+	SysPrintf(tmp);
+#endif
+	va_end(list);
 }
