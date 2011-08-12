@@ -19,7 +19,6 @@
 #ifndef _pR3000A_H_
 #define _pR3000A_H_
  
-
 #include <malloc.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -28,20 +27,15 @@
 #include <time.h>
 #include <sys/types.h>
 
-#include "../PsxCommon.h"
+#include "psxcommon.h"
 #include "ppc.h"
 #include "reguse.h"
-#include "../R3000A.h"
-#include "../PsxHLE.h"
+#include "r3000A.h"
+#include "psxhle.h"
 
 /* defines */
-#ifdef HW_DOL
-#define RECMEM_SIZE		(6*1024*1024)
-#elif HW_RVL
 #define RECMEM_SIZE		(7*1024*1024)
-#else 
-#define RECMEM_SIZE		(10*1024*1024)
-#endif
+
 #define NUM_REGISTERS	34
 #undef _Op_
 #define _Op_     _fOp_(psxRegs.code)
@@ -118,7 +112,7 @@ enum {
     ARG2 = 4,
     ARG3 = 5,
     PSXREGS,	// ptr
-	 PSXMEM,		// ptr
+    PSXMEM,		// ptr
     CYCLECOUNT,	// ptr
     PSXPC,	// ptr
     TARGETPTR,	// ptr
