@@ -283,14 +283,11 @@ long CALLBACK CDR__play(unsigned char *sector) { return 0; }
 long CALLBACK CDR__stop(void) { return 0; }
 
 long CALLBACK CDR__getStatus(struct CdrStat *stat) {
-#if 0
-    if (cdOpenCaseTime < 0 || cdOpenCaseTime > (s64) time(NULL))
-        stat->Status = 0x10;
-    else
-        stat->Status = 0;
-#else
-    stat->Status = 0;
-#endif
+	if (cdOpenCaseTime < 0 || cdOpenCaseTime > (s64)time(NULL))
+		stat->Status = 0x10;
+	else
+		stat->Status = 0;
+
 	return 0;
 }
 

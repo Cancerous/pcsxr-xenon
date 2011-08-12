@@ -245,7 +245,7 @@ unsigned long timeGetTime_spu() {/*
  gettimeofday(&tv, 0);                                 // well, maybe there are better ways
  return tv.tv_sec * 1000 + tv.tv_usec/1000;            // to do that, but at least it works
   */
-    return mftb()/(PPC_TIMEBASE_FREQ/1000);
+    return mftb()/(PPC_TIMEBASE_FREQ/100000);
 }
 
 #endif

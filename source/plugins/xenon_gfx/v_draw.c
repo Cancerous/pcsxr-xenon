@@ -29,6 +29,7 @@
 
 #include <ppc/timebase.h>
 #include <time/time.h>
+#include <time.h>
 
 #include "draw_c_p_psu.h"
 #include "draw_t_p_psu.h"
@@ -43,6 +44,12 @@
 #include "interp.h"
 #include "swap.h"
 
+#define TR {printf("[Trace] in function %s, line %d, file %s\n",__FUNCTION__,__LINE__,__FILE__);}
+
+#ifndef MAX
+#define MAX(a,b)    (((a) > (b)) ? (a) : (b))
+#define MIN(a,b)    (((a) < (b)) ? (a) : (b))
+#endif
 
 // misc globals
 int iResX;
@@ -63,77 +70,55 @@ int iFVDisplay = 0;
 PSXPoint_t ptCursorPoint[8];
 unsigned short usCursorActive = 0;
 
-uint32_t      dwGPUVersion=0;
-int           iGPUHeight=512;
-int           iGPUHeightMask=511;
-int           GlobalTextIL=0;
-int           iTileCheat=0;
+uint32_t dwGPUVersion = 0;
+int iGPUHeight = 512;
+int iGPUHeightMask = 511;
+int GlobalTextIL = 0;
+int iTileCheat = 0;
 
-//unsigned int   LUT16to32[65536];
-//unsigned int   RGBtoYUV[65536];
 int finalw, finalh;
 
+unsigned char * psxScreen = NULL;
+struct XenosVertexBuffer *vb = NULL;
+struct XenosDevice * g_pVideoDevice = NULL;
+struct XenosShader * g_pVertexShader = NULL;
+struct XenosShader * g_pPixelTexturedShader = NULL;
+struct XenosSurface * g_pTexture = NULL;
+struct XenosSurface * fb = NULL;
+struct XenosDevice _xe;
 
 typedef struct DrawVerticeFormats {
     float x, y; //z/w remove it ...
     float u, v;
     unsigned int color;
 } DrawVerticeFormats;
+
 DrawVerticeFormats Rect[6];
 
-#include <time.h>
-////////////////////////////////////////////////////////////////////////
+int g_pPitch = 0;
+float texturesize[2];
 
-#ifndef MAX
-#define MAX(a,b)    (((a) > (b)) ? (a) : (b))
-#define MIN(a,b)    (((a) < (b)) ? (a) : (b))
-#endif
+enum {
+    UvBottom = 0,
+    UvTop,
+    UvLeft,
+    UvRight
+};
+/*
+float bottom = 0.0f;
+float top = 1.0f;
+float left = 1.0f;
+float right = 0.0f;
+ */
+float PsxScreenUv[4] = {0.f, 1.0f, 1.0f, 0.f};
 
-char * Xpixels;
-char * pCaptionText;
-
-unsigned char * psxScreen;
-struct XenosVertexBuffer *vb = NULL;
-
-
-static int fx = 0;
-
+float psxRealW = 1024.f;
+float psxRealH = 512.f;
 
 // close display
 
 void DestroyDisplay(void) {
 }
-
-static int depth = 0;
-int root_window_id = 0;
-
-struct XenosDevice * g_pVideoDevice;
-struct XenosShader * g_pVertexShader;
-struct XenosShader * g_pPixelTexturedShader;
-struct XenosSurface * g_pTexture = NULL;
-struct XenosSurface * fb;
-struct XenosDevice _xe;
-
-static void ShowFPS() {
-    /*
-    static unsigned long lastTick = 0;
-    static int frames=0,rendered_frames=0,frame_id=0;
-    unsigned long nowTick;
-    frame_id++;
-    frames++;
-    nowTick = mftb() / (PPC_TIMEBASE_FREQ / 1000);
-    if (lastTick + 1000 <= nowTick) {
-
-        printf("Real %d fps\r\n", frames);
-
-        frames = 0;
-        rendered_frames = 0;
-        lastTick = nowTick;
-    }
-     */
-}
-
-int g_pPitch = 0;
 
 void CreateTexture(int width, int height) {
     // Create display
@@ -141,17 +126,36 @@ void CreateTexture(int width, int height) {
     static int old_height = 0;
 
     if ((width != old_width) || (old_height != height)) {
-        printf("Old w:%d - h:%d\r\n", old_width, old_height);
-        printf("New w:%d - h:%d\r\n", width, height);
 
-        if (g_pTexture)
-            Xe_DestroyTexture(g_pVideoDevice, g_pTexture);
+        texturesize[0] = width;
+        texturesize[1] = height;
 
-        g_pTexture = Xe_CreateTexture(g_pVideoDevice, width, height, 1, XE_FMT_8888 | XE_FMT_ARGB, 0);
-        psxScreen = (unsigned char*) Xe_Surface_LockRect(g_pVideoDevice, g_pTexture, 0, 0, 0, 0, XE_LOCK_WRITE);
-        printf("g_pTexture w:%d - h:%d\r\n", g_pTexture->width, g_pTexture->height);
-        g_pPitch = g_pTexture->wpitch;
-        Xe_Surface_Unlock(g_pVideoDevice, g_pTexture);
+        //printf("Old w:%d - h:%d\r\n", old_width, old_height);
+        //printf("New w:%d - h:%d\r\n", width, height);
+
+        PsxScreenUv[UvTop] = (float) width / psxRealW;
+        PsxScreenUv[UvLeft] = (float) height / psxRealH;
+
+        // top left
+        Rect[0].u = PsxScreenUv[UvBottom];
+        Rect[0].v = PsxScreenUv[UvRight];
+
+        // bottom left
+        Rect[4].u = Rect[1].u = PsxScreenUv[UvBottom];
+        Rect[4].v = Rect[1].v = PsxScreenUv[UvLeft];
+
+        // top right
+        Rect[3].u = Rect[2].u = PsxScreenUv[UvTop];
+        Rect[3].v = Rect[2].v = PsxScreenUv[UvRight];
+
+        // bottom right
+        Rect[5].u = PsxScreenUv[UvTop];
+        Rect[5].v = PsxScreenUv[UvLeft];
+
+        vb = Xe_CreateVertexBuffer(g_pVideoDevice, 6 * sizeof (DrawVerticeFormats));
+        void *v = Xe_VB_Lock(g_pVideoDevice, vb, 0, 6 * sizeof (DrawVerticeFormats), XE_LOCK_WRITE);
+        memcpy(v, Rect, 6 * sizeof (DrawVerticeFormats));
+        Xe_VB_Unlock(g_pVideoDevice, vb);
 
         old_width = width;
         old_height = height;
@@ -159,8 +163,6 @@ void CreateTexture(int width, int height) {
 }
 
 void CreateDisplay(void) {
-
-    //xenos_init(VIDEO_MODE_AUTO);
     g_pVideoDevice = &_xe;
     Xe_Init(g_pVideoDevice);
     fb = Xe_GetFramebufferSurface(g_pVideoDevice);
@@ -175,6 +177,7 @@ void CreateDisplay(void) {
         }
     };
 
+
     g_pPixelTexturedShader = Xe_LoadShaderFromMemory(g_pVideoDevice, (void*) draw_t_p_psu);
     Xe_InstantiateShader(g_pVideoDevice, g_pPixelTexturedShader, 0);
 
@@ -182,16 +185,20 @@ void CreateDisplay(void) {
     Xe_InstantiateShader(g_pVideoDevice, g_pVertexShader, 0);
     Xe_ShaderApplyVFetchPatches(g_pVideoDevice, g_pVertexShader, 0, &vbf);
 
-    CreateTexture(640, 512);
-
     edram_init(g_pVideoDevice);
     
-    // Uv
-    float bottom = 0.0f;
-    float top = 1.0f;
-    float left = 1.0f;
-    float right = 0.0f;
+    // Create the psxScreen texture
+    if (g_pTexture)
+        Xe_DestroyTexture(g_pVideoDevice, g_pTexture);
 
+    g_pTexture = Xe_CreateTexture(g_pVideoDevice, psxRealW, psxRealH, 1, XE_FMT_8888 | XE_FMT_ARGB, 0);
+    psxScreen = (unsigned char*) Xe_Surface_LockRect(g_pVideoDevice, g_pTexture, 0, 0, 0, 0, XE_LOCK_WRITE);
+    g_pPitch = g_pTexture->wpitch;
+    Xe_Surface_Unlock(g_pVideoDevice, g_pTexture);
+
+    memset(psxScreen,0,1024*512*2);
+    
+    // move it to ini file
     float x = -1.0f;
     float y = -1.0f;
     float w = 2.0f;
@@ -200,49 +207,49 @@ void CreateDisplay(void) {
     // top left
     Rect[0].x = x;
     Rect[0].y = y + h;
-    Rect[0].u = bottom;
-    Rect[0].v = right;
+    Rect[0].u = PsxScreenUv[UvBottom];
+    Rect[0].v = PsxScreenUv[UvRight];
     Rect[0].color = 0;
 
     // bottom left
     Rect[1].x = x;
     Rect[1].y = y;
-    Rect[1].u = bottom;
-    Rect[1].v = left;
+    Rect[1].u = PsxScreenUv[UvBottom];
+    Rect[1].v = PsxScreenUv[UvLeft];
     Rect[1].color = 0;
 
     // top right
     Rect[2].x = x + w;
     Rect[2].y = y + h;
-    Rect[2].u = top;
-    Rect[2].v = right;
+    Rect[2].u = PsxScreenUv[UvTop];
+    Rect[2].v = PsxScreenUv[UvRight];
     Rect[2].color = 0xFF00FF00;
 
     // top right
     Rect[3].x = x + w;
     Rect[3].y = y + h;
-    Rect[3].u = top;
-    Rect[3].v = right;
+    Rect[3].u = PsxScreenUv[UvTop];
+    ;
+    Rect[3].v = PsxScreenUv[UvRight];
     Rect[3].color = 0;
 
     // bottom left
     Rect[4].x = x;
     Rect[4].y = y;
-    Rect[4].u = bottom;
-    Rect[4].v = left;
+    Rect[4].u = PsxScreenUv[UvBottom];
+    Rect[4].v = PsxScreenUv[UvLeft];
     Rect[4].color = 0;
 
     // bottom right
     Rect[5].x = x + w;
     Rect[5].y = y;
-    Rect[5].u = top;
-    Rect[5].v = left;
-    Rect[5].color = 0xFF00FF00;    
+    Rect[5].u = PsxScreenUv[UvTop];
+    Rect[5].v = PsxScreenUv[UvLeft];
+    Rect[5].color = 0xFF00FF00;
+
+    CreateTexture(psxRealW, psxRealH);
+
     
-    vb = Xe_CreateVertexBuffer(g_pVideoDevice, 6 * sizeof(DrawVerticeFormats));
-    void *v = Xe_VB_Lock(g_pVideoDevice, vb, 0, 6 *  sizeof(DrawVerticeFormats), XE_LOCK_WRITE);
-    memcpy(v, Rect, 6 * sizeof(DrawVerticeFormats));
-    Xe_VB_Unlock(g_pVideoDevice, vb);
 }
 
 #if 0
@@ -305,38 +312,40 @@ void BlitScreen32(unsigned char *surf, int32_t x, int32_t y) {
 }
 #else
 // Cout 4-5fps
-void BlitScreen32(unsigned char *surf, int32_t x, int32_t y) {  
-    unsigned char *pD;
+
+#define R(x)    ((x << 19) & 0xf80000) 
+#define B(x)    ((x << 6) & 0xf800) 
+#define G(x)    ((x >> 7) & 0xf8) 
+#define RGB(x)  (R(x)|B(x)|G(x))
+
+void BlitScreen32(unsigned char * surf, int32_t x, int32_t y) {
+    uint32_t * __restrict rdest = NULL;
+    uint32_t *destpix = NULL;
+    unsigned char *pD = NULL;
+
     unsigned int startxy;
     uint32_t lu;
-    uint32_t lu0,lu1,lu2,lu3,lu4,lu5,lu6,lu7;
     unsigned short s0, s1, s2, s3, s4, s5, s6, s7;
     uint32_t d0, d1, d2, d3, d4, d5, d6, d7;
-    uint32_t * __restrict rdest;
+
     unsigned short row, column;
     unsigned short dx = PreviousPSXDisplay.Range.x1;
     unsigned short dy = PreviousPSXDisplay.DisplayMode.y;
 
-    //int32_t lPitch = PSXDisplay.DisplayMode.x << 2;
-
-    int32_t lPitch = g_pPitch;
-
-    uint32_t *destpix;
-
     if (PreviousPSXDisplay.Range.y0) // centering needed?
     {
-        memset(surf, 0, (PreviousPSXDisplay.Range.y0 >> 1) * lPitch);
+        memset(surf, 0, (PreviousPSXDisplay.Range.y0 >> 1) * g_pPitch);
 
         dy -= PreviousPSXDisplay.Range.y0;
-        surf += (PreviousPSXDisplay.Range.y0 >> 1) * lPitch;
+        surf += (PreviousPSXDisplay.Range.y0 >> 1) * g_pPitch;
 
-        memset(surf + dy * lPitch,
-                0, ((PreviousPSXDisplay.Range.y0 + 1) >> 1) * lPitch);
+        memset(surf + dy * g_pPitch,
+                0, ((PreviousPSXDisplay.Range.y0 + 1) >> 1) * g_pPitch);
     }
 
     if (PreviousPSXDisplay.Range.x0) {
         for (column = 0; column < dy; column++) {
-            destpix = (uint32_t *) (surf + (column * lPitch));
+            destpix = (uint32_t *) (surf + (column * g_pPitch));
             memset(destpix, 0, PreviousPSXDisplay.Range.x0 << 2);
         }
         surf += PreviousPSXDisplay.Range.x0 << 2;
@@ -346,12 +355,12 @@ void BlitScreen32(unsigned char *surf, int32_t x, int32_t y) {
         for (column = 0; column < dy; column++) {
             startxy = ((1024) * (column + y)) + x;
             pD = (unsigned char *) &psxVuw[startxy];
-            destpix = (uint32_t *) (surf + (column * lPitch));
+            destpix = (uint32_t *) (surf + (column * g_pPitch));
             for (row = 0; row < dx; row++) {
-                
+
                 lu = *((uint32_t *) pD);
                 destpix[row] =
-                       0xff000000 | (RED(lu) << 16) | (GREEN(lu) << 8) | (BLUE(lu));
+                        0xff000000 | (RED(lu) << 16) | (GREEN(lu) << 8) | (BLUE(lu));
                 pD += 3;
 
             }
@@ -359,7 +368,7 @@ void BlitScreen32(unsigned char *surf, int32_t x, int32_t y) {
     } else {
         for (column = 0; column < dy; column++) {
             startxy = (1024 * (column + y)) + x;
-            destpix = (uint32_t *) (surf + (column * lPitch));
+            destpix = (uint32_t *) (surf + (column * g_pPitch));
 
             for (row = 0; row < dx; row += 8) {
                 rdest = &destpix[row];
@@ -373,14 +382,14 @@ void BlitScreen32(unsigned char *surf, int32_t x, int32_t y) {
                 s6 = GETLE16(&psxVuw[startxy++]);
                 s7 = GETLE16(&psxVuw[startxy++]);
 
-                d0 = (((s0 << 19) & 0xf80000) | ((s0 << 6) & 0xf800) | ((s0 >> 7) & 0xf8)) | 0xff000000;
-                d1 = (((s1 << 19) & 0xf80000) | ((s1 << 6) & 0xf800) | ((s1 >> 7) & 0xf8)) | 0xff000000;
-                d2 = (((s2 << 19) & 0xf80000) | ((s2 << 6) & 0xf800) | ((s2 >> 7) & 0xf8)) | 0xff000000;
-                d3 = (((s3 << 19) & 0xf80000) | ((s3 << 6) & 0xf800) | ((s3 >> 7) & 0xf8)) | 0xff000000;
-                d4 = (((s4 << 19) & 0xf80000) | ((s4 << 6) & 0xf800) | ((s4 >> 7) & 0xf8)) | 0xff000000;
-                d5 = (((s5 << 19) & 0xf80000) | ((s5 << 6) & 0xf800) | ((s5 >> 7) & 0xf8)) | 0xff000000;
-                d6 = (((s6 << 19) & 0xf80000) | ((s6 << 6) & 0xf800) | ((s6 >> 7) & 0xf8)) | 0xff000000;
-                d7 = (((s7 << 19) & 0xf80000) | ((s7 << 6) & 0xf800) | ((s7 >> 7) & 0xf8)) | 0xff000000;
+                d0 = RGB(s0) | 0xff000000;
+                d1 = RGB(s1) | 0xff000000;
+                d2 = RGB(s2) | 0xff000000;
+                d3 = RGB(s3) | 0xff000000;
+                d4 = RGB(s4) | 0xff000000;
+                d5 = RGB(s5) | 0xff000000;
+                d6 = RGB(s6) | 0xff000000;
+                d7 = RGB(s7) | 0xff000000;
 
                 rdest[0] = d0;
                 rdest[1] = d1;
@@ -396,11 +405,10 @@ void BlitScreen32(unsigned char *surf, int32_t x, int32_t y) {
 }
 #endif
 
-void ThBufferSwap(void){
-    
-}
-
 void DoBufferSwap(void) {
+    if(bDoVSyncUpdate==FALSE)
+        return;
+    
     //printf("DoBufferSwap\r\n");
     finalw = PSXDisplay.DisplayMode.x;
     finalh = PSXDisplay.DisplayMode.y;
@@ -408,11 +416,8 @@ void DoBufferSwap(void) {
     if (finalw == 0 || finalh == 0)
         return;
 
-    // Show fps
-    ShowFPS();
-
-    // Update texture size
     CreateTexture(finalw, finalh);
+
     BlitScreen32((unsigned char *) psxScreen, PSXDisplay.DisplayPosition.x, PSXDisplay.DisplayPosition.y);
 
     // refresh texture cache
@@ -425,51 +430,60 @@ void DoBufferSwap(void) {
     Xe_SetBlendOp(g_pVideoDevice, XE_BLENDOP_ADD);
     Xe_SetSrcBlend(g_pVideoDevice, XE_BLEND_SRCALPHA);
     Xe_SetDestBlend(g_pVideoDevice, XE_BLEND_INVSRCALPHA);
-    
+
     Xe_SetCullMode(g_pVideoDevice, XE_CULL_NONE);
     Xe_SetStreamSource(g_pVideoDevice, 0, vb, 0, sizeof (DrawVerticeFormats));
     Xe_SetTexture(g_pVideoDevice, 0, g_pTexture);
     Xe_SetShader(g_pVideoDevice, SHADER_TYPE_PIXEL, g_pPixelTexturedShader, 0);
     Xe_SetShader(g_pVideoDevice, SHADER_TYPE_VERTEX, g_pVertexShader, 0);
+
+    // set texture size
+    Xe_SetVertexShaderConstantF(g_pVideoDevice, 0, texturesize, 1);
+
     Xe_DrawPrimitive(g_pVideoDevice, XE_PRIMTYPE_TRIANGLELIST, 0, 2);
+
+    Xe_Resolve(g_pVideoDevice);
+    Xe_Sync(g_pVideoDevice);
+
+}
+
+void DoClearScreenBuffer(void) // CLEAR DX BUFFER
+{
+    memset(psxScreen,0,1024*512*2);
+    
+    Xe_InvalidateState(g_pVideoDevice);
+    Xe_SetClearColor(g_pVideoDevice, 0xFF000000);
 
     Xe_Resolve(g_pVideoDevice);
     Xe_Sync(g_pVideoDevice);
 }
 
-void DoClearScreenBuffer(void) // CLEAR DX BUFFER
-{
-
-}
-
 void DoClearFrontBuffer(void) // CLEAR DX BUFFER
 {
-}
+    memset(psxScreen,0,1024*512*2);
+    
+    Xe_InvalidateState(g_pVideoDevice);
+    Xe_SetClearColor(g_pVideoDevice, 0xFF000000);
 
-int Xinitialize() {
-    iDesktopCol = 32;
-
-    bUsingTWin = FALSE;
-
-    bIsFirstFrame = FALSE; // done
-
-    return 0;
-}
-
-void Xcleanup() // X CLEANUP
-{
+    Xe_Resolve(g_pVideoDevice);
+    Xe_Sync(g_pVideoDevice);
 }
 
 unsigned long ulInitDisplay(void) {
     CreateDisplay(); // x stuff
-    Xinitialize(); // init x
+    bUsingTWin = FALSE;
+    bIsFirstFrame = FALSE; // done
 
-    printf("ulInitDisplay !!\r\n");
+    Xe_InvalidateState(g_pVideoDevice);
+    Xe_SetClearColor(g_pVideoDevice, 0xFF000000);
+
+    Xe_Resolve(g_pVideoDevice);
+    Xe_Sync(g_pVideoDevice);
+
     return 100;
 }
 
 void CloseDisplay(void) {
-    Xcleanup(); // cleanup dx
     DestroyDisplay();
 }
 

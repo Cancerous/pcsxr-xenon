@@ -30,6 +30,7 @@
 #include "gpu.h"
 
 void ReadConfig(void) {
+    printf("ReadGpuConfig\r\n");
     // defaults
     iResX = 640;
     iResY = 480;
@@ -37,12 +38,12 @@ void ReadConfig(void) {
     iColDepth = 32;
     iWindowMode = 1;
     iMaintainAspect = 0;
-    UseFrameLimit = 0;
+    UseFrameLimit = 1;
     UseFrameSkip = 0;
     iFrameLimit = 2;
     fFrameRate = 200.0f;
-    dwCfgFixes = 0;
-    iUseFixes = 0;
+    dwCfgFixes = 0x401;
+    iUseFixes = 1;
     iUseNoStretchBlt = 0;
     iUseDither = 0;
     iShowFPS = 0;

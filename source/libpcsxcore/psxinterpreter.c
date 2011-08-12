@@ -416,10 +416,11 @@ __inline void doBranch(u32 tar) {
 	branch2 = branch = 1;
 	branchPC = tar;
 
+#ifndef LIBXENON        
 	// notaz: check for branch in delay slot
 	if (psxDelayBranchTest(tar))
 		return;
-
+#endif
 	// branch delay slot
 	code = Read_ICache(psxRegs.pc, TRUE);
 
@@ -647,6 +648,7 @@ void psxJALR() {
 #define _oB_ (_u32(_rRs_) + _Imm_)
 
 void psxLB() {
+#ifndef LIBXENON    
 	// load delay = 1 latency
 	if( branch == 0 )
 	{
@@ -656,7 +658,7 @@ void psxLB() {
 
 		return;
 	}
-
+#endif
 
 
 	if (_Rt_) {
@@ -667,6 +669,7 @@ void psxLB() {
 }
 
 void psxLBU() {
+#ifndef LIBXENON
 	// load delay = 1 latency
 	if( branch == 0 )
 	{
@@ -676,7 +679,7 @@ void psxLBU() {
 
 		return;
 	}
-
+#endif
 
 
 	if (_Rt_) {
@@ -687,6 +690,7 @@ void psxLBU() {
 }
 
 void psxLH() {
+#ifndef LIBXENON    
 	// load delay = 1 latency
 	if( branch == 0 )
 	{
@@ -696,7 +700,7 @@ void psxLH() {
 
 		return;
 	}
-
+#endif
 
 
 	if (_Rt_) {
@@ -707,6 +711,7 @@ void psxLH() {
 }
 
 void psxLHU() {
+#ifndef LIBXENON    
 	// load delay = 1 latency
 	if( branch == 0 )
 	{
@@ -716,7 +721,7 @@ void psxLHU() {
 
 		return;
 	}
-
+#endif
 
 
 	if (_Rt_) {
@@ -727,6 +732,7 @@ void psxLHU() {
 }
 
 void psxLW() {
+#ifndef LIBXENON    
 	// load delay = 1 latency
 	if( branch == 0 )
 	{
@@ -736,7 +742,7 @@ void psxLW() {
 
 		return;
 	}
-
+#endif
 
 
 	if (_Rt_) {
@@ -754,7 +760,7 @@ void psxLWL() {
 	u32 shift = addr & 3;
 	u32 mem = psxMemRead32(addr & ~3);
 
-
+#ifndef LIBXENON
 	// load delay = 1 latency
 	if( branch == 0 )
 	{
@@ -764,7 +770,7 @@ void psxLWL() {
 
 		return;
 	}
-
+#endif
 
 	if (!_Rt_) return;
 	_u32(_rRt_) =	( _u32(_rRt_) & LWL_MASK[shift]) | 
@@ -789,7 +795,7 @@ void psxLWR() {
 	u32 mem = psxMemRead32(addr & ~3);
 
 
-	
+#ifndef LIBXENON
 	// load delay = 1 latency
 	if( branch == 0 )
 	{
@@ -799,7 +805,7 @@ void psxLWR() {
 
 		return;
 	}
-
+#endif
 
 
 	if (!_Rt_) return;
@@ -867,6 +873,7 @@ void psxSWR() {
 *********************************************************/
 void psxMFC0()
 {
+#ifndef LIBXENON    
 	// load delay = 1 latency
 	if( branch == 0 )
 	{
@@ -876,7 +883,7 @@ void psxMFC0()
 
 		return;
 	}
-
+#endif
 
 	if (!_Rt_) return;
 	
@@ -885,6 +892,7 @@ void psxMFC0()
 
 void psxCFC0()
 {
+#ifndef LIBXENON    
 	// load delay = 1 latency
 	if( branch == 0 )
 	{
@@ -894,7 +902,7 @@ void psxCFC0()
 
 		return;
 	}
-
+#endif
 
 	if (!_Rt_) return;
 	
@@ -936,6 +944,7 @@ void psxCTC0() { MTC0(_Rd_, _u32(_rRt_)); }
 
 void psxMFC2()
 {
+#ifndef LIBXENON   
 	// load delay = 1 latency
 	if( branch == 0 )
 	{
@@ -945,13 +954,14 @@ void psxMFC2()
 
 		return;
 	}
-
+#endif
 	gteMFC2();
 }
 
 
 void psxCFC2()
 {
+#ifndef LIBXENON
 	// load delay = 1 latency
 	if( branch == 0 )
 	{
@@ -961,7 +971,7 @@ void psxCFC2()
 
 		return;
 	}
-
+#endif
 	gteCFC2();
 }
 

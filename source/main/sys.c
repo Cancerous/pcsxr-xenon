@@ -4,11 +4,20 @@
 #include "debug.h"
 #include "sio.h"
 #include "misc.h"
-#include "cheat.h"
+//#include "cheat.h"
+
+//#ifndef PCSXDF
+#if 1
+#define lpctr const char
+#else
+#define lpctr char
+//int cdOpenCase = 0;
+int NetOpened = 0;
+long LoadCdBios = 0;
+#endif
 
 #include "gamecube_plugins.h"
-PluginTable plugins[] =
-{ 
+PluginTable plugins[] ={
     PLUGIN_SLOT_0,
     PLUGIN_SLOT_1,
     PLUGIN_SLOT_2,
@@ -16,12 +25,15 @@ PluginTable plugins[] =
     PLUGIN_SLOT_4,
     PLUGIN_SLOT_5,
     PLUGIN_SLOT_6,
-    PLUGIN_SLOT_7 
+    PLUGIN_SLOT_7
 };
 
 int SysInit() {
+#ifndef PCSXDF
     if (EmuInit() == -1) return -1;
-
+#else
+    if (psxInit() == -1) return -1;
+#endif
 
     LoadMcds(Config.Mcd1, Config.Mcd2);
 
@@ -29,15 +41,21 @@ int SysInit() {
 }
 
 void SysReset() {
+#ifndef PCSXDF
     EmuReset();
+#else
+
+#endif
 }
 
 void SysClose() {
+#ifndef PCSXDF
     EmuShutdown();
+#endif
     ReleasePlugins();
 }
 
-void SysPrintf(const char *fmt, ...) {
+void SysPrintf(lpctr *fmt, ...) {
     va_list list;
     char msg[512];
 
@@ -45,11 +63,11 @@ void SysPrintf(const char *fmt, ...) {
     vsprintf(msg, fmt, list);
     va_end(list);
 
-    printf("PCSX: %s\r\n",msg);
+    printf("PCSX: %s\r\n", msg);
 
 }
 
-void SysMessage(const char *fmt, ...) {
+void SysMessage(lpctr *fmt, ...) {
     va_list list;
     char tmp[512];
 
@@ -62,8 +80,8 @@ void SysMessage(const char *fmt, ...) {
 static char *err = N_("Error Loading Symbol");
 static int errval;
 
-void *SysLoadLibrary(const char *lib) {
-    printf("SysLoadLibrary : %s\r\n",lib);
+void *SysLoadLibrary(lpctr *lib) {
+    //printf("SysLoadLibrary : %s\r\n",lib);
     int i;
     for (i = 0; i < NUM_PLUGINS; i++)
         if ((plugins[i].lib != NULL) && (!strcmp(lib, plugins[i].lib)))
@@ -71,17 +89,16 @@ void *SysLoadLibrary(const char *lib) {
     return NULL;
 }
 
-void *SysLoadSym(void *lib, const char *sym) {
-//    printf("SysLoadSym : %s\r\n",sym);
+void *SysLoadSym(void *lib, lpctr *sym) {
+    //printf("SysLoadSym : %s\r\n",sym);
     PluginTable* plugin = plugins + (int) lib;
     int i;
     for (i = 0; i < plugin->numSyms; i++)
-        if (plugin->syms[i].sym && !strcmp(sym, plugin->syms[i].sym))
-        {
-             printf("SysLoadSym : %s -> %p\r\n",sym,plugin->syms[i].pntr);
+        if (plugin->syms[i].sym && !strcmp(sym, plugin->syms[i].sym)) {
+            //printf("SysLoadSym : %s -> %p\r\n",sym,plugin->syms[i].pntr);
             return plugin->syms[i].pntr;
         }
-    printf("SysLoadSym : %s not found\r\n",sym);
+    //printf("SysLoadSym : %s not found\r\n",sym);
     return NULL;
 }
 

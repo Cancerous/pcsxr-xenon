@@ -36,10 +36,12 @@ void PEOPS_SPUsetConfigFile(char * pCfg) {
 /////////////////////////////////////////////////////////
 
 void ReadConfig(void) {
-    iVolume = 2;
+    printf("ReadSpuConfig\r\n");
+    
+    iVolume = 1;
     iXAPitch = 0;
-    iSPUIRQWait = 1;
-    iUseTimer = 2;
+    iSPUIRQWait = 0;
+    iUseTimer = 2;// USE THREAD
     iUseReverb = 2;
     iUseInterpolation = 2;
     iDisStereo = 0;

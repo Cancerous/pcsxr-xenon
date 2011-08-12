@@ -72,7 +72,7 @@ unsigned char * pMixIrq = 0;
 
 // user settings
 
-int iVolume = 3;
+int iVolume = 2;
 int iXAPitch = 1;
 int iUseTimer = 2;
 int iSPUIRQWait = 1;
@@ -1179,6 +1179,7 @@ void CALLBACK SPUplayCDDAchannel(short *pcm, int nbytes) {
 }
 
 // SETUPTIMER: init of certain buffers and threads/timers
+static unsigned char thread_stack[0x10000];
 
 void SetupTimer(void) {
     memset(SSumR, 0, NSSIZE * sizeof (int)); // init some mixing buffers
@@ -1215,6 +1216,12 @@ void SetupTimer(void) {
     }
 
 #endif
+#else
+    if (!iUseTimer) // linux: use thread
+    {
+        //pthread_create(&thread, NULL, MAINThread, NULL);
+        xenon_run_thread_task(2, &thread_stack[sizeof (thread_stack) - 0x100], MAINThread);
+    }
 #endif
 }
 
@@ -1249,6 +1256,15 @@ void RemoveTimer(void) {
     }
 
 #endif
+#else
+    if (!iUseTimer) // linux tread?
+    {
+        int i = 0;
+        while (!bThreadEnded && i < 2000) {
+            usleep(1000L);
+            i++;
+        } // -> wait until thread has ended
+    }
 #endif
     bThreadEnded = 0; // no more spu is running
     bSpuInit = 0;

@@ -26,3 +26,7 @@
 #ifndef inline
 #define inline __inline__
 #endif
+
+#define ALIGNED_128 __attribute__((aligned(128)))
+#define ALIGNED_32 __attribute__((aligned(32)))
+#define ALIGNED ALIGNED_128

@@ -394,3 +394,35 @@ extern int           GlobalTextIL;
 extern int           iTileCheat;
 
 #endif
+
+
+#ifdef _IN_TEXTURE
+typedef struct OGLVertexTag 
+{
+ GLfloat x;
+ GLfloat y;
+ GLfloat z;
+
+ GLfloat sow;
+ GLfloat tow;
+
+ union COLTAG
+  {
+   unsigned char col[4];
+   unsigned int lcol;
+  } c;
+} OGLVertex;
+
+typedef union EXShortTag
+{
+ unsigned char  c[2];
+ unsigned short s;
+} EXShort;
+
+typedef union EXLongTag
+{
+ unsigned char c[4];
+ unsigned int  l;
+ EXShort       s[2];
+} EXLong;
+#endif

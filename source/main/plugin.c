@@ -78,7 +78,7 @@ int _OpenPlugins() {
         SysMessage(_("Error Opening GPU Plugin (%d)"), ret);
         return -1;
     }
-    GPU_registerCallback(GPUbusy);
+    //GPU_registerCallback(GPUbusy);
     ret = SPU_open();
     if (ret < 0) {
         SysMessage(_("Error Opening SPU Plugin (%d)"), ret);
@@ -90,15 +90,15 @@ int _OpenPlugins() {
         SysMessage(_("Error Opening PAD1 Plugin (%d)"), ret);
         return -1;
     }
-    PAD1_registerVibration(GPU_visualVibration);
-    PAD1_registerCursor(GPU_cursor);
+    //PAD1_registerVibration(GPU_visualVibration);
+    //PAD1_registerCursor(GPU_cursor);
     ret = PAD2_open(NULL);
     if (ret < 0) {
         SysMessage(_("Error Opening PAD2 Plugin (%d)"), ret);
         return -1;
     }
-    PAD2_registerVibration(GPU_visualVibration);
-    PAD2_registerCursor(GPU_cursor);
+    //PAD2_registerVibration(GPU_visualVibration);
+    //PAD2_registerCursor(GPU_cursor);
 
     return 0;
 }

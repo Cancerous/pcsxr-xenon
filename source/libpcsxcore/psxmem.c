@@ -65,8 +65,12 @@ int psxMemInit() {
 	memset(psxMemRLUT, 0, 0x10000 * sizeof(void *));
 	memset(psxMemWLUT, 0, 0x10000 * sizeof(void *));
 
-	psxM = (s8 *)malloc(0x00220000);
-
+#ifndef LIBXENON
+	psxM = mmap(0, 0x00220000,
+		PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+#else
+        psxM = malloc(0x00220000);
+#endif
 	psxP = &psxM[0x200000];
 	psxH = &psxM[0x210000];
 
@@ -129,7 +133,11 @@ void psxMemReset() {
 }
 
 void psxMemShutdown() {
-	free(psxM);
+#ifndef LIBXENON
+	munmap(psxM, 0x00220000);
+#else
+        free(psxM);
+#endif
 	free(psxR);
 	free(psxMemRLUT);
 	free(psxMemWLUT);

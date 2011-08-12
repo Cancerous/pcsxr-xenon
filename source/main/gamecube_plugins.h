@@ -45,6 +45,11 @@ extern long PAD__open(void);
 extern long PAD__close(void);
 extern long PAD__readPort1(PadDataS*);
 extern long PAD__readPort2(PadDataS*);
+long PAD__query(void);
+void PAD__registerVibration(void (*callback)(unsigned long, unsigned long));
+unsigned char PAD__poll(unsigned char value);
+unsigned char PAD__startPoll(int pad);
+void PAD__setMode(const int pad, const int mode);
 
 /* SPU NULL */
 //typedef long (* SPUopen)(void);
@@ -138,15 +143,68 @@ long PEOPS_GPUfreeze(unsigned long,GPUFreeze_t *);
 void PEOPS_GPUvBlank(int val);
 void PEOPS_GPUvisualVibration(uint32_t iSmall, uint32_t iBig);
 void PEOPS_GPUmakeSnapshot(void);
-
+void PEOPS_GPUcursor(int iPlayer, int x, int y);
 #define EMPTY_PLUGIN \
 	{ NULL,      \
 	  0,         \
 	  { { NULL,  \
 	      NULL }, } }
-	      
+#if 0
 #define PAD1_PLUGIN \
+
 	{ "/PAD1",      \
+	  10,         \
+	  { { "PADinit",  \
+	      PAD__init }, \
+	    { "PADshutdown",	\
+	      PAD__shutdown}, \
+	    { "PADopen", \
+	      PAD__open}, \
+	    { "PADclose", \
+	      PAD__close}, \
+            { "PADquery", \
+	      PAD__query}, \
+            { "PADpoll", \
+	      PAD__poll}, \
+            { "PADstartPoll", \
+	      PAD__startPoll}, \
+            { "PADsetMode", \
+	      PAD__setMode}, \
+            { "PADregisterVibration", \
+	      PAD__registerVibration}, \
+	    { "PADreadPort1", \
+	      PAD__readPort1} \
+           } \
+        } 
+	    
+#define PAD2_PLUGIN \
+	{ "/PAD2",      \
+	  10,         \
+	  { { "PADinit",  \
+	      PAD__init }, \
+	    { "PADshutdown",	\
+	      PAD__shutdown}, \
+	    { "PADopen", \
+	      PAD__open}, \
+	    { "PADclose", \
+	      PAD__close}, \
+            { "PADquery", \
+	      PAD__query}, \
+            { "PADpoll", \
+	      PAD__poll}, \
+            { "PADstartPoll", \
+	      PAD__startPoll}, \
+            { "PADsetMode", \
+	      PAD__setMode}, \
+            { "PADregisterVibration", \
+	      PAD__registerVibration}, \
+	    { "PADreadPort2", \
+	      PAD__readPort2} \
+           } \
+        }
+#else
+#define PAD1_PLUGIN \
+        { "/PAD1",      \
 	  5,         \
 	  { { "PADinit",  \
 	      PAD__init }, \
@@ -158,7 +216,8 @@ void PEOPS_GPUmakeSnapshot(void);
 	      PAD__close}, \
 	    { "PADreadPort1", \
 	      PAD__readPort1} \
-	       } } 
+           } \
+        } 
 	    
 #define PAD2_PLUGIN \
 	{ "/PAD2",      \
@@ -171,10 +230,11 @@ void PEOPS_GPUmakeSnapshot(void);
 	      PAD__open}, \
 	    { "PADclose", \
 	      PAD__close}, \
-	    { "PADreadPort2", \
+            { "PADreadPort2", \
 	      PAD__readPort2} \
-	       } }
-
+           } \
+        }
+#endif
 #define CDR_PLUGIN \
 	{ "/CDR",      \
 	  9,         \
@@ -304,10 +364,10 @@ void PEOPS_GPUmakeSnapshot(void);
 	    { "GPUupdateLace", \
 	      GPU__updateLace} \
 	       } }
-
+#if 0
 #define GPU_PEOPS_PLUGIN \
 	{ "/GPU",      \
-	  17,         \
+	  18,         \
 	  { { "GPUinit",  \
 	      PEOPS_GPUinit }, \
 	    { "GPUshutdown",	\
@@ -340,15 +400,56 @@ void PEOPS_GPUmakeSnapshot(void);
 	      PEOPS_GPUvBlank}, \
             { "GPUvisualVibration", \
 	      PEOPS_GPUvisualVibration}, \
+            { "GPUcursor", \
+	      PEOPS_GPUcursor}, \
 	    { "GPUupdateLace", \
 	      PEOPS_GPUupdateLace} \
 	       } }
-
+#else
+#define GPU_PEOPS_PLUGIN \
+	{ "/GPU",      \
+	  17,         \
+	  { { "GPUinit",  \
+	      PEOPS_GPUinit }, \
+	    { "GPUshutdown",	\
+	      PEOPS_GPUshutdown}, \
+	    { "GPUopen", \
+	      PEOPS_GPUopen}, \
+	    { "GPUclose", \
+	      PEOPS_GPUclose}, \
+	    { "GPUwriteStatus", \
+	      PEOPS_GPUwriteStatus}, \
+	    { "GPUwriteData", \
+	      PEOPS_GPUwriteData}, \
+	    { "GPUwriteDataMem", \
+	      PEOPS_GPUwriteDataMem}, \
+	    { "GPUreadStatus", \
+	      PEOPS_GPUreadStatus}, \
+	    { "GPUreadData", \
+	      PEOPS_GPUreadData}, \
+	    { "GPUreadDataMem", \
+	      PEOPS_GPUreadDataMem}, \
+	    { "GPUdmaChain", \
+	      PEOPS_GPUdmaChain}, \
+	    { "GPUdisplayText", \
+	      PEOPS_GPUdisplayText}, \
+	    { "GPUfreeze", \
+	      PEOPS_GPUfreeze}, \
+            { "GPUmakeSnapshot", \
+	      PEOPS_GPUmakeSnapshot}, \
+            { "GPUvisualVibration", \
+	      PEOPS_GPUvisualVibration}, \
+            { "GPUcursor", \
+	      PEOPS_GPUcursor}, \
+	    { "GPUupdateLace", \
+	      PEOPS_GPUupdateLace} \
+	       } }
+#endif
 #define PLUGIN_SLOT_0 EMPTY_PLUGIN
 #define PLUGIN_SLOT_1 PAD1_PLUGIN
 #define PLUGIN_SLOT_2 PAD2_PLUGIN
-//#define PLUGIN_SLOT_3 CDR_PLUGIN
 #define PLUGIN_SLOT_3 EMPTY_PLUGIN
+//#define PLUGIN_SLOT_3 EMPTY_PLUGIN
 //#define PLUGIN_SLOT_4 SPU_NULL_PLUGIN
 #define PLUGIN_SLOT_4 SPU_PEOPS_PLUGIN
 //#define PLUGIN_SLOT_5 GPU_NULL_PLUGIN

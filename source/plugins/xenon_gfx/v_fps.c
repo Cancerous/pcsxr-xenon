@@ -38,6 +38,8 @@ float fps_cur = 0;
 unsigned long          ulKeybits=0;
 #define MAXLACE 16
 
+#if 1
+
 void CheckFrameRate(void) {
     if (UseFrameSkip) // skipping mode?
     {
@@ -65,8 +67,8 @@ unsigned long timeGetTime() {
     struct timeval tv;
     gettimeofday(&tv, 0); // well, maybe there are better ways
     return tv.tv_sec * 100000 + tv.tv_usec / 10; // to do that, but at least it works
-     */
-    return mftb()/(PPC_TIMEBASE_FREQ/1000);
+*/
+    return mftb()/(PPC_TIMEBASE_FREQ/100000);
 }
 
 void FrameCap(void) {
@@ -326,3 +328,56 @@ void InitFPS(void) {
     if (fFrameRateHz == 0) fFrameRateHz = fFrameRate; // set user framerate
     dwFrameRateTicks = (TIMEBASE / (unsigned long) fFrameRateHz);
 }
+#else
+
+#define TIMEBASE 100000
+
+unsigned long timeGetTime() {
+    /*
+    struct timeval tv;
+    gettimeofday(&tv, 0); // well, maybe there are better ways
+    return tv.tv_sec * 100000 + tv.tv_usec / 10; // to do that, but at least it works
+*/
+    return mftb() / (PPC_TIMEBASE_FREQ / TIMEBASE);
+}
+
+unsigned long time_get_time() {
+    return timeGetTime();
+}
+
+void frame_cap(int fps) {
+    static unsigned int last_time = 0;
+    unsigned int c = time_get_time();
+
+    if (!fps) {
+        last_time = c;
+        return;
+    }
+
+    if (last_time + (TIMEBASE / fps) < c) {
+        last_time = c;
+        return;
+    }
+
+    while (last_time + (TIMEBASE / fps) - 20 > c) {
+        usleep(((TIMEBASE / fps) - 20 - (c - last_time)) * 10);
+        c = time_get_time();
+    }
+
+    last_time = c;
+
+}
+
+void compute_fps() {
+    static int count = 0;
+    static unsigned int last_time = 0;
+    unsigned int c = time_get_time();
+    ++count;
+    if ((c - last_time) > TIMEBASE) {
+        g_draw.fps = ((double) count) / ((double) (c - last_time)) * TIMEBASE;
+        count = 0;
+        last_time = c;
+    }
+}
+
+#endif

@@ -52,14 +52,14 @@
 // PPDK developer must change libraryName field and can change revision and build
 ////////////////////////////////////////////////////////////////////////
 
-const unsigned char version = 1; // do not touch - library for PSEmu 1.x
-const unsigned char revision = 1;
-const unsigned char build = 17; // increase that with each version
+static const unsigned char version = 1; // do not touch - library for PSEmu 1.x
+static const unsigned char revision = 1;
+static const unsigned char build = 17; // increase that with each version
 
 static char *libraryName = N_("XVideo Driver");
 static char *libraryInfo = N_("P.E.Op.S. Xvideo Driver V1.17\nCoded by Pete Bernert and the P.E.Op.S. team\n");
 
-static char *PluginAuthor = N_("Pete Bernert and the P.E.Op.S. team");
+#define TR {printf("[Trace] in function %s, line %d, file %s\n",__FUNCTION__,__LINE__,__FILE__);}
 
 ////////////////////////////////////////////////////////////////////////
 // memory image of the PSX vram
@@ -111,33 +111,13 @@ uint32_t vBlank = 0;
 int iRumbleVal = 0;
 int iRumbleTime = 0;
 
-// Linux: Stub the functions
-
-BOOL LoadKernel32(void) {
-    return TRUE;
-}
-
-BOOL FreeKernel32(void) {
-    return TRUE;
-}
-
 
 ////////////////////////////////////////////////////////////////////////
 // some misc external display funcs
 ////////////////////////////////////////////////////////////////////////
-
-#include <time.h>
-time_t tStart;
-
 void CALLBACK GPUdisplayText(char * pText) // some debug func
 {
-    if (!pText) {
-        szDebugText[0] = 0;
-        return;
-    }
-    if (strlen(pText) > 511) return;
-    time(&tStart);
-    strcpy(szDebugText, pText);
+    printf(pText);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -173,163 +153,11 @@ char * GPUgetLibInfos(void) {
 ////////////////////////////////////////////////////////////////////////
 
 char * pGetConfigInfos(int iCfg) {
-    char szO[2][4] = {"off", "on "};
-    char szTxt[256];
-    char * pB = (char *) malloc(32767);
-
-    if (!pB) return NULL;
-    *pB = 0;
-    //----------------------------------------------------//
-    sprintf(szTxt, "Plugin: %s %d.%d.%d\r\n", libraryName, version, revision, build);
-    strcat(pB, szTxt);
-    sprintf(szTxt, "Author: %s\r\n\r\n", PluginAuthor);
-    strcat(pB, szTxt);
-    //----------------------------------------------------//
-    if (iCfg && iWindowMode)
-        sprintf(szTxt, "Resolution/Color:\r\n- %dx%d ", LOWORD(iWinSize), HIWORD(iWinSize));
-    else
-        sprintf(szTxt, "Resolution/Color:\r\n- %dx%d ", iResX, iResY);
-    strcat(pB, szTxt);
-    if (iWindowMode && iCfg)
-        strcpy(szTxt, "Window mode\r\n");
-    else
-        if (iWindowMode)
-        sprintf(szTxt, "Window mode - [%d Bit]\r\n", iDesktopCol);
-    else
-        sprintf(szTxt, "Fullscreen - [%d Bit]\r\n", iColDepth);
-    strcat(pB, szTxt);
-
-    sprintf(szTxt, "Stretch mode: %d\r\n", iUseNoStretchBlt);
-    strcat(pB, szTxt);
-    sprintf(szTxt, "Dither mode: %d\r\n\r\n", iUseDither);
-    strcat(pB, szTxt);
-    //----------------------------------------------------//
-    sprintf(szTxt, "Framerate:\r\n- FPS limit: %s\r\n", szO[UseFrameLimit]);
-    strcat(pB, szTxt);
-    sprintf(szTxt, "- Frame skipping: %s", szO[UseFrameSkip]);
-    strcat(pB, szTxt);
-    if (iFastFwd) strcat(pB, " (fast forward)");
-    strcat(pB, "\r\n");
-    if (iFrameLimit == 2)
-        strcpy(szTxt, "- FPS limit: Auto\r\n\r\n");
-    else sprintf(szTxt, "- FPS limit: %.1f\r\n\r\n", fFrameRate);
-    strcat(pB, szTxt);
-    //----------------------------------------------------//
-#if !defined (_MACGL) && !defined (_WINDOWS)
-    strcpy(szTxt, "Misc:\r\n- MaintainAspect: ");
-    if (iMaintainAspect == 0) strcat(szTxt, "disabled");
-    else
-        if (iMaintainAspect == 1) strcat(szTxt, "enabled");
-    strcat(szTxt, "\r\n");
-    strcat(pB, szTxt);
-#endif
-    sprintf(szTxt, "- Game fixes: %s [%08x]\r\n", szO[iUseFixes], dwCfgFixes);
-    strcat(pB, szTxt);
-    //----------------------------------------------------//
-    return pB;
-}
-
-static void DoTextSnapShot(int iNum) {
-    FILE *txtfile;
-    char szTxt[256];
-    char *pB;
-
-#ifdef _WINDOWS
-    sprintf(szTxt, "snap\\pcsxr%04d.txt", iNum);
-#else
-    sprintf(szTxt, "%s/pcsxr%04d.txt", getenv("HOME"), iNum);
-#endif
-
-    if ((txtfile = fopen(szTxt, "wb")) == NULL)
-        return;
-
-    pB = pGetConfigInfos(0);
-    if (pB) {
-        fwrite(pB, strlen(pB), 1, txtfile);
-        free(pB);
-    }
-    fclose(txtfile);
+    return NULL;
 }
 
 void CALLBACK GPUmakeSnapshot(void) {
-    FILE *bmpfile;
-    char filename[256];
-    unsigned char header[0x36];
-    long size, height;
-    unsigned char line[1024 * 3];
-    short i, j;
-    unsigned char empty[2] = {0, 0};
-    unsigned short color;
-    unsigned long snapshotnr = 0;
-    unsigned char *pD;
-
-    height = PreviousPSXDisplay.DisplayMode.y;
-
-    size = height * PreviousPSXDisplay.Range.x1 * 3 + 0x38;
-
-    // fill in proper values for BMP
-
-    // hardcoded BMP header
-    memset(header, 0, 0x36);
-    header[0] = 'B';
-    header[1] = 'M';
-    header[2] = size & 0xff;
-    header[3] = (size >> 8) & 0xff;
-    header[4] = (size >> 16) & 0xff;
-    header[5] = (size >> 24) & 0xff;
-    header[0x0a] = 0x36;
-    header[0x0e] = 0x28;
-    header[0x12] = PreviousPSXDisplay.Range.x1 % 256;
-    header[0x13] = PreviousPSXDisplay.Range.x1 / 256;
-    header[0x16] = height % 256;
-    header[0x17] = height / 256;
-    header[0x1a] = 0x01;
-    header[0x1c] = 0x18;
-    header[0x26] = 0x12;
-    header[0x27] = 0x0B;
-    header[0x2A] = 0x12;
-    header[0x2B] = 0x0B;
-
-    // increment snapshot value & try to get filename
-    do {
-        snapshotnr++;
-        sprintf(filename, "uda:/pcsxr%04ld.bmp", snapshotnr);
-
-        bmpfile = fopen(filename, "rb");
-        if (bmpfile == NULL)
-            break;
-
-        fclose(bmpfile);
-    } while (TRUE);
-
-    // try opening new snapshot file
-    if ((bmpfile = fopen(filename, "wb")) == NULL)
-        return;
-
-    fwrite(header, 0x36, 1, bmpfile);
-    for (i = height + PSXDisplay.DisplayPosition.y - 1; i >= PSXDisplay.DisplayPosition.y; i--) {
-        pD = (unsigned char *) &psxVuw[i * 1024 + PSXDisplay.DisplayPosition.x];
-        for (j = 0; j < PreviousPSXDisplay.Range.x1; j++) {
-            if (PSXDisplay.RGB24) {
-                uint32_t lu = *(uint32_t *) pD;
-                line[j * 3 + 2] = (unsigned char) RED(lu);
-                line[j * 3 + 1] = (unsigned char) GREEN(lu);
-                line[j * 3 + 0] = (unsigned char) BLUE(lu);
-                pD += 3;
-            } else {
-                color = GETLE16(pD);
-                line[j * 3 + 2] = (color << 3) & 0xf1;
-                line[j * 3 + 1] = (color >> 2) & 0xf1;
-                line[j * 3 + 0] = (color >> 7) & 0xf1;
-                pD += 2;
-            }
-        }
-        fwrite(line, PreviousPSXDisplay.Range.x1 * 3, 1, bmpfile);
-    }
-    fwrite(empty, 0x2, 1, bmpfile);
-    fclose(bmpfile);
-
-    DoTextSnapShot(snapshotnr);
+    
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -342,7 +170,8 @@ long CALLBACK GPUinit() // GPU INIT
 
     szDebugText[0] = 0; // init debug text buffer
 
-    psxVSecure = (unsigned char *) malloc((iGPUHeight * 2)*1024 + (1024 * 1024)); // always alloc one extra MB for soft drawing funcs security
+    //psxVSecure = (unsigned char *) malloc((iGPUHeight * 2)*1024 + (1024 * 1024)); // always alloc one extra MB for soft drawing funcs security
+    psxVSecure = (unsigned char *) memalign(128,(iGPUHeight * 2)*1024 + (1024 * 1024)); // always alloc one extra MB for soft drawing funcs security
     if (!psxVSecure)
         return -1;
 
@@ -392,9 +221,6 @@ long CALLBACK GPUinit() // GPU INIT
     bDoVSyncUpdate = TRUE;
     vBlank = 0;
 
-    // Get a handle for kernel32.dll, and access the required export function
-    LoadKernel32();
-
     return 0;
 }
 
@@ -403,10 +229,6 @@ long CALLBACK GPUinit() // GPU INIT
 ////////////////////////////////////////////////////////////////////////
 
 long GPUopen(unsigned long * disp, char * CapText, char * CfgFile) {
-    unsigned long d;
-
-    pCaptionText = CapText;
-
     ReadConfig(); // read registry
 
     InitFPS();
@@ -415,7 +237,7 @@ long GPUopen(unsigned long * disp, char * CapText, char * CfgFile) {
     bDoVSyncUpdate = TRUE;
 
     ulInitDisplay(); // setup x
-    
+
     return 0;
 }
 
@@ -672,38 +494,38 @@ void CALLBACK GPUcursor(int iPlayer, int x, int y) {
     ptCursorPoint[iPlayer].y = y;
 }
 
-////////////////////////////////////////////////////////////////////////
-// update lace is called evry VSync
-////////////////////////////////////////////////////////////////////////
-static void ShowFPS(){
+static void ShowFPS() {
     static unsigned long lastTick = 0;
-    static int frames=0,rendered_frames=0,frame_id=0;
+    static int frames = 0;
     unsigned long nowTick;
-    frame_id++;
     frames++;
     nowTick = mftb() / (PPC_TIMEBASE_FREQ / 1000);
     if (lastTick + 1000 <= nowTick) {
 
-        printf("PSX GPU %d fps\r\n", frames);
+        printf("GPUupdateLace %d fps\r\n", frames);
 
         frames = 0;
-        rendered_frames = 0;
         lastTick = nowTick;
     }
 }
+
+////////////////////////////////////////////////////////////////////////
+// update lace is called evry VSync
+////////////////////////////////////////////////////////////////////////
+
 void CALLBACK GPUupdateLace(void) // VSYNC
 {
+    ShowFPS();
+    /*
     if(!(dwActFixes&1))
         lGPUstatusRet^=0x80000000;                           // odd/even bit
-
-    ShowFPS();
-  
+     */
     if (!(dwActFixes & 32)) // std fps limitation?
         CheckFrameRate();
 
     if (PSXDisplay.Interlaced) // interlaced mode?
     {
-        lGPUstatusRet ^= 0x80000000;
+        lGPUstatusRet ^= 0x80000000; //fix for some games ...
         if (bDoVSyncUpdate && PSXDisplay.DisplayMode.x > 0 && PSXDisplay.DisplayMode.y > 0) {
             updateDisplay();
         }
@@ -743,14 +565,17 @@ uint32_t CALLBACK GPUreadStatus(void) // READ STATUS
 
         if (iFakePrimBusy & 1) // we do a busy-idle-busy-idle sequence after/while drawing prims
         {
+            //TR;
             GPUIsBusy;
             GPUIsNotReadyForCommands;
         } else {
             GPUIsIdle;
+            //TR;
             GPUIsReadyForCommands;
         }
     }
     return lGPUstatusRet | (vBlank ? 0x80000000 : 0);
+
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1286,7 +1111,7 @@ ENDVRAM:
 
             if (gpuDataP == gpuDataC) {
                 gpuDataC = gpuDataP = 0;
-                
+
                 primFunc[gpuCommand]((unsigned char *) gpuDataM);
                 if (dwEmuFixes & 0x0001 || dwActFixes & 0x0400) // hack for emulating "gpu busy" in some games
                     iFakePrimBusy = 4;
@@ -1403,8 +1228,6 @@ void CALLBACK GPUabout(void) // ABOUT
 ////////////////////////////////////////////////////////////////////////
 
 long CALLBACK GPUtest(void) {
-    // if test fails this function should return negative value for error (unable to continue)
-    // and positive value for warning (can continue but output might be crappy)
     return 0;
 }
 
@@ -1470,7 +1293,7 @@ void PaintPicDot(unsigned char * p, unsigned char c) {
 }
 
 void GPUgetScreenPic(unsigned char * pMem) {
-    
+
 }
 
 void CALLBACK GPUshowScreenPic(unsigned char * pMem) {

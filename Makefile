@@ -8,7 +8,7 @@ $(error "Please set DEVKITXENON in your environment. export DEVKITXENON=<path to
 endif
 
 include $(DEVKITXENON)/rules
-
+MACHDEP =  -DXENON -m32 -mno-altivec -fno-pic  -fno-pic -mpowerpc64 -mhard-float -L$(DEVKITXENON)/xenon/lib/32 -u read -u _start -u exc_base
 #---------------------------------------------------------------------------------
 # TARGET is the name of the output
 # BUILD is the directory where object files & intermediate files will be placed
@@ -17,15 +17,20 @@ include $(DEVKITXENON)/rules
 #---------------------------------------------------------------------------------
 TARGET		:=  $(notdir $(CURDIR))
 BUILD		:=  build
-SOURCES		:=  source/libpcsxcore source/plugins/xenon_gfx source/plugins/xenon_cdrom source/plugins/xenon_input source/main source/plugins/xenon_audio source/libpcsxcore/ppc
-DATA		:=  data
-INCLUDES	:=  include source/libpcsxcore/ppc source/libpcsxcore source source/main source/plugins/xenon_cdrom
+#SOURCES		:=  source/shaders lib/zlib source/libpcsxcore_df source/main  source/main/usb source/plugins/xenon_input source/plugins/xenon_audio_repair source/fakegl   source/plugins/cdr   source/plugins/xenon_gfx source/ppc #  source/plugins/gxvideo # source/dynarec 
+PLUGINS		:=  source/shaders source/plugins/xenon_input source/plugins/xenon_audio_repair source/fakegl  source/plugins/xenon_gfx
+CORE		:=  lib/zlib source/libpcsxcore source/ppcr	 # source/libpcsxcore/ppc #source/ppcr	
+#CORE		:=  lib/zlib source/libpcsxcore_df source/ppc
+SOURCES		:=  source/main  source/main/usb $(PLUGINS) $(CORE)
+DATA		:=  
+INCLUDES	:=  shaders include lib/zlib source/fakegl source/libpcsxcore
 
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
 ASFLAGS	= -Wa,$(INCLUDE) -Wa,-a32
-CFLAGS	= -ffunction-sections -fdata-sections -g -Ofast -Wall $(MACHDEP) $(INCLUDE) -DLOG_STDOUT -DLIBXENON -DPSXREC -D__BIG_ENDIAN__ -D__ppc__ -D__powerpc__ -D__POWERPC__ -DELF -D__BIGENDIAN__ -D__PPC__ -D__BIGENDIAN__
+CFLAGS	= -ffunction-sections -fdata-sections -g -Ofast -fno-tree-vectorize -fno-tree-slp-vectorize -ftree-vectorizer-verbose=1 -Wall $(MACHDEP) $(INCLUDE) -DLOG_STDOUT -DPSXREC -DLIBXENON -D__BIG_ENDIAN__ -D__ppc__ -D__powerpc__ -D__POWERPC__ -DELF -D__BIGENDIAN__ -D__PPC__ -D__BIGENDIAN__
+#CFLAGS	= -ffunction-sections -fdata-sections -g -Ofast -ftree-vectorizer-verbose=2 -Wall $(MACHDEP) $(INCLUDE) -DLOG_STDOUT -DLIBXENON -D__BIG_ENDIAN__ -D__ppc__ -D__powerpc__ -D__POWERPC__ -DELF -D__BIGENDIAN__ -D__PPC__ -D__BIGENDIAN__
 CXXFLAGS	=	$(CFLAGS)
 
 LDFLAGS	=	-g $(MACHDEP) -Wl,--gc-sections -Wl,-Map,$(notdir $@).map
@@ -33,7 +38,7 @@ LDFLAGS	=	-g $(MACHDEP) -Wl,--gc-sections -Wl,-Map,$(notdir $@).map
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
 #---------------------------------------------------------------------------------
-LIBS	:=	-lxenon -lm  -lpng -lz
+LIBS	:=	-lxenon -lm -lz
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
@@ -79,8 +84,9 @@ else
 endif
 
 export OFILES	:=	$(addsuffix .o,$(BINFILES)) \
+					$(sFILES:.s=.o) $(SFILES:.S=.o) \
 					$(CPPFILES:.cpp=.o) $(CFILES:.c=.o) \
-					$(sFILES:.s=.o) $(SFILES:.S=.o)
+					
 
 #---------------------------------------------------------------------------------
 # build a list of include paths
