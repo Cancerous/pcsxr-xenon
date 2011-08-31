@@ -262,7 +262,6 @@ extern unsigned short sSetMask;
 extern uint32_t       lSetMask;
 extern int            iShowFPS;
 extern BOOL           bSetClip;
-extern int            iForceVSync;
 extern int            iUseExts;
 extern int            iUsePalTextures;
 extern GLuint         gTexScanName;
@@ -365,9 +364,6 @@ extern VRAMLoad_t     VRAMWrite;
 extern VRAMLoad_t     VRAMRead;
 extern int            iDataWriteMode;
 extern int            iDataReadMode;
-extern int            iColDepth;
-extern BOOL           bChangeRes;
-extern BOOL           bWindowMode;
 extern char           szDispBuf[];
 extern char           szGPUKeys[];
 extern PSXDisplay_t   PSXDisplay;
@@ -403,8 +399,6 @@ extern BOOL           bNeedInterlaceUpdate;
 extern BOOL           bNeedWriteUpload;
 extern BOOL           bSkipNextFrame;
 extern uint32_t       vBlank;
-
-extern int bFullScreen;
 
 #endif
 

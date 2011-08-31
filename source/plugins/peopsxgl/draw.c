@@ -103,7 +103,6 @@ short sprtY, sprtX, sprtH, sprtW;
 // drawing options
 
 BOOL bOpaquePass;
-BOOL bAdvancedBlend;
 BOOL bUseLines;
 BOOL bUseAntiAlias;
 int iTexQuality;
@@ -114,7 +113,6 @@ int iShowFPS = 0;
 
 // OGL extension support
 
-int iForceVSync = -1;
 int iUseExts = 0;
 BOOL bGLExt;
 BOOL bGLFastMovie = FALSE;

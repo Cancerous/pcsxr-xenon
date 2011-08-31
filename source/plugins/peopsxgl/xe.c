@@ -62,7 +62,7 @@ void xeGfx_setTextureData(void * tex, void * buffer) {
 */
 
         int pitch = surf->wpitch;
-        
+
         for (y = 0; y < (surf->height); y++)
 	{
             //dstdata = surfbuf + (y * width + xoffset) * dstbytes;
@@ -88,12 +88,12 @@ void xeGfx_setTextureData(void * tex, void * buffer) {
                 dstdata[2] = 0;//g
                 dstdata[3] = 0;//b
 */
-                
+
                 srcdata += srcbytes;
                 dstdata += dstbytes;
-            }            
+            }
         }
-        
+
         Xe_Surface_Unlock(xe,surf);
     }
 }
@@ -106,7 +106,7 @@ void xeTexImage(int id,int w,int h, void * buffer){
              surf = XeTextureArray[i].surf;
              if(surf)
                 Xe_DestroyTexture(xe,surf);
-             
+
              Xe_CreateTexture(xe,w,h,0,XE_FMT_8888|XE_FMT_ARGB,0);
              xeGfx_setTextureData(surf,buffer);
          }
@@ -117,17 +117,17 @@ void xeTexImage(int id,int w,int h, void * buffer){
 /*
 void xeTexImage(int id,int w,int h, void * buffer){
      if(selectedSurf!=NULL){
-         
+
          if(selectedSurf->surf)
             Xe_DestroyTexture(xe,selectedSurf->surf);
-         
+
          Xe_CreateTexture(xe,w,h,0,XE_FMT_8888|XE_FMT_ARGB,0);
          xeGfx_setTextureData(selectedSurf->surf,buffer);
      }
 }
  */
 
-void xeGenTextures(int nbr, int * id) {
+void XeGenTextures(int nbr, int * id) {
     int i = 0;
     int j;
     for (j = 0; j < nbr; j++) {
@@ -143,7 +143,7 @@ void xeGenTextures(int nbr, int * id) {
 
 }
 
-void xeDeleteTextures(int nbr, int * id) {
+void XeDeleteTextures(int nbr, int * id) {
     TR;
     int i = 0;
     int j;
@@ -162,7 +162,7 @@ void xeDeleteTextures(int nbr, int * id) {
 
 int iXeSelectedSurf = 0;
 
-struct XenosSurface * xeGetTextureInSlot() {
+struct XenosSurface * XeGetTextureInSlot() {
     if (iXeSelectedSurf)
         if (XeTextureArray[iXeSelectedSurf].surf)
             return XeTextureArray[iXeSelectedSurf].surf;
@@ -170,7 +170,7 @@ struct XenosSurface * xeGetTextureInSlot() {
     return NULL;
 }
 
-void xeBindTexture(int i) {
+void XeBindTexture(int i) {
     //printf("xeBindTexture %d\r\n", i);
     iXeSelectedSurf = i;
     Xe_SetTexture(xe, 0, NULL);
@@ -179,14 +179,14 @@ void xeBindTexture(int i) {
     }
 }
 
-void xeSetTexture() {
+void XeSetTexture() {
     if (XeTextureArray[iXeSelectedSurf].surf)
         Xe_SetTexture(xe, 0, XeTextureArray[iXeSelectedSurf].surf);
     else
         Xe_SetTexture(xe, 0, NULL);
 }
 
-void xeTexImage(int internalformat, int width, int height, int format, const void *pixels) {
+void XeTexImage(int internalformat, int width, int height, int format, const void *pixels) {
     //printf("xeTexImage(%d,%d,%d,%x,%p)\r\n", internalformat, width, height, format, pixels);
     //TR;
     if (XeTextureArray[iXeSelectedSurf].used) {
@@ -285,11 +285,11 @@ void XeEnableBlend() {
 
 }
 
-void xeTexWrap(int uwrap, int vwrap) {
+void XeTexWrap(int uwrap, int vwrap) {
     tmpsurf.u_addressing = uwrap;
     tmpsurf.v_addressing = vwrap;
 }
 
-void xeTexUseFiltering(int enabled) {
+void XeTexUseFiltering(int enabled) {
     tmpsurf.use_filtering = enabled;
 }

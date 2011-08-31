@@ -14,6 +14,8 @@
 #include <png.h>
 #include <pngconf.h>
 
+#include "xe.h"
+
 typedef unsigned int DWORD;
 #include "psx.ps.h"
 #include "psx.vs.h"
@@ -29,12 +31,7 @@ static struct XenosSurface * fb = NULL;
 static struct XenosVertexBuffer *vb = NULL;
 static struct XenosDevice _xe;
 
-typedef struct PsxVerticeFormats {
-    float x, y, z, w;
-    float u, v;
-    //unsigned int color;
-    float r, g, b, a;
-} PsxVerticeFormats;
+
 
 static int vertexCount = 0;
 float screen[2] = {0, 0};
@@ -62,6 +59,20 @@ void fpoint(PsxVerticeFormats * psxvertices) {
         psxvertices[i].y = ((psxvertices[i].y / screen[1])*2.f) - 1.0f;
 
     }
+/*
+    // uv mod
+    psxvertices[0].u += gPsxUV.bottom;
+    psxvertices[0].v += gPsxUV.right;
+    
+    psxvertices[1].u += gPsxUV.bottom;
+    psxvertices[1].v += gPsxUV.left;
+    
+    psxvertices[2].u += gPsxUV.top;
+    psxvertices[2].v += gPsxUV.right;
+    
+    psxvertices[3].u += gPsxUV.top;
+    psxvertices[3].v += gPsxUV.left;
+*/
 }
 
 void iXeDrawTri(PsxVerticeFormats * psxvertices) {

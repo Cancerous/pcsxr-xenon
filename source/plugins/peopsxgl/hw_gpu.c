@@ -16,7 +16,7 @@
  *                                                                         *
  ***************************************************************************/
 
-// !!! enable this, if Linux XF86VidMode is not supported: 
+// !!! enable this, if Linux XF86VidMode is not supported:
 //#define NOVMODE
 
 #include "stdafx.h"
@@ -121,9 +121,6 @@ int iDataReadMode;
 int lClearOnSwap;
 int lClearOnSwapColor;
 BOOL bSkipNextFrame = FALSE;
-int iColDepth;
-BOOL bChangeRes;
-BOOL bWindowMode;
 int iWinSize;
 
 // possible psx display widths
@@ -151,7 +148,6 @@ int iRumbleTime = 0;
 uint32_t vBlank = 0;
 
 // missing ...
-int bFullScreen = 0;
 char * pConfigFile = NULL;
 unsigned short usCursorActive = 0;
 GLuint         gTexPicName;
@@ -332,7 +328,7 @@ long GPUclose() // LINUX CLOSE
 }
 
 ////////////////////////////////////////////////////////////////////////
-// I shot the sheriff... last function called from emu 
+// I shot the sheriff... last function called from emu
 ////////////////////////////////////////////////////////////////////////
 
 long CALLBACK GPUshutdown() {
@@ -377,7 +373,7 @@ void UnBlurBackBuffer(void) {
 }
 
 ////////////////////////////////////////////////////////////////////////
-// Update display (swap buffers)... called in interlaced mode on 
+// Update display (swap buffers)... called in interlaced mode on
 // every emulated vsync, otherwise whenever the displayed screen region
 // has been changed
 ////////////////////////////////////////////////////////////////////////
@@ -420,7 +416,7 @@ void updateDisplay(void) // UPDATE DISPLAY
         UploadScreen(TRUE);
     }
 
-    if (dwActFixes & 512) bCheckFF9G4(NULL); // special game fix for FF9 
+    if (dwActFixes & 512) bCheckFF9G4(NULL); // special game fix for FF9
 
     if (PreviousPSXDisplay.Range.x0 || // paint black borders around display area, if needed
             PreviousPSXDisplay.Range.y0)
@@ -513,24 +509,24 @@ void updateDisplay(void) // UPDATE DISPLAY
         if (bDisplayNotSet) // -> set new vals
             SetOGLDisplaySettings(1);
 
-       
+
 
 /*
 g = ((GLclampf) GREEN(lClearOnSwapColor)) / 255.0f; // -> get col
 b = ((GLclampf) BLUE(lClearOnSwapColor)) / 255.0f;
 r = ((GLclampf) RED(lClearOnSwapColor)) / 255.0f;
 
-glDisable(GL_SCISSOR_TEST);                       
-glClearColor(r,g,b,128);                            // -> clear 
+glDisable(GL_SCISSOR_TEST);
+glClearColor(r,g,b,128);                            // -> clear
 glClear(uiBufferBits);
-glEnable(GL_SCISSOR_TEST);      
+glEnable(GL_SCISSOR_TEST);
 */
-        
+
         XeDisableScissor();
         Xe_SetClearColor(xe, COLOR(lClearOnSwapColor)|0x00000080);
         Xe_Resolve(xe);
         XeEnableScissor();
-        
+
         lClearOnSwap = 0; // -> done
     } else {
         if (bBlur) UnBlurBackBuffer(); // unblur buff, if blurred before
@@ -596,7 +592,7 @@ glEnable(GL_SCISSOR_TEST);
 }
 
 ////////////////////////////////////////////////////////////////////////
-// update front display: smaller update func, if something has changed 
+// update front display: smaller update func, if something has changed
 // in the frontbuffer... dirty, but hey... real men know no pain
 ////////////////////////////////////////////////////////////////////////
 
@@ -605,15 +601,15 @@ void updateFrontDisplay(void) {
             PreviousPSXDisplay.Range.y0)
         PaintBlackBorders();
 
-    if (iBlurBuffer) 
+    if (iBlurBuffer)
         BlurBackBuffer();
 
 /*
-    if (iUseScanLines) 
+    if (iUseScanLines)
         SetScanLines();
 */
 
-    if (usCursorActive) 
+    if (usCursorActive)
         ShowGunCursor();
 
     bFakeFrontBuffer = FALSE;
@@ -737,7 +733,7 @@ void SetAspectRatio(void) {
         RECT rC;
         //glClearColor(0, 0, 0, 128);
         Xe_SetClearColor(xe,0x00000080);
-        
+
         if (r.right < rRatioRect.right) {
             rC.left = 0;
             rC.top = 0;
@@ -801,7 +797,7 @@ void updateDisplayIfChanged(void) {
     {
         //glLoadIdentity();
 /*
-        
+
         glOrtho(0, PSXDisplay.DisplayModeNew.x, // -> new psx resolution
                 PSXDisplay.DisplayModeNew.y, 0, -1, 1);
 */
@@ -916,7 +912,7 @@ void CALLBACK GPUcursor(int iPlayer, int x, int y) {
 }
 
 ////////////////////////////////////////////////////////////////////////
-// update lace is called every VSync. Basically we limit frame rate 
+// update lace is called every VSync. Basically we limit frame rate
 // here, and in interlaced mode we swap ogl display buffers.
 ////////////////////////////////////////////////////////////////////////
 
@@ -938,11 +934,11 @@ static void ShowFPS() {
 }
 
 void CALLBACK GPUupdateLace(void) {
-    //if(!(dwActFixes&0x1000))                               
+    //if(!(dwActFixes&0x1000))
     // STATUSREG^=0x80000000;                               // interlaced bit toggle, if the CC game fix is not active (see gpuReadStatus)
 
     ShowFPS();
-    
+
     if (!(dwActFixes & 128)) // normal frame limit func
         CheckFrameRate();
 
@@ -1449,7 +1445,7 @@ void CheckVRamReadEx(int x, int y, int dx, int dy) {
 }
 
 ////////////////////////////////////////////////////////////////////////
-// vram read check (reading from card's back/frontbuffer if needed... 
+// vram read check (reading from card's back/frontbuffer if needed...
 // slow!)
 ////////////////////////////////////////////////////////////////////////
 
@@ -2025,7 +2021,7 @@ long CALLBACK GPUfreeze(uint32_t ulGetFreezeData, GPUFreeze_t * pF) {
 ////////////////////////////////////////////////////////////////////////
 
 void CALLBACK GPUgetScreenPic(unsigned char * pMem) {
-    
+
 }
 ////////////////////////////////////////////////////////////////////////
 
@@ -2059,7 +2055,7 @@ void CALLBACK GPUvisualVibration(uint32_t iSmall, uint32_t iBig) {
 }
 
 ////////////////////////////////////////////////////////////////////////
-// main emu can set display infos (A/M/G/D) 
+// main emu can set display infos (A/M/G/D)
 ////////////////////////////////////////////////////////////////////////
 
 void CALLBACK GPUdisplayFlags(uint32_t dwFlags) {

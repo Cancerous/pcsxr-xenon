@@ -158,7 +158,7 @@ void rgb16to24(const uint8_t *src, uint8_t *dst, int src_size)
  const uint16_t *s = (const uint16_t *)src;
  end = s + src_size/2;
  while (s < end) {
-     
+
      bgr = *s++;
      *d++ = (bgr&0xF800)>>8;
      *d++ = (bgr&0x7E0)>>3;
@@ -171,12 +171,12 @@ void rgb16to24(const uint8_t *src, uint8_t *dst, int src_size)
 uint32_t BGR16to24(uint32_t BGR) {
     uint32_t dst;
     uint8_t *d = dst;
-    register uint16_t bgr = (const uint16_t *)BGR;
+    register uint16_t bgr = (const uint16_t )BGR;
     *d++ = (BGR>>24)&0xFF;
     *d++ = (bgr&0xF800)>>8;
     *d++ = (bgr&0x7E0)>>3;
     *d++ = (bgr&0x1F)<<3;
-    
+
     return dst;
 }
 ////////////////////////////////////////////////////////////////////////
@@ -219,10 +219,10 @@ u32 COL(u32 BGR){
 #define FBLUE(x) ((((GETLE16(&x))>>10) & 0x1f) / 32.0f)
 */
 /*
-#define FRED(x) ((((x)>>24) & 0xFF) / 256.0f) 
-#define FGREEN(x) ((((x)>>16) & 0xFF) / 256.0f) 
-#define FBLUE(x) ((((x)>>8) & 0xFF) / 256.0f) 
-#define FALPHA(x) ((((x)>>0) & 0xFF) / 256.0f) 
+#define FRED(x) ((((x)>>24) & 0xFF) / 256.0f)
+#define FGREEN(x) ((((x)>>16) & 0xFF) / 256.0f)
+#define FBLUE(x) ((((x)>>8) & 0xFF) / 256.0f)
+#define FALPHA(x) ((((x)>>0) & 0xFF) / 256.0f)
 */
 /*
 #define FRED(x) ((((x))>>8 & 0x1f) / 32.0f)
@@ -236,16 +236,16 @@ u32 COL(u32 BGR){
 #define FBLUE(x) (((((x))>>10) & 0x1f) / 32.0f)
 */
 /*
-#define FRED(x) ((((x)>>0) & 0xFF) / 256.0f) 
-#define FGREEN(x) ((((x)>>8) & 0xFF) / 256.0f) 
-#define FBLUE(x) ((((x)>>16) & 0xFF) / 256.0f) 
+#define FRED(x) ((((x)>>0) & 0xFF) / 256.0f)
+#define FGREEN(x) ((((x)>>8) & 0xFF) / 256.0f)
+#define FBLUE(x) ((((x)>>16) & 0xFF) / 256.0f)
 */
-#define FRED(x) ((((x)<<3) & 0x1F) / 256.0f) 
-#define FGREEN(x) ((((x)>>3) & 0x7E0) / 2016.0f) 
-#define FBLUE(x) ((((x)>>8) & 0xF800) / 63488.0f) 
+#define FRED(x) ((((x)<<3) & 0x1F) / 256.0f)
+#define FGREEN(x) ((((x)>>3) & 0x7E0) / 2016.0f)
+#define FBLUE(x) ((((x)>>8) & 0xF800) / 63488.0f)
 
-#define FALPHA(x) ((((x)>>24) & 0xFF) / 256.0f) 
-#define FCOL(x,y) 
+#define FALPHA(x) ((((x)>>24) & 0xFF) / 256.0f)
+#define FCOL(x,y)
 
 #define FCOL0{      \
     PsxVertex[0].a = 0.f;PsxVertex[0].r = 0.f;PsxVertex[0].g = 0.f;PsxVertex[0].b = 0.f; \
@@ -276,7 +276,7 @@ u32 COL(u32 BGR){
 
 __inline void PRIMdrawTexturedQuad(OGLVertex* vertex1, OGLVertex* vertex2,
         OGLVertex* vertex3, OGLVertex* vertex4) {
-   
+
     PsxVertex[0].u = vertex1->sow;
     PsxVertex[0].v = vertex1->tow;
     PsxVertex[0].x = vertex1->x;
@@ -301,7 +301,7 @@ __inline void PRIMdrawTexturedQuad(OGLVertex* vertex1, OGLVertex* vertex2,
     PsxVertex[3].y = vertex4->y;
     PsxVertex[3].z = vertex4->z;
 
-    FCOL0;    
+    FCOL0;
     iXeDrawTri2(PsxVertex);
 }
 
@@ -334,7 +334,7 @@ __inline void PRIMdrawTexturedTri(OGLVertex* vertex1, OGLVertex* vertex2,
 /////////////////////////////////////////////////////////
 
 __inline void PRIMdrawTexGouraudTriColor(OGLVertex* vertex1, OGLVertex* vertex2,
-        OGLVertex* vertex3) {    
+        OGLVertex* vertex3) {
     PsxVertex[0].u = vertex1->sow;
     PsxVertex[0].v = vertex1->tow;
     PsxVertex[0].x = vertex1->x;
@@ -362,7 +362,7 @@ __inline void PRIMdrawTexGouraudTriColor(OGLVertex* vertex1, OGLVertex* vertex2,
 
 __inline void PRIMdrawTexGouraudTriColorQuad(OGLVertex* vertex1, OGLVertex* vertex2,
         OGLVertex* vertex3, OGLVertex* vertex4) {
-    
+
     PsxVertex[0].u = vertex1->sow;
     PsxVertex[0].v = vertex1->tow;
     PsxVertex[0].x = vertex1->x;
@@ -461,7 +461,7 @@ __inline void PRIMdrawTri2(OGLVertex* vertex1, OGLVertex* vertex2,
 
 __inline void PRIMdrawGouraudTriColor(OGLVertex* vertex1, OGLVertex* vertex2,
         OGLVertex* vertex3) {
-   
+
     PsxVertex[0].u = 0;
     PsxVertex[0].v = 0;
     PsxVertex[2].u = 0;
@@ -492,12 +492,12 @@ __inline void PRIMdrawGouraudTri2Color(OGLVertex* vertex1, OGLVertex* vertex2,
         OGLVertex* vertex3, OGLVertex* vertex4) {
 
 /*
-    SETPCOL(vertex1); 
-    SETPCOL(vertex2); 
-    SETPCOL(vertex3); 
+    SETPCOL(vertex1);
+    SETPCOL(vertex2);
+    SETPCOL(vertex3);
     SETPCOL(vertex4);
 */
-    
+
     PsxVertex[0].x = vertex1->x;
     PsxVertex[0].y = vertex1->y;
     PsxVertex[0].z = vertex1->z;
@@ -532,11 +532,11 @@ __inline void PRIMdrawGouraudTri2Color(OGLVertex* vertex1, OGLVertex* vertex2,
 /////////////////////////////////////////////////////////
 
 __inline void PRIMdrawFlatLine(OGLVertex* vertex1, OGLVertex* vertex2, OGLVertex* vertex3, OGLVertex* vertex4) {
-    
+
 /*
     SETPCOL(vertex1);
 */
-    
+
     PsxVertex[0].x = vertex1->x;
     PsxVertex[0].y = vertex1->y;
     PsxVertex[0].z = vertex1->z;
@@ -570,14 +570,14 @@ __inline void PRIMdrawFlatLine(OGLVertex* vertex1, OGLVertex* vertex2, OGLVertex
 /////////////////////////////////////////////////////////
 
 __inline void PRIMdrawGouraudLine(OGLVertex* vertex1, OGLVertex* vertex2, OGLVertex* vertex3, OGLVertex* vertex4) {
-    
+
 /*
-    SETPCOL(vertex1); 
-    SETPCOL(vertex2); 
-    SETPCOL(vertex3); 
+    SETPCOL(vertex1);
+    SETPCOL(vertex2);
+    SETPCOL(vertex3);
     SETPCOL(vertex4);
 */
-    
+
     PsxVertex[0].x = vertex1->x;
     PsxVertex[0].y = vertex1->y;
     PsxVertex[0].z = vertex1->z;
@@ -923,14 +923,15 @@ void SetRenderMode(uint32_t DrawAttributes, BOOL bSCol) {
         if (gTexName != currTex) {
             gTexName = currTex;
             // glBindTexture(GL_TEXTURE_2D, currTex);
-            xeBindTexture(currTex);
-            xeSetTexture();
+            XeBindTexture(currTex);
+            XeSetTexture();
         }
 
         if (!bTexEnabled) // -> turn texturing on
         {
             bTexEnabled = TRUE;
             // glEnable(GL_TEXTURE_2D);
+            
         }
     } else // no texture ?
         if (bTexEnabled) {
@@ -2381,7 +2382,7 @@ void primMoveImage(unsigned char * baseAddr) {
         LineOffset = 1024 - imageSX;
 
         for (j = 0; j < imageSY; j++) {
-            for (i = 0; i < imageSX; i++) 
+            for (i = 0; i < imageSX; i++)
                 *DSTPtr++ = *SRCPtr++;
             SRCPtr += LineOffset;
             DSTPtr += LineOffset;
@@ -2397,7 +2398,7 @@ void primMoveImage(unsigned char * baseAddr) {
         LineOffset = 512 - dx;
 
         for (j = 0; j < imageSY; j++) {
-            for (i = 0; i < dx; i++) 
+            for (i = 0; i < dx; i++)
                 *DSTPtr++ = *SRCPtr++;
             SRCPtr += LineOffset;
             DSTPtr += LineOffset;
