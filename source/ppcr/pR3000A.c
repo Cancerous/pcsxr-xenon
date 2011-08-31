@@ -44,9 +44,9 @@ void ICInvalidateRange(void* startaddr, unsigned int len) {
 
 /* variable declarations */
 static u32 psxRecLUT[0x010000];
-static char recMem[RECMEM_SIZE] __attribute__((aligned(32))); /* the recompiled blocks will be here */
-static char recRAM[0x200000] __attribute__((aligned(32))); /* and the ptr to the blocks here */
-static char recROM[0x080000] __attribute__((aligned(32))); /* and here */
+static char recMem[RECMEM_SIZE] __attribute__((aligned(128))); /* the recompiled blocks will be here */
+static char recRAM[0x200000] __attribute__((aligned(128))); /* and the ptr to the blocks here */
+static char recROM[0x080000] __attribute__((aligned(128))); /* and here */
 
 static u32 pc; /* recompiler pc */
 static u32 pcold; /* recompiler oldpc */
@@ -2105,8 +2105,6 @@ static void recSYSCALL() {
     LIW(PutHWRegSpecial(ARG2), (branch == 1 ? 1 : 0));
     FlushAllHWReg();
     CALLFunc((u32) psxException);
-
-    printf("recSYSCALL\r\n");
     
     branch = 2;
     iRet();
@@ -2503,8 +2501,6 @@ REC_SYS(CTC0);
 REC_FUNC(RFE);
 #else
 static void recRFE() {
-
-    printf("recRFE\r\n");
     
     iFlushRegs(0);
     LWZ(0, OFFSET(&psxRegs, &psxRegs.CP0.n.Status), GetHWRegSpecial(PSXREGS));
@@ -2537,7 +2533,6 @@ static void recCFC0() {
 
 static void recMTC0() {
     // Cop0->Rd = Rt
-    printf("recMTC0\r\n");
 #if 1
     /*if (IsConst(_Rt_)) {
             switch (_Rd_) {
@@ -2754,19 +2749,16 @@ static void recRecompile() {
         LIW(PutHWRegSpecial(PSXPC), pc);
         iRet();
     }
-/*
-    DCFlushRange((u8*) ptr, (u32) (u8*) ppcPtr - (u32) (u8*) ptr);
-    ICInvalidateRange((u8*) ptr, (u32) (u8*) ppcPtr - (u32) (u8*) ptr);
-*/
+
     u32 a = (u32)(u8*)ptr;
     while(a < (u32)(u8*)ppcPtr) {
-        __asm__ __volatile__("dcbst 0,%0" : : "r" (a));        
+        __asm__ __volatile__("dcbst 0,%0" : : "r" (a));
         __asm__ __volatile__("icbi 0,%0" : : "r" (a));
-
         __asm__ __volatile__("sync");
         __asm__ __volatile__("isync");
-      a += 4;
+        a += 4;
     }
+   
 
     
 #ifdef TAG_CODE

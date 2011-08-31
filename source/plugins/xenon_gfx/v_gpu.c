@@ -33,21 +33,6 @@
 #include "fps.h"
 #include "swap.h"
 
-#ifdef ENABLE_NLS
-#include <libintl.h>
-#include <locale.h>
-#define _(x)  gettext(x)
-#define N_(x) (x)
-#else
-#define _(x)  (x)
-#define N_(x) (x)
-#endif
-
-#ifdef _WINDOWS
-#include "resource.h"
-#include "record.h"
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 // PPDK developer must change libraryName field and can change revision and build
 ////////////////////////////////////////////////////////////////////////
@@ -56,8 +41,8 @@ static const unsigned char version = 1; // do not touch - library for PSEmu 1.x
 static const unsigned char revision = 1;
 static const unsigned char build = 17; // increase that with each version
 
-static char *libraryName = N_("XVideo Driver");
-static char *libraryInfo = N_("P.E.Op.S. Xvideo Driver V1.17\nCoded by Pete Bernert and the P.E.Op.S. team\n");
+static char *libraryName = "XVideo Driver";
+static char *libraryInfo ="P.E.Op.S. Xvideo Driver V1.17\nCoded by Pete Bernert and the P.E.Op.S. team\n";
 
 #define TR {printf("[Trace] in function %s, line %d, file %s\n",__FUNCTION__,__LINE__,__FILE__);}
 
@@ -124,8 +109,7 @@ void CALLBACK GPUdisplayText(char * pText) // some debug func
 
 void CALLBACK GPUdisplayFlags(unsigned long dwFlags) // some info func
 {
-    dwCoreFlags = dwFlags;
-    BuildDispMenu(0);
+
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1088,6 +1072,7 @@ ENDVRAM:
 
             if (gpuDataC == 0) {
                 command = (unsigned char) ((gdata >> 24) & 0xff);
+                
 
                 //if(command>=0xb0 && command<0xc0) auxprintf("b0 %x!!!!!!!!!\n",command);
 
@@ -1112,6 +1097,7 @@ ENDVRAM:
             if (gpuDataP == gpuDataC) {
                 gpuDataC = gpuDataP = 0;
 
+                //printf("gpuCommand = %02x - %08x\r\n",gpuCommand,gdata);
                 primFunc[gpuCommand]((unsigned char *) gpuDataM);
                 if (dwEmuFixes & 0x0001 || dwActFixes & 0x0400) // hack for emulating "gpu busy" in some games
                     iFakePrimBusy = 4;
@@ -1125,7 +1111,6 @@ ENDVRAM:
     GPUIsIdle;
 }
 
-////////////////////////////////////////////////////////////////////////
 
 void CALLBACK GPUwriteData(uint32_t gdata) {
     PUTLE32(&gdata, gdata);

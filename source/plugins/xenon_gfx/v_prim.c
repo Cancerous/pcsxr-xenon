@@ -47,18 +47,9 @@ BOOL bDoVSyncUpdate = FALSE;
 // Some ASM color convertion by LEWPY
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef USE_NASM
-
-#define BGR24to16 i386_BGR24to16
-__inline unsigned short BGR24to16(uint32_t BGR);
-
-#else
-
 __inline unsigned short BGR24to16(uint32_t BGR) {
     return (unsigned short) (((BGR >> 3)&0x1f) | ((BGR & 0xf80000) >> 9) | ((BGR & 0xf800) >> 6));
 }
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 // Update global TP infos
@@ -146,7 +137,7 @@ __inline void SetRenderMode(uint32_t DrawAttributes) {
 #define CHKMAX_X 1024
 #define CHKMAX_Y 512
 
-void AdjustCoord4() {
+static inline void AdjustCoord4() {
     lx0 = (short) (((int) lx0 << SIGNSHIFT) >> SIGNSHIFT);
     lx1 = (short) (((int) lx1 << SIGNSHIFT) >> SIGNSHIFT);
     lx2 = (short) (((int) lx2 << SIGNSHIFT) >> SIGNSHIFT);
@@ -157,7 +148,7 @@ void AdjustCoord4() {
     ly3 = (short) (((int) ly3 << SIGNSHIFT) >> SIGNSHIFT);
 }
 
-void AdjustCoord3() {
+static inline void AdjustCoord3() {
     lx0 = (short) (((int) lx0 << SIGNSHIFT) >> SIGNSHIFT);
     lx1 = (short) (((int) lx1 << SIGNSHIFT) >> SIGNSHIFT);
     lx2 = (short) (((int) lx2 << SIGNSHIFT) >> SIGNSHIFT);
@@ -166,14 +157,14 @@ void AdjustCoord3() {
     ly2 = (short) (((int) ly2 << SIGNSHIFT) >> SIGNSHIFT);
 }
 
-void AdjustCoord2() {
+static inline void AdjustCoord2() {
     lx0 = (short) (((int) lx0 << SIGNSHIFT) >> SIGNSHIFT);
     lx1 = (short) (((int) lx1 << SIGNSHIFT) >> SIGNSHIFT);
     ly0 = (short) (((int) ly0 << SIGNSHIFT) >> SIGNSHIFT);
     ly1 = (short) (((int) ly1 << SIGNSHIFT) >> SIGNSHIFT);
 }
 
-void AdjustCoord1() {
+static inline void AdjustCoord1() {
     lx0 = (short) (((int) lx0 << SIGNSHIFT) >> SIGNSHIFT);
     ly0 = (short) (((int) ly0 << SIGNSHIFT) >> SIGNSHIFT);
 
@@ -198,7 +189,7 @@ void AdjustCoord1() {
 //  \ / \ 
 //   2___3
 
-__inline BOOL CheckCoord4() {
+static inline  BOOL CheckCoord4() {
     if (lx0 < 0) {
         if (((lx1 - lx0) > CHKMAX_X) ||
                 ((lx2 - lx0) > CHKMAX_X)) {
@@ -251,7 +242,7 @@ __inline BOOL CheckCoord4() {
     return FALSE;
 }
 
-__inline BOOL CheckCoord3() {
+static inline  BOOL CheckCoord3() {
     if (lx0 < 0) {
         if ((lx1 - lx0) > CHKMAX_X) return TRUE;
         if ((lx2 - lx0) > CHKMAX_X) return TRUE;
@@ -280,7 +271,7 @@ __inline BOOL CheckCoord3() {
     return FALSE;
 }
 
-__inline BOOL CheckCoord2() {
+static inline  BOOL CheckCoord2() {
     if (lx0 < 0) {
         if ((lx1 - lx0) > CHKMAX_X) return TRUE;
     }
@@ -297,7 +288,7 @@ __inline BOOL CheckCoord2() {
     return FALSE;
 }
 
-__inline BOOL CheckCoordL(short slx0, short sly0, short slx1, short sly1) {
+static inline  BOOL CheckCoordL(short slx0, short sly0, short slx1, short sly1) {
     if (slx0 < 0) {
         if ((slx1 - slx0) > CHKMAX_X) return TRUE;
     }
@@ -319,7 +310,7 @@ __inline BOOL CheckCoordL(short slx0, short sly0, short slx1, short sly1) {
 // mask stuff... used in silent hill
 ////////////////////////////////////////////////////////////////////////
 
-void cmdSTP(unsigned char * baseAddr) {
+static inline void cmdSTP(unsigned char * baseAddr) {
     uint32_t gdata = GETLE32(&((uint32_t*) baseAddr)[0]);
 
     lGPUstatusRet &= ~0x1800; // Clear the necessary bits

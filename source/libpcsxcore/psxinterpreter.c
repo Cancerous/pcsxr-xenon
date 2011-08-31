@@ -415,12 +415,11 @@ __inline void doBranch(u32 tar) {
 
 	branch2 = branch = 1;
 	branchPC = tar;
-
-#ifndef LIBXENON        
+       
 	// notaz: check for branch in delay slot
 	if (psxDelayBranchTest(tar))
 		return;
-#endif
+        
 	// branch delay slot
 	code = Read_ICache(psxRegs.pc, TRUE);
 

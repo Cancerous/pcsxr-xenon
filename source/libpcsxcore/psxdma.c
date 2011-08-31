@@ -113,6 +113,7 @@ void psxDma6(u32 madr, u32 bcr, u32 chcr) {
 			*mem-- = SWAP32((madr - 4) & 0xffffff);
 			madr -= 4;
 		}
+
 		mem++; *mem = 0xffffff;
 
 #if 1

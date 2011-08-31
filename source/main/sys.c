@@ -89,6 +89,8 @@ void *SysLoadLibrary(lpctr *lib) {
     return NULL;
 }
 
+void *cdrcimg_get_sym(const char *sym);
+
 void *SysLoadSym(void *lib, lpctr *sym) {
     //printf("SysLoadSym : %s\r\n",sym);
     PluginTable* plugin = plugins + (int) lib;

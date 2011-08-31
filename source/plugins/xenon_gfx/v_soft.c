@@ -198,7 +198,7 @@ unsigned char dithertable[16] = {
     4, 3, 5, 2
 };
 
-void Dither16(unsigned short * pdest, uint32_t r, uint32_t g, uint32_t b, unsigned short sM) {
+void Dither16(unsigned short * __restrict  pdest, uint32_t r, uint32_t g, uint32_t b, unsigned short sM) {
     unsigned char coeff;
     unsigned char rlow, glow, blow;
     int x, y;
@@ -230,7 +230,7 @@ void Dither16(unsigned short * pdest, uint32_t r, uint32_t g, uint32_t b, unsign
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 
-__inline void GetShadeTransCol_Dither(unsigned short * pdest, int32_t m1, int32_t m2, int32_t m3) {
+__inline void GetShadeTransCol_Dither(unsigned short * __restrict  pdest, int32_t m1, int32_t m2, int32_t m3) {
     int32_t r, g, b;
 
     if (bCheckMask && (*pdest & HOST2LE16(0x8000))) return;
@@ -283,7 +283,7 @@ __inline void GetShadeTransCol_Dither(unsigned short * pdest, int32_t m1, int32_
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetShadeTransCol(unsigned short * pdest, unsigned short color) {
+__inline void GetShadeTransCol(unsigned short * __restrict  pdest, unsigned short color) {
     if (bCheckMask && (*pdest & HOST2LE16(0x8000))) return;
 
     if (DrawSemiTrans) {
@@ -417,7 +417,7 @@ __inline void GetShadeTransCol32(uint32_t * pdest, uint32_t color) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColG(unsigned short * pdest, unsigned short color) {
+__inline void GetTextureTransColG(unsigned short * __restrict  pdest, unsigned short color) {
     int32_t r, g, b;
     unsigned short l;
 
@@ -480,7 +480,7 @@ __inline void GetTextureTransColG(unsigned short * pdest, unsigned short color) 
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColG_S(unsigned short * pdest, unsigned short color) {
+__inline void GetTextureTransColG_S(unsigned short * __restrict  pdest, unsigned short color) {
     int32_t r, g, b;
     unsigned short l;
 
@@ -496,12 +496,13 @@ __inline void GetTextureTransColG_S(unsigned short * pdest, unsigned short color
     if (b & 0x7FFFFC00) b = 0x3e0;
     if (g & 0x7FFF8000) g = 0x7c00;
 
-    PUTLE16(pdest, (XPSXCOL(r, g, b)) | l);
+    //PUTLE16(pdest, (XPSXCOL(r, g, b)) | l);
+     *pdest=(XPSXCOL(r,g,b))|l;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColG_SPR(unsigned short * pdest, unsigned short color) {
+__inline void GetTextureTransColG_SPR(unsigned short * __restrict  pdest, unsigned short color) {
     int32_t r, g, b;
     unsigned short l;
 
@@ -667,6 +668,7 @@ __inline void GetTextureTransColG32(uint32_t * pdest, uint32_t color) {
 ////////////////////////////////////////////////////////////////////////
 
 __inline void GetTextureTransColG32_S(uint32_t * pdest, uint32_t color) {
+    
     int32_t r, g, b;
 
     if (color == 0) return;
@@ -796,7 +798,7 @@ __inline void GetTextureTransColG32_SPR(uint32_t * pdest, uint32_t color) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColGX_Dither(unsigned short * pdest, unsigned short color, int32_t m1, int32_t m2, int32_t m3) {
+__inline void GetTextureTransColGX_Dither(unsigned short * __restrict  pdest, unsigned short color, int32_t m1, int32_t m2, int32_t m3) {
     int32_t r, g, b;
 
     if (color == 0) return;
@@ -856,7 +858,7 @@ __inline void GetTextureTransColGX_Dither(unsigned short * pdest, unsigned short
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColGX(unsigned short * pdest, unsigned short color, short m1, short m2, short m3) {
+__inline void GetTextureTransColGX(unsigned short * __restrict  pdest, unsigned short color, short m1, short m2, short m3) {
     int32_t r, g, b;
     unsigned short l;
 
@@ -918,7 +920,7 @@ __inline void GetTextureTransColGX(unsigned short * pdest, unsigned short color,
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColGX_S(unsigned short * pdest, unsigned short color, short m1, short m2, short m3) {
+__inline void GetTextureTransColGX_S(unsigned short * __restrict  pdest, unsigned short color, short m1, short m2, short m3) {
     int32_t r, g, b;
 
     if (color == 0) return;
@@ -1018,7 +1020,7 @@ void FillSoftwareAreaTrans(short x0, short y0, short x1, // FILL AREA TRANS
 
     if (dx & 1) // slow fill
     {
-        unsigned short *DSTPtr;
+        unsigned short * __restrict DSTPtr;
         unsigned short LineOffset;
         DSTPtr = psxVuw + (1024 * y0) + x0;
         LineOffset = 1024 - dx;
@@ -1029,7 +1031,7 @@ void FillSoftwareAreaTrans(short x0, short y0, short x1, // FILL AREA TRANS
         }
     } else // fast fill
     {
-        uint32_t *DSTPtr;
+        uint32_t * __restrict DSTPtr;
         unsigned short LineOffset;
         uint32_t lcol = lSetMask | (((uint32_t) (col)) << 16) | col;
         dx >>= 1;
@@ -1040,7 +1042,17 @@ void FillSoftwareAreaTrans(short x0, short y0, short x1, // FILL AREA TRANS
 
             lcol = SWAP32(lcol);
             for (i = 0; i < dy; i++) {
+                int do_dcbz = 0;
+                
+                
                 for (j = 0; j < dx; j++) {
+                    if(do_dcbz==4)
+                    {
+                        do_dcbz = 0;
+                        __asm__ __volatile__("dcbz 0,%0" : : "r" (DSTPtr));
+                    }
+                    do_dcbz++;
+                    
                     *((uint32_t *) DSTPtr) = lcol;
                     DSTPtr++;
                 }
@@ -1048,8 +1060,17 @@ void FillSoftwareAreaTrans(short x0, short y0, short x1, // FILL AREA TRANS
             }
         } else {
             for (i = 0; i < dy; i++) {
-                for (j = 0; j < dx; j++)
+                int do_dcbz = 0;
+                
+                for (j = 0; j < dx; j++){
+                    if(do_dcbz==4)
+                    {
+                        do_dcbz = 0;
+                        __asm__ __volatile__("dcbz 0,%0" : : "r" (DSTPtr));
+                    }
+                    do_dcbz++;
                     GetShadeTransCol32(DSTPtr++, lcol);
+                }
                 DSTPtr += LineOffset;
             }
         }
@@ -1075,7 +1096,7 @@ void FillSoftwareArea(short x0, short y0, short x1, // FILL AREA (BLK FILL)
     dx = x1 - x0;
     dy = y1 - y0;
     if (dx & 1) {
-        unsigned short *DSTPtr;
+        unsigned short * __restrict DSTPtr;
         unsigned short LineOffset;
 
         DSTPtr = psxVuw + (1024 * y0) + x0;
@@ -1085,13 +1106,21 @@ void FillSoftwareArea(short x0, short y0, short x1, // FILL AREA (BLK FILL)
 
         for (i = 0; i < dy; i++) {
             for (j = 0; j < dx; j ++) {
+                int do_dcbz = 0;
+                if(do_dcbz==4)
+                {
+                    do_dcbz = 0;
+                    __asm__ __volatile__("dcbz 0,%0" : : "r" (DSTPtr));
+                }
+                do_dcbz++;
+                
                 *((uint16_t *) DSTPtr) = col;
                 DSTPtr++;
             }
             DSTPtr += LineOffset;
         }
     } else {
-        uint32_t *DSTPtr;
+        uint32_t * __restrict DSTPtr;
         unsigned short LineOffset;
         uint32_t lcol = (((int32_t) col) << 16) | col;
         dx >>= 1;
@@ -1100,7 +1129,16 @@ void FillSoftwareArea(short x0, short y0, short x1, // FILL AREA (BLK FILL)
 
         lcol = SWAP32(lcol);
         for (i = 0; i < dy; i++) {
+            int do_dcbz = 0;
             for (j = 0; j < dx; j ++) {
+                
+                if(do_dcbz==4)
+                {
+                    do_dcbz = 0;
+                    __asm__ __volatile__("dcbz 0,%0" : : "r" (DSTPtr));
+                }
+                do_dcbz++;
+                
                 *((uint32_t *) DSTPtr) = lcol;
                 DSTPtr++;
             }

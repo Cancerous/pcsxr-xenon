@@ -235,28 +235,7 @@ void PEOPS_GPUcursor(int iPlayer, int x, int y);
            } \
         }
 #endif
-#define CDR_PLUGIN \
-	{ "/CDR",      \
-	  9,         \
-	  { { "CDRinit",  \
-	      CDR__init }, \
-	    { "CDRshutdown",	\
-	      CDR__shutdown}, \
-	    { "CDRopen", \
-	      CDR__open}, \
-	    { "CDRclose", \
-	      CDR__close}, \
-	    { "CDRgetTN", \
-	      CDR__getTN}, \
-	    { "CDRgetTD", \
-	      CDR__getTD}, \
-	    { "CDRreadTrack", \
-	      CDR__readTrack}, \
-	    { "CDRgetBuffer", \
-	      CDR__getBuffer}, \
-	    { "CDRgetBufferSub", \
-	      CDR__getBufferSub} \
-	       } }
+
 
 #define SPU_NULL_PLUGIN \
 	{ "/SPU",      \
@@ -364,6 +343,30 @@ void PEOPS_GPUcursor(int iPlayer, int x, int y);
 	    { "GPUupdateLace", \
 	      GPU__updateLace} \
 	       } }
+
+#define CDR_PLUGIN \
+	{ "/CDR",      \
+	  9,         \
+	  { { "CDRinit",  \
+	      CDR__init }, \
+	    { "CDRshutdown",	\
+	      CDR__shutdown}, \
+	    { "CDRopen", \
+	      CDR__open}, \
+	    { "CDRclose", \
+	      CDR__close}, \
+	    { "CDRgetTN", \
+	      CDR__getTN}, \
+	    { "CDRgetTD", \
+	      CDR__getTD}, \
+	    { "CDRreadTrack", \
+	      CDR__readTrack}, \
+	    { "CDRgetBuffer", \
+	      CDR__getBuffer}, \
+	    { "CDRgetBufferSub", \
+	      CDR__getBufferSub} \
+	       } }
+
 #if 0
 #define GPU_PEOPS_PLUGIN \
 	{ "/GPU",      \
@@ -445,6 +448,62 @@ void PEOPS_GPUcursor(int iPlayer, int x, int y);
 	      PEOPS_GPUupdateLace} \
 	       } }
 #endif
+
+
+
+
+
+
+
+
+long CDRCIMGplay(unsigned char *time);
+long CDRCIMGgetTN(unsigned char *buffer);
+long CDRCIMGgetTD(unsigned char track, unsigned char *buffer);
+long CDRCIMGreadTrack(unsigned char *time);
+unsigned char *CDRCIMGgetBuffer(void);
+long CDRCIMGplay(unsigned char *time);
+long CDRCIMGstop(void);
+unsigned char* CDRCIMGgetBufferSub(void);
+long CDRCIMGgetStatus(struct CdrStat *stat);
+long CDRCIMGclose(void);
+long CDRCIMGshutdown(void);
+long CDRCIMGinit(void);
+long CDRCIMGopen(void);
+
+void cdrcimg_set_fname(const char *fname);
+
+#define CDRCIMG_PLUGIN \
+{ "/CDRCIMG",      \
+  13,         \
+  { { "CDRinit",  \
+      CDRCIMGinit }, \
+    { "CDRshutdown",	\
+      CDRCIMGshutdown}, \
+    { "CDRopen", \
+      CDRCIMGopen}, \
+    { "CDRclose", \
+      CDRCIMGclose}, \
+    { "CDRgetStatus", \
+      CDRCIMGgetStatus}, \
+    { "CDRgetTN", \
+      CDRCIMGgetTN}, \
+    { "CDRgetTD", \
+      CDRCIMGgetTD}, \
+    { "CDRplay", \
+      CDRCIMGplay}, \
+    { "CDRstop", \
+      CDRCIMGstop}, \
+    { "CDRreadTrack", \
+      CDRCIMGreadTrack}, \
+    { "CDRgetBuffer", \
+      CDRCIMGgetBuffer}, \
+    { "CDRgetBufferSub", \
+      CDRCIMGgetBufferSub} \
+    } \
+}
+
+
+
 #define PLUGIN_SLOT_0 EMPTY_PLUGIN
 #define PLUGIN_SLOT_1 PAD1_PLUGIN
 #define PLUGIN_SLOT_2 PAD2_PLUGIN
@@ -455,7 +514,7 @@ void PEOPS_GPUcursor(int iPlayer, int x, int y);
 //#define PLUGIN_SLOT_5 GPU_NULL_PLUGIN
 #define PLUGIN_SLOT_5 GPU_PEOPS_PLUGIN
 #define PLUGIN_SLOT_6 EMPTY_PLUGIN
-#define PLUGIN_SLOT_7 EMPTY_PLUGIN
+#define PLUGIN_SLOT_7 CDRCIMG_PLUGIN
 
 
 

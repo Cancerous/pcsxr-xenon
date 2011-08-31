@@ -1127,7 +1127,7 @@ void psxBios_GPU_cwb() { // 0x4a
 	s32 *ptr = (s32*)Ra0;
 	int size = a1;
 	while(size--) {
-		GPU_writeData(SWAP32(*ptr));
+                GPU_writeData(SWAP32(*ptr));
 		ptr++;
 	}
 

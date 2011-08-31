@@ -89,6 +89,7 @@ void setIrq( u32 irq )
     psxHu32ref(0x1070) |= SWAPu32(irq);
 }
 
+/*
 static
 void verboseLog( s32 level, const char *str, ... )
 {
@@ -105,6 +106,9 @@ void verboseLog( s32 level, const char *str, ... )
         fflush( stdout );
     }
 }
+*/
+
+#define verboseLog 
 
 /******************************************************************************/
 
@@ -306,7 +310,9 @@ void psxRcntUpdate()
         }
     }
 
+#ifndef LIBXENON
     DebugVSync();
+#endif
 }
 
 /******************************************************************************/

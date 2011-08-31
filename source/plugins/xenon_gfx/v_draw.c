@@ -31,11 +31,6 @@
 #include <time/time.h>
 #include <time.h>
 
-#include "draw_c_p_psu.h"
-#include "draw_t_p_psu.h"
-#include "draw_v_vsu.h"
-
-
 #include "externals.h"
 #include "gpu.h"
 #include "draw.h"
@@ -43,6 +38,29 @@
 #include "menu.h"
 #include "interp.h"
 #include "swap.h"
+
+// Simple shader
+#include "ps.h"
+#include "vs.h"
+// Shader
+//typedef unsigned int DWORD;
+/*
+#if 1
+#define MAME_SHADER
+#include "post.ps.h"
+#include "post.vs.h"
+#elif 1
+#include "scale2x.ps.h"
+#include "scale2x.vs.h"
+#else
+#include "s2xsai.ps.h"
+#include "s2xsai.vs.h"
+#endif
+ */
+
+#ifdef LZX_GUI 
+XenosDevice * getLzxVideoDevice();
+#endif
 
 #define TR {printf("[Trace] in function %s, line %d, file %s\n",__FUNCTION__,__LINE__,__FILE__);}
 
@@ -79,18 +97,18 @@ int iTileCheat = 0;
 int finalw, finalh;
 
 unsigned char * psxScreen = NULL;
-struct XenosVertexBuffer *vb = NULL;
-struct XenosDevice * g_pVideoDevice = NULL;
-struct XenosShader * g_pVertexShader = NULL;
-struct XenosShader * g_pPixelTexturedShader = NULL;
-struct XenosSurface * g_pTexture = NULL;
-struct XenosSurface * fb = NULL;
-struct XenosDevice _xe;
+static struct XenosVertexBuffer *vb = NULL;
+static struct XenosDevice * g_pVideoDevice = NULL;
+static struct XenosShader * g_pVertexShader = NULL;
+static struct XenosShader * g_pPixelTexturedShader = NULL;
+static struct XenosSurface * g_pTexture = NULL;
+static struct XenosSurface * fb = NULL;
+static struct XenosDevice _xe;
 
 typedef struct DrawVerticeFormats {
-    float x, y; //z/w remove it ...
-    float u, v;
+    float x, y, z, w;
     unsigned int color;
+    float u, v;
 } DrawVerticeFormats;
 
 DrawVerticeFormats Rect[6];
@@ -127,8 +145,8 @@ void CreateTexture(int width, int height) {
 
     if ((width != old_width) || (old_height != height)) {
 
-        texturesize[0] = width;
-        texturesize[1] = height;
+        texturesize[1] = width;
+        texturesize[0] = height;
 
         //printf("Old w:%d - h:%d\r\n", old_width, old_height);
         //printf("New w:%d - h:%d\r\n", width, height);
@@ -163,30 +181,54 @@ void CreateTexture(int width, int height) {
 }
 
 void CreateDisplay(void) {
+
+#ifndef LZX_GUI    
     g_pVideoDevice = &_xe;
     Xe_Init(g_pVideoDevice);
+#else
+
+    g_pVideoDevice = getLzxVideoDevice();
+#endif
     fb = Xe_GetFramebufferSurface(g_pVideoDevice);
     Xe_SetRenderTarget(g_pVideoDevice, fb);
 
+    /*
+        mame HLSL
+        struct VS_INPUT
+        {
+            float4 Position : POSITION;
+            float4 Color : COLOR0;
+            float2 TexCoord : TEXCOORD0;
+        };
+     */
     static const struct XenosVBFFormat vbf = {
         3,
         {
-            {XE_USAGE_POSITION, 0, XE_TYPE_FLOAT2},
-            {XE_USAGE_TEXCOORD, 0, XE_TYPE_FLOAT2},
+            {XE_USAGE_POSITION, 0, XE_TYPE_FLOAT4},
             {XE_USAGE_COLOR, 0, XE_TYPE_UBYTE4},
+            {XE_USAGE_TEXCOORD, 0, XE_TYPE_FLOAT2},
         }
     };
 
-
-    g_pPixelTexturedShader = Xe_LoadShaderFromMemory(g_pVideoDevice, (void*) draw_t_p_psu);
+#ifdef MAME_SHADER
+    g_pPixelTexturedShader = Xe_LoadShaderFromMemory(g_pVideoDevice, (void*) g_xps_ps_main);
+#else
+    g_pPixelTexturedShader = Xe_LoadShaderFromMemory(g_pVideoDevice, (void*) g_xps_PS);
+#endif
+    //g_pPixelTexturedShader = Xe_LoadShaderFromMemory(g_pVideoDevice, (void*) draw_t_p_psu);
     Xe_InstantiateShader(g_pVideoDevice, g_pPixelTexturedShader, 0);
 
-    g_pVertexShader = Xe_LoadShaderFromMemory(g_pVideoDevice, (void*) draw_v_vsu);
+#ifdef MAME_SHADER
+    g_pVertexShader = Xe_LoadShaderFromMemory(g_pVideoDevice, (void*) g_xvs_vs_main);
+#else
+    g_pVertexShader = Xe_LoadShaderFromMemory(g_pVideoDevice, (void*) g_xvs_VS);
+#endif
+    //g_pVertexShader = Xe_LoadShaderFromMemory(g_pVideoDevice, (void*) draw_v_vsu);
     Xe_InstantiateShader(g_pVideoDevice, g_pVertexShader, 0);
     Xe_ShaderApplyVFetchPatches(g_pVideoDevice, g_pVertexShader, 0, &vbf);
 
     edram_init(g_pVideoDevice);
-    
+
     // Create the psxScreen texture
     if (g_pTexture)
         Xe_DestroyTexture(g_pVideoDevice, g_pTexture);
@@ -196,8 +238,8 @@ void CreateDisplay(void) {
     g_pPitch = g_pTexture->wpitch;
     Xe_Surface_Unlock(g_pVideoDevice, g_pTexture);
 
-    memset(psxScreen,0,1024*512*2);
-    
+    memset(psxScreen, 0, 1024 * 512 * 2);
+
     // move it to ini file
     float x = -1.0f;
     float y = -1.0f;
@@ -223,7 +265,7 @@ void CreateDisplay(void) {
     Rect[2].y = y + h;
     Rect[2].u = PsxScreenUv[UvTop];
     Rect[2].v = PsxScreenUv[UvRight];
-    Rect[2].color = 0xFF00FF00;
+    Rect[2].color = 0;
 
     // top right
     Rect[3].x = x + w;
@@ -245,92 +287,42 @@ void CreateDisplay(void) {
     Rect[5].y = y;
     Rect[5].u = PsxScreenUv[UvTop];
     Rect[5].v = PsxScreenUv[UvLeft];
-    Rect[5].color = 0xFF00FF00;
+    Rect[5].color = 0;
+
+    int i = 0;
+    for (i = 0; i < 6; i++) {
+        Rect[i].z = 0.0;
+        Rect[i].w = 1.0;
+    }
 
     CreateTexture(psxRealW, psxRealH);
 
-    
+    Xe_SetClearColor(g_pVideoDevice, 0);
 }
-
-#if 0
-
-void BlitScreen32(unsigned char *surf, int32_t x, int32_t y) {
-    unsigned char *pD;
-    unsigned int startxy;
-    uint32_t lu;
-    unsigned short s;
-    unsigned short row, column;
-    unsigned short dx = PreviousPSXDisplay.Range.x1;
-    unsigned short dy = PreviousPSXDisplay.DisplayMode.y;
-
-    int32_t lPitch = PSXDisplay.DisplayMode.x << 2;
-
-    uint32_t *destpix;
-
-    if (PreviousPSXDisplay.Range.y0) // centering needed?
-    {
-        memset(surf, 0, (PreviousPSXDisplay.Range.y0 >> 1) * lPitch);
-
-        dy -= PreviousPSXDisplay.Range.y0;
-        surf += (PreviousPSXDisplay.Range.y0 >> 1) * lPitch;
-
-        memset(surf + dy * lPitch,
-                0, ((PreviousPSXDisplay.Range.y0 + 1) >> 1) * lPitch);
-    }
-
-    if (PreviousPSXDisplay.Range.x0) {
-        for (column = 0; column < dy; column++) {
-            destpix = (uint32_t *) (surf + (column * lPitch));
-            memset(destpix, 0, PreviousPSXDisplay.Range.x0 << 2);
-        }
-        surf += PreviousPSXDisplay.Range.x0 << 2;
-    }
-
-    if (PSXDisplay.RGB24) {
-        for (column = 0; column < dy; column++) {
-            startxy = ((1024) * (column + y)) + x;
-            pD = (unsigned char *) &psxVuw[startxy];
-            destpix = (uint32_t *) (surf + (column * lPitch));
-            for (row = 0; row < dx; row++) {
-                lu = *((uint32_t *) pD);
-                destpix[row] =
-                        0xff000000 | (RED(lu) << 16) | (GREEN(lu) << 8) | (BLUE(lu));
-                pD += 3;
-            }
-        }
-    } else {
-        for (column = 0; column < dy; column++) {
-            startxy = (1024 * (column + y)) + x;
-            destpix = (uint32_t *) (surf + (column * lPitch));
-            for (row = 0; row < dx; row++) {
-                s = GETLE16(&psxVuw[startxy++]);
-                destpix[row] =
-                        (((s << 19) & 0xf80000) | ((s << 6) & 0xf800) | ((s >> 7) & 0xf8)) | 0xff000000;
-            }
-        }
-    }
-}
-#else
-// Cout 4-5fps
 
 #define R(x)    ((x << 19) & 0xf80000) 
 #define B(x)    ((x << 6) & 0xf800) 
 #define G(x)    ((x >> 7) & 0xf8) 
 #define RGB(x)  (R(x)|B(x)|G(x))
 
-void BlitScreen32(unsigned char * surf, int32_t x, int32_t y) {
-    uint32_t * __restrict rdest = NULL;
-    uint32_t *destpix = NULL;
-    unsigned char *pD = NULL;
+#define GCC_SPLIT_BLOCK __asm__ ("");
+#define SIZE_OF_BUFFERS   (512*32)        // 512 cache lines
 
-    unsigned int startxy;
+
+void BlitScreen32(unsigned char * _surf, int32_t x, int32_t y) {
+    uint8_t * __restrict  surf = _surf;
+    uint8_t * __restrict pD;
+    uint32_t * __restrict rdest;
+    uint32_t * __restrict destpix;
+    
+    uint32_t startxy;
     uint32_t lu;
-    unsigned short s0, s1, s2, s3, s4, s5, s6, s7;
+    uint16_t s,s0, s1, s2, s3, s4, s5, s6, s7;
     uint32_t d0, d1, d2, d3, d4, d5, d6, d7;
 
-    unsigned short row, column;
-    unsigned short dx = PreviousPSXDisplay.Range.x1;
-    unsigned short dy = PreviousPSXDisplay.DisplayMode.y;
+    uint16_t row, column;
+    uint16_t dx = PreviousPSXDisplay.Range.x1;
+    uint16_t dy = PreviousPSXDisplay.DisplayMode.y;
 
     if (PreviousPSXDisplay.Range.y0) // centering needed?
     {
@@ -354,7 +346,7 @@ void BlitScreen32(unsigned char * surf, int32_t x, int32_t y) {
     if (PSXDisplay.RGB24) {
         for (column = 0; column < dy; column++) {
             startxy = ((1024) * (column + y)) + x;
-            pD = (unsigned char *) &psxVuw[startxy];
+            pD = (uint8_t *) &psxVuw[startxy];
             destpix = (uint32_t *) (surf + (column * g_pPitch));
             for (row = 0; row < dx; row++) {
 
@@ -365,14 +357,26 @@ void BlitScreen32(unsigned char * surf, int32_t x, int32_t y) {
 
             }
         }
-    } else {
+    }
+
+    else {
+#if 1
         for (column = 0; column < dy; column++) {
             startxy = (1024 * (column + y)) + x;
             destpix = (uint32_t *) (surf + (column * g_pPitch));
 
+            // Prefetch to give us a running start on the first 8 sets of cache lines
+            int loop;
+            for(loop=0; loop < 1024; loop += 128)
+                __asm__ __volatile__("dcbt 0,%0" : : "r" (&psxVuw[startxy]+loop));
+
+            __asm__ __volatile__("dcbz 0,%0" : : "r" (destpix));
+
             for (row = 0; row < dx; row += 8) {
                 rdest = &destpix[row];
-
+                
+                GCC_SPLIT_BLOCK
+                
                 s0 = GETLE16(&psxVuw[startxy++]);
                 s1 = GETLE16(&psxVuw[startxy++]);
                 s2 = GETLE16(&psxVuw[startxy++]);
@@ -382,6 +386,8 @@ void BlitScreen32(unsigned char * surf, int32_t x, int32_t y) {
                 s6 = GETLE16(&psxVuw[startxy++]);
                 s7 = GETLE16(&psxVuw[startxy++]);
 
+                GCC_SPLIT_BLOCK
+                
                 d0 = RGB(s0) | 0xff000000;
                 d1 = RGB(s1) | 0xff000000;
                 d2 = RGB(s2) | 0xff000000;
@@ -391,6 +397,8 @@ void BlitScreen32(unsigned char * surf, int32_t x, int32_t y) {
                 d6 = RGB(s6) | 0xff000000;
                 d7 = RGB(s7) | 0xff000000;
 
+                GCC_SPLIT_BLOCK
+                
                 rdest[0] = d0;
                 rdest[1] = d1;
                 rdest[2] = d2;
@@ -401,14 +409,27 @@ void BlitScreen32(unsigned char * surf, int32_t x, int32_t y) {
                 rdest[7] = d7;
             }
         }
-    }
-}
+#else
+        for(column=0;column<dy;column++)
+        {
+            startxy=((1024)*(column+y))+x;
+            for(row=0;row<dx;row++)
+            {
+                s=psxVuw[startxy++];
+                *((unsigned long *)((surf)+(column*g_pPitch)+row*4))=
+                ((((s<<19)&0xf80000)|((s<<6)&0xf800)|((s>>7)&0xf8))&0xffffff)|0xff000000;
+            }
+        }
+
 #endif
+    }
+
+}
 
 void DoBufferSwap(void) {
-    if(bDoVSyncUpdate==FALSE)
+    if (bDoVSyncUpdate == FALSE)
         return;
-    
+
     //printf("DoBufferSwap\r\n");
     finalw = PSXDisplay.DisplayMode.x;
     finalh = PSXDisplay.DisplayMode.y;
@@ -439,18 +460,22 @@ void DoBufferSwap(void) {
 
     // set texture size
     Xe_SetVertexShaderConstantF(g_pVideoDevice, 0, texturesize, 1);
+    Xe_SetPixelShaderConstantF(g_pVideoDevice, 0, texturesize, 1);
+
 
     Xe_DrawPrimitive(g_pVideoDevice, XE_PRIMTYPE_TRIANGLELIST, 0, 2);
 
     Xe_Resolve(g_pVideoDevice);
+    // while (!Xe_IsVBlank(g_pVideoDevice));//slowdown ...
     Xe_Sync(g_pVideoDevice);
+
 
 }
 
 void DoClearScreenBuffer(void) // CLEAR DX BUFFER
 {
-    memset(psxScreen,0,1024*512*2);
-    
+    memset(psxScreen, 0, 1024 * 512 * 2);
+
     Xe_InvalidateState(g_pVideoDevice);
     Xe_SetClearColor(g_pVideoDevice, 0xFF000000);
 
@@ -460,8 +485,8 @@ void DoClearScreenBuffer(void) // CLEAR DX BUFFER
 
 void DoClearFrontBuffer(void) // CLEAR DX BUFFER
 {
-    memset(psxScreen,0,1024*512*2);
-    
+    memset(psxScreen, 0, 1024 * 512 * 2);
+
     Xe_InvalidateState(g_pVideoDevice);
     Xe_SetClearColor(g_pVideoDevice, 0xFF000000);
 

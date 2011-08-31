@@ -273,3 +273,79 @@ void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei widt
         D3D_FillTextureLevel(d3d_TMUs[d3d_CurrentTMU].boundtexture->teximg, level, internalformat, width, height, format, pixels);
     }
 }
+
+void glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *pixels) {
+    int x, y;
+    int srcbytes = 0;
+    int dstbytes = 0;
+    unsigned char *srcdata;
+    unsigned char *dstdata;
+    unsigned char *pBits;
+    //D3DLOCKED_RECT lockrect;
+
+    if (format == 1 || format == GL_LUMINANCE)
+        srcbytes = 1;
+    else if (format == 3 || format == GL_RGB)
+        srcbytes = 3;
+    else if (format == 4 || format == GL_RGBA)
+        srcbytes = 4;
+    else Sys_Error("D3D_FillTextureLevel: illegal format");
+
+    // d3d doesn't have an internal RGB only format
+    // (neither do most OpenGL implementations, they just let you specify it as RGB but expand internally to 4 component)
+    if (d3d_TMUs[d3d_CurrentTMU].boundtexture->internalformat == 1 || d3d_TMUs[d3d_CurrentTMU].boundtexture->internalformat == GL_LUMINANCE)
+        dstbytes = 1;
+    else if (d3d_TMUs[d3d_CurrentTMU].boundtexture->internalformat == 3 || d3d_TMUs[d3d_CurrentTMU].boundtexture->internalformat == GL_RGB)
+        dstbytes = 4;
+    else if (d3d_TMUs[d3d_CurrentTMU].boundtexture->internalformat == 4 || d3d_TMUs[d3d_CurrentTMU].boundtexture->internalformat == GL_RGBA)
+        dstbytes = 4;
+    else Sys_Error("D3D_FillTextureLevel: illegal internalformat");
+
+    //IDirect3DTexture8_LockRect(d3d_TMUs[d3d_CurrentTMU].boundtexture->teximg, level, &lockrect, NULL, 0);
+
+    pBits = (unsigned char*)Xe_Surface_LockRect(xe, d3d_TMUs[d3d_CurrentTMU].boundtexture->teximg, 0,0,0,0,XE_LOCK_WRITE);
+    
+    srcdata = (unsigned char *) pixels;
+    dstdata = pBits;
+    dstdata += (yoffset * width + xoffset) * dstbytes;
+
+    for (y = yoffset; y < (yoffset + height); y++) {
+        for (x = xoffset; x < (xoffset + width); x++) {
+            if (srcbytes == 1) {
+                if (dstbytes == 1)
+                    dstdata[0] = srcdata[0];
+                else if (dstbytes == 4) {
+                    dstdata[0] = srcdata[0];
+                    dstdata[1] = srcdata[0];
+                    dstdata[2] = srcdata[0];
+                    dstdata[3] = srcdata[0];
+                }
+            } else if (srcbytes == 3) {
+                if (dstbytes == 1)
+                    dstdata[0] = ((int) srcdata[0] + (int) srcdata[1] + (int) srcdata[2]) / 3;
+                else if (dstbytes == 4) {
+                    dstdata[0] = srcdata[2];
+                    dstdata[1] = srcdata[1];
+                    dstdata[2] = srcdata[0];
+                    dstdata[3] = 255;
+                }
+            } else if (srcbytes == 4) {
+                if (dstbytes == 1)
+                    dstdata[0] = ((int) srcdata[0] + (int) srcdata[1] + (int) srcdata[2]) / 3;
+                else if (dstbytes == 4) {
+                    dstdata[0] = srcdata[2];
+                    dstdata[1] = srcdata[1];
+                    dstdata[2] = srcdata[0];
+                    dstdata[3] = srcdata[3];
+                }
+            }
+
+            // advance
+            srcdata += srcbytes;
+            dstdata += dstbytes;
+        }
+    }
+
+    Xe_Surface_Unlock(xe,d3d_TMUs[d3d_CurrentTMU].boundtexture->teximg);
+    //IDirect3DTexture8_UnlockRect(d3d_TMUs[d3d_CurrentTMU].boundtexture->teximg, level);
+}
