@@ -36,7 +36,7 @@ void ReadConfig(void) // read config (linux file)
     iResY = 720;
     iUseScanLines = 0;
     bFullVRam = FALSE;
-    iFilterType = 0; //0: None , 5: Standard + smoothed Sprites, 6: Extended + smoothed Sprites
+    iFilterType = 5; //0: None , 5: Standard + smoothed Sprites, 6: Extended + smoothed Sprites
     bDrawDither = FALSE;
     bUseLines = FALSE;
     bUseFrameLimit = FALSE;
@@ -44,7 +44,7 @@ void ReadConfig(void) // read config (linux file)
     iFrameLimit = 2;
     fFrameRate = 200.0f;
     iOffscreenDrawing = 2; //2: Standard - OK for most games
-    bOpaquePass = TRUE;
+    bOpaquePass = TRUE;//TRUE
     bUseAntiAlias = FALSE;
     iTexQuality = 3; // 4 - B8 G8 R8 A8 - Slightly faster with some cards | 3 - R8 G8 B8 A8 - Best colors, more ram needed
     iUseMask = 0;

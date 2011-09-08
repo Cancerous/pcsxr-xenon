@@ -23,13 +23,13 @@
 
 void           InitializeTextureStore();
 void           CleanupTextureStore();
-GLuint         LoadTextureWnd(int pageid, int TextureMode, uint32_t GivenClutId);
-GLuint         LoadTextureMovie(void);
+struct XenosSurface *         LoadTextureWnd(int pageid, int TextureMode, uint32_t GivenClutId);
+struct XenosSurface *         LoadTextureMovie(void);
 void           InvalidateTextureArea(int imageX0, int imageY0, int imageX1, int imageY1);
 void           InvalidateTextureAreaEx(void);
 void           LoadTexturePage(int pageid, int mode, short cx, short cy);
 void           ResetTextureArea(BOOL bDelTex);
-GLuint         SelectSubTextureS(int TextureMode, uint32_t GivenClutId);
+struct XenosSurface *         SelectSubTextureS(int TextureMode, uint32_t GivenClutId);
 void           CheckTextureMemory(void);
 
 void           LoadSubTexturePage(int pageid, int mode, short cx, short cy);

@@ -367,7 +367,7 @@ void PEOPS_GPUcursor(int iPlayer, int x, int y);
 	      CDR__getBufferSub} \
 	       } }
 
-#if 0
+#if 0 // SOFT
 #define GPU_PEOPS_PLUGIN \
 	{ "/GPU",      \
 	  18,         \
@@ -449,7 +449,45 @@ void PEOPS_GPUcursor(int iPlayer, int x, int y);
 	       } }
 #endif
 
-
+// HW GPU
+#define GPU_HW_PEOPS_PLUGIN \
+	{ "/GPU",      \
+	  17,         \
+	  { { "GPUinit",  \
+	      PEOPS_GPUinit }, \
+	    { "GPUshutdown",	\
+	      PEOPS_GPUshutdown}, \
+	    { "GPUopen", \
+	      PEOPS_GPUopen}, \
+	    { "GPUclose", \
+	      PEOPS_GPUclose}, \
+	    { "GPUwriteStatus", \
+	      PEOPS_GPUwriteStatus}, \
+	    { "GPUwriteData", \
+	      PEOPS_GPUwriteData}, \
+	    { "GPUwriteDataMem", \
+	      PEOPS_GPUwriteDataMem}, \
+	    { "GPUreadStatus", \
+	      PEOPS_GPUreadStatus}, \
+	    { "GPUreadData", \
+	      PEOPS_GPUreadData}, \
+	    { "GPUreadDataMem", \
+	      PEOPS_GPUreadDataMem}, \
+	    { "GPUdmaChain", \
+	      PEOPS_GPUdmaChain}, \
+	    { "GPUdisplayText", \
+	      PEOPS_GPUdisplayText}, \
+	    { "GPUfreeze", \
+	      PEOPS_GPUfreeze}, \
+            { "GPUmakeSnapshot", \
+	      PEOPS_GPUmakeSnapshot}, \
+            { "GPUvisualVibration", \
+	      PEOPS_GPUvisualVibration}, \
+            { "GPUcursor", \
+	      PEOPS_GPUcursor}, \
+	    { "GPUupdateLace", \
+	      PEOPS_GPUupdateLace} \
+	       } }
 
 
 
@@ -512,7 +550,7 @@ void cdrcimg_set_fname(const char *fname);
 //#define PLUGIN_SLOT_4 SPU_NULL_PLUGIN
 #define PLUGIN_SLOT_4 SPU_PEOPS_PLUGIN
 //#define PLUGIN_SLOT_5 GPU_NULL_PLUGIN
-#define PLUGIN_SLOT_5 GPU_PEOPS_PLUGIN
+#define PLUGIN_SLOT_5 GPU_HW_PEOPS_PLUGIN
 #define PLUGIN_SLOT_6 EMPTY_PLUGIN
 #define PLUGIN_SLOT_7 CDRCIMG_PLUGIN
 

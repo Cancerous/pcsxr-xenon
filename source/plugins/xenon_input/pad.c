@@ -62,8 +62,8 @@ void PSxInputReadPort(PadDataS* pad, int port) {
 */
     if (g.PadState[port].JoyDev.rb && g.PadState[port].JoyDev.lb){
         PEOPS_SPUclose();
-        xenon_sleep_thread(2);
-        xenon_set_single_thread_mode();
+        //xenon_sleep_thread(2);
+        //xenon_set_single_thread_mode();
         exit(0);//return to xell
     }
         

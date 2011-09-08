@@ -31,8 +31,6 @@ static struct XenosSurface * fb = NULL;
 static struct XenosVertexBuffer *vb = NULL;
 static struct XenosDevice _xe;
 
-
-
 static int vertexCount = 0;
 float screen[2] = {0, 0};
 static PsxVerticeFormats * vertices = NULL;
@@ -57,22 +55,7 @@ void fpoint(PsxVerticeFormats * psxvertices) {
         // psxvertices[i].y = psxvertices[i].y / 480.f;
         psxvertices[i].x = ((psxvertices[i].x / screen[0])*2.f) - 1.0f;
         psxvertices[i].y = ((psxvertices[i].y / screen[1])*2.f) - 1.0f;
-
     }
-/*
-    // uv mod
-    psxvertices[0].u += gPsxUV.bottom;
-    psxvertices[0].v += gPsxUV.right;
-    
-    psxvertices[1].u += gPsxUV.bottom;
-    psxvertices[1].v += gPsxUV.left;
-    
-    psxvertices[2].u += gPsxUV.top;
-    psxvertices[2].v += gPsxUV.right;
-    
-    psxvertices[3].u += gPsxUV.top;
-    psxvertices[3].v += gPsxUV.left;
-*/
 }
 
 void iXeDrawTri(PsxVerticeFormats * psxvertices) {
@@ -173,28 +156,7 @@ void CloseDisplay() {
 
 }
 
-void XeOrtho(int l, int r, int b, int t, int zn, int zf) {
-    // TR
-    screen[0] = r;
-    screen[1] = b;
-    printf("setOrtho => %d - %d \r\n", r, b);
-    Xe_SetVertexShaderConstantF(xe, 1, (float*) screen, 1);
-}
 
-void XeResetStates() {
-    Xe_InvalidateState(xe);
-    Xe_SetVertexShaderConstantF(xe, 1, (float*) screen, 1);
-    Xe_SetCullMode(xe, XE_CULL_NONE);
-
-    //Xe_SetFillMode(xe,0x25,0x25);
-}
-
-void XeClear(uint32_t color) {
-    TR
-    Xe_SetClearColor(xe, color);
-    //Xe_Resolve(xe);
-    XeResetStates();
-}
 
 int ss = 0;
 char sshot[256];
@@ -223,13 +185,8 @@ void DoBufferSwap() {
     //TR
     //printf("draw %d vertices\r\n",vertexCount);
     vertexCount = 0;
-    //saveShots();
+   // saveShots();
     XeResetStates();
-
-
-    // save things ...
-    //
-
 }
 
 void PEOPS_GPUdisplayText(char * pText) // some debug func
@@ -264,6 +221,7 @@ void SaveFbToPng(const char *filename) {
     //uint8_t *data = (int8_t *)0xec806110;
     unsigned char * data = (unsigned char*)(long)(ai->base | 0x80000000);
     uint32_t * fb = (uint32_t*)data;
+    uint8_t * fb8 = (uint8_t*)data;
     
     png_structp png_ptr;
     png_infop info_ptr;
@@ -309,9 +267,12 @@ void SaveFbToPng(const char *filename) {
     }
     png_bytep * row_pointers = (png_bytep*) malloc(sizeof(png_bytep) * height);
 
+    
+    
     TR;
-    for (y=0; y<height; y++)
-        row_pointers[y] = (png_bytep)(u8 *)fb_backup + y * (width*4);
+    for (y=0; y<height; y++){
+        row_pointers[y] = (png_bytep)(u8 *)(fb8 + (y * (pitch)));
+    }
 
     TR;
     png_write_image(png_ptr, row_pointers);
@@ -321,4 +282,22 @@ void SaveFbToPng(const char *filename) {
     free(row_pointers);
    // free(fb_backup);
     fclose(fp);
+}
+
+
+
+void XeOrtho(int l, int r, int b, int t, int zn, int zf) {
+    // TR
+    screen[0] = r;
+    screen[1] = b;
+    printf("setOrtho => %d - %d \r\n", r, b);
+    Xe_SetVertexShaderConstantF(xe, 1, (float*) screen, 1);
+}
+
+void XeResetStates() {
+    Xe_InvalidateState(xe);
+    Xe_SetVertexShaderConstantF(xe, 1, (float*) screen, 1);
+    Xe_SetCullMode(xe, XE_CULL_NONE);
+
+    //Xe_SetFillMode(xe,0x25,0x25);
 }

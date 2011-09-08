@@ -212,7 +212,7 @@ void SetExtGLFuncs(void) {
 
     if (bOpaquePass) // opaque mode?
     {
-#if 1
+#if 0
         TR;
         if (dwActFixes & 32) {
             TR;
@@ -241,7 +241,7 @@ void SetExtGLFuncs(void) {
     } else // no opaque mode?
     {
         TR;
-#if 1
+#if 0
         TCF[0] = TCF[1] = P8BGRA;
         PalTexturedColourFn = P8BGRA; // -> init col func
         XeAlphaFunc(XE_CMP_NOTEQUAL, 0); // --> set alpha func
@@ -941,8 +941,8 @@ void assignTextureVRAMWrite(void) {
 #endif
 }
 
-GLuint gLastTex = 0;
-GLuint gLastFMode = (GLuint) - 1;
+struct XenosSurface *  gLastTex = 0;
+struct XenosSurface *  gLastFMode = (GLuint) - 1;
 
 ///////////////////////////////////////////////////////// 
 
@@ -1124,9 +1124,9 @@ void assignTexture4(void) {
 /*
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+*/
                 gLastTex = gTexName;
                 gLastFMode = 1;
-*/
             }
         }
 

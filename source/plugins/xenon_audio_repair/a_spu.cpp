@@ -2544,7 +2544,7 @@ void RemoveTimer(void) {
             usleep(1000L);
             i++;
         } // -> wait until thread has ended
-        xenon_sleep_thread(2);
+        //xenon_sleep_thread(2);
         printf("RemoveTimer\r\n");
     }
 #else

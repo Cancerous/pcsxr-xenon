@@ -187,6 +187,20 @@ typedef struct OGLVertexTag
 
  union COLTAG
   {
+     struct {
+#if 0
+         unsigned char r;
+         unsigned char g;
+         unsigned char b;
+         unsigned char a;
+#else
+         unsigned char a;
+         unsigned char r;
+         unsigned char g;
+         unsigned char b;
+         
+#endif
+     };
    unsigned char col[4];
    unsigned int lcol;
   } c;
@@ -264,7 +278,7 @@ extern int            iShowFPS;
 extern BOOL           bSetClip;
 extern int            iUseExts;
 extern int            iUsePalTextures;
-extern GLuint         gTexScanName;
+extern struct XenosSurface *         gTexScanName;
 
 #endif
 
@@ -298,7 +312,7 @@ extern PSXRect_t     xrMovieArea;
 extern PSXRect_t     xrUploadArea;
 extern PSXRect_t     xrUploadAreaIL;
 extern PSXRect_t     xrUploadAreaRGB24;
-extern GLuint        gTexName;
+extern struct XenosSurface *        gTexName;
 extern BOOL          bDrawNonShaded;
 extern BOOL          bDrawMultiPass;
 extern GLubyte       ubGloColAlpha;
@@ -347,8 +361,8 @@ extern int            iFrameReadType;
 extern int            iClampType;
 extern int            iSortTexCnt;
 extern BOOL           bFakeFrontBuffer; 
-extern GLuint         gTexFrameName;
-extern GLuint         gTexBlurName;
+extern struct XenosSurface *         gTexFrameName;
+extern struct XenosSurface *         gTexBlurName;
 extern int            iVRamSize;
 extern int            iTexGarbageCollection;
 extern int            iFTexA;
