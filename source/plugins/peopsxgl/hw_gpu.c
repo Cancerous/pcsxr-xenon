@@ -302,6 +302,7 @@ long GPUopen(unsigned long * disp, char * CapText, char * CfgFile) {
     rRatioRect.right = iResX;
     rRatioRect.bottom = iResY;
 
+    resetGteVertices();
     GLinitialize(); // init opengl
 
     return 0;

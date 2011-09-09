@@ -61,9 +61,6 @@ void XeTexImage(int internalformat, int width, int height, int format,const void
 #define xeSetTexture()
 #define _IN_TEXTURE
 
-#define XE_TEXF_POINT 0
-#define XE_TEXF_LINEAR 1
-
 #include "externals.h"
 #include "texture.h"
 #include "gpu.h"
@@ -98,39 +95,24 @@ void XeTexSubImage(int xoffset, int yoffset, int width, int height, const void *
 	int dstbytes = 4;
         int y,x;
         int j,i = 0;
-/*
 
-        surf->width = width;
-        surf->height = height;
-*/
-
-        int pitch = surf->wpitch;
+        int pitch = (surf->wpitch);
+        int offset = xoffset*dstbytes;
 
         for (y = yoffset; y < (yoffset + height); y++)
 	{
-            //dstdata = surfbuf + (y * width + xoffset) * dstbytes;
-            //srcdata = buffer + ((surf->width)*(y))+x;
-            //dstdata = surfbuf + (y-yoffset)*(surf->wpitch);// ok
-            dstdata = surfbuf + (y*pitch)+(xoffset*dstbytes);// ok
-            //srcdata = buffer + ((surf->width)*(y))+xoffset;
+            // dstdata = surfbuf + (y*pitch)+(xoffset*dstbytes);// ok
+            dstdata = surfbuf + (y*pitch)+(offset);// ok
             for (x = xoffset; x < (xoffset + width); x++)
             {
                 // 0 a r
                 // 1 r g
                 // 2 g b
                 // 3 b a
-/*
-                dstdata[0] = srcdata[3];
-                dstdata[1] = srcdata[0];
-                dstdata[2] = srcdata[1];
-                dstdata[3] = srcdata[2];
-*/
-
                 dstdata[0] = srcdata[0];
                 dstdata[1] = srcdata[1];
                 dstdata[2] = srcdata[2];
                 dstdata[3] = srcdata[3];
-
 
                 srcdata += srcbytes;
                 dstdata += dstbytes;
@@ -138,9 +120,6 @@ void XeTexSubImage(int xoffset, int yoffset, int width, int height, const void *
         }
 
         Xe_Surface_Unlock(xe,surf);
-    }
-    else{
-        printf("not found\r\n");
     }
 }
 
@@ -632,10 +611,9 @@ void CleanupTextureStore() {
     //----------------------------------------------------//
 }
 
-////////////////////////////////////////////////////////////////////////
-// Reset textures in game...
-////////////////////////////////////////////////////////////////////////
-
+/**
+ * Reset textures in game...
+ */
 void ResetTextureArea(BOOL bDelTex) {
     int i, j;
     textureSubCacheEntryS * tss;
@@ -682,10 +660,10 @@ void ResetTextureArea(BOOL bDelTex) {
 }
 
 
-////////////////////////////////////////////////////////////////////////
-// Invalidate tex windows
-////////////////////////////////////////////////////////////////////////
 
+/**
+ * Invalidate tex windows
+ */
 void InvalidateWndTextureArea(int X, int Y, int W, int H) {
     int i, px1, px2, py1, py2, iYM = 1;
     textureWndCacheEntry * tsw = wcWndtexStore;
@@ -743,12 +721,9 @@ void InvalidateWndTextureArea(int X, int Y, int W, int H) {
     }
 }
 
-
-
-////////////////////////////////////////////////////////////////////////
-// same for sort textures
-////////////////////////////////////////////////////////////////////////
-
+/**
+ * same for sort textures
+ */
 void MarkFree(textureSubCacheEntryS * tsx) {
     EXLong * ul, * uls;
     int j, iMax;
@@ -785,7 +760,9 @@ void MarkFree(textureSubCacheEntryS * tsx) {
         ul->c[0] = dy;
     }
 }
-
+/**
+ * InvalidateSubSTextureArea(int X, int Y, int W, int H)
+ */
 void InvalidateSubSTextureArea(int X, int Y, int W, int H) {
     int i, j, k, iMax, px, py, px1, px2, py1, py2, iYM = 1;
     EXLong npos;
@@ -902,10 +879,9 @@ void InvalidateSubSTextureArea(int X, int Y, int W, int H) {
     }
 }
 
-////////////////////////////////////////////////////////////////////////
-// Invalidate some parts of cache: main routine
-////////////////////////////////////////////////////////////////////////
-
+/**
+ * Invalidate some parts of cache: main routine
+ */
 void InvalidateTextureAreaEx(void) {
     short W = sxmax - sxmin;
     short H = symax - symin;
@@ -918,8 +894,9 @@ void InvalidateTextureAreaEx(void) {
     InvalidateSubSTextureArea(sxmin, symin, W, H);
 }
 
-////////////////////////////////////////////////////////////////////////
-
+/**
+ * ////////////////////////////////////////////////////////////////////////
+ */
 void InvalidateTextureArea(int X, int Y, int W, int H) {
     if (W == 0 && H == 0) return;
 
@@ -928,16 +905,18 @@ void InvalidateTextureArea(int X, int Y, int W, int H) {
     InvalidateSubSTextureArea(X, Y, W, H);
 }
 
-
-////////////////////////////////////////////////////////////////////////
-// tex window: define
-////////////////////////////////////////////////////////////////////////
-
+/**
+ * tex window: define
+ */
 void DefineTextureWnd(void) {
-    /*
-     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-     */
+    
+    if (gTexName == 0)
+        gTexName = Xe_CreateTexture(xe, TWin.Position.x1, TWin.Position.y1, 1,  XE_FMT_8888 | XE_FMT_ARGB, 0);
+    
+    xeGfx_setTextureData(gTexName,texturepart);
+    
+    gTexName->u_addressing = XE_TEXADDR_WRAP;
+    gTexName->v_addressing = XE_TEXADDR_WRAP;
     
     if (iFilterType && iFilterType < 3 && iHiResTextures != 2) {
         gTexName->use_filtering = XE_TEXF_LINEAR;
@@ -945,15 +924,7 @@ void DefineTextureWnd(void) {
     else{
         gTexName->use_filtering = XE_TEXF_POINT;
     }
-    
-    gTexName = Xe_CreateTexture(xe, TWin.Position.x1, TWin.Position.y1, 1,  XE_FMT_8888 | XE_FMT_ARGB, 0);
-    xeGfx_setTextureData(gTexName,texturepart);
-/*
-    glTexImage2D(GL_TEXTURE_2D, 0, giWantedRGBA,
-            TWin.Position.x1,
-            TWin.Position.y1,
-            0, giWantedFMT, giWantedTYPE, texturepart);
-*/
+
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1009,7 +980,7 @@ void LoadStretchWndTexturePage(int pageid, int mode, short cx, short cy) {
                     px += 4;
                     wSRCPtr += 4;
                 } while (row);
-
+                TR;
                 column = g_y2 - ldy;
                 for (TXV = g_y1; TXV <= column; TXV++) {
                     ldx = ldxo;
@@ -1106,7 +1077,7 @@ void LoadStretchWndTexturePage(int pageid, int mode, short cx, short cy) {
                     px += 4;
                     wSRCPtr += 4;
                 } while (row);
-
+TR;
                 column = g_y2 - ldy;
                 for (TXV = g_y1; TXV <= column; TXV++) {
                     ldx = ldxo;
@@ -1185,7 +1156,7 @@ void LoadStretchWndTexturePage(int pageid, int mode, short cx, short cy) {
                     wSRCPtr = wOSRCPtr;
                 } else wSRCPtr += LineOffset;
             }
-
+TR;
             DefineTextureWnd();
             break;
             //--------------------------------------------------//
@@ -1229,7 +1200,7 @@ void LoadWndTexturePage(int pageid, int mode, short cx, short cy) {
                 unsigned int TXV, TXU, n_xi, n_yi;
 
                 wSRCPtr = psxVuw + palstart;
-
+TR;
                 row = 4;
                 do {
 /*
@@ -1309,7 +1280,7 @@ void LoadWndTexturePage(int pageid, int mode, short cx, short cy) {
                 unsigned int TXV, TXU, n_xi, n_yi;
 
                 wSRCPtr = psxVuw + palstart;
-
+TR;
                 row = 64;
                 do {
 /*
@@ -1383,7 +1354,7 @@ void LoadWndTexturePage(int pageid, int mode, short cx, short cy) {
                 }
                 wSRCPtr += LineOffset;
             }
-
+TR;
             DefineTextureWnd();
             break;
             //--------------------------------------------------//
@@ -1406,7 +1377,7 @@ void UploadTexWndPal(int mode, short cx, short cy) {
     else i = 64;
     iSize = i << 2;
     ubOpaqueDraw = 0;
-
+TR;
     do {
 /*
         *ta = PALCOL(*wSrcPtr);
@@ -1947,7 +1918,7 @@ struct XenosSurface * LoadTextureMovie(void) {
 struct XenosSurface * BlackFake15BitTexture(void) {
     int pmult;
     short x1, x2, y1, y2;
-
+//TR;
     if (PSXDisplay.InterlacedTest) return 0;
 
     pmult = GlobalTexturePage / 16;
@@ -1992,16 +1963,18 @@ struct XenosSurface * BlackFake15BitTexture(void) {
                 uint32_t *ta = (uint32_t *) texturepart;
                 for (y1 = 0; y1 <= 4; y1++)
                     for (x1 = 0; x1 <= 4; x1++)
-                        *ta++ = 0xff000000;
+                        *ta++ = 0xff00FF00;
             }
             TR
             //glTexImage2D(GL_TEXTURE_2D, 0, giWantedRGBA, 4, 4, 0, GL_RGBA, GL_UNSIGNED_BYTE, texturepart);
            // XeTexImage(gTexName,4, 4,texturepart);
-            gTexName = Xe_CreateTexture(xe, 4, 4, 1,  XE_FMT_8888 | XE_FMT_ARGB, 0);
-            xeGfx_setTextureData(gTexName,texturepart);
-            gTexName->u_addressing = iClampType;
-            gTexName->v_addressing = iClampType;
-            gTexName->use_filtering = XE_TEXF_POINT;
+            gTexFrameName = Xe_CreateTexture(xe, 4, 4, 1,  XE_FMT_8888 | XE_FMT_ARGB, 0);
+            xeGfx_setTextureData(gTexFrameName,texturepart);
+            gTexFrameName->u_addressing = iClampType;
+            gTexFrameName->v_addressing = iClampType;
+            gTexFrameName->use_filtering = XE_TEXF_POINT;
+            
+            gTexName=gTexFrameName;
 
         } else {
             gTexName = gTexFrameName;
@@ -2024,7 +1997,7 @@ BOOL bIgnoreNextTile = FALSE;
 int iFTex = 512;
 
 struct XenosSurface * Fake15BitTexture(void) {
-   
+   //TR;
     int pmult;
     short x1, x2, y1, y2;
     int iYAdjust;
@@ -2076,7 +2049,7 @@ struct XenosSurface * Fake15BitTexture(void) {
             if (iResX > 640 || iResY > 480) iFTex = 1024;
         else iFTex = 512;
 
-        gTexName = gTexFrameName;
+        
 
 /*
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, iClampType);
@@ -2088,13 +2061,15 @@ struct XenosSurface * Fake15BitTexture(void) {
         memset(p, 0, iFTex * iFTex * 4);
         //glTexImage2D(GL_TEXTURE_2D, 0, 3, iFTex, iFTex, 0, GL_RGB, GL_UNSIGNED_BYTE, p);
 
-        gTexName = Xe_CreateTexture(xe, iFTex, iFTex, 1,  XE_FMT_8888 | XE_FMT_ARGB, 0);
-        xeGfx_setTextureData(gTexName,texturepart);
-        gTexName->u_addressing = iClampType;
-        gTexName->v_addressing = iClampType;
+        gTexFrameName = Xe_CreateTexture(xe, iFTex, iFTex, 1,  XE_FMT_8888 | XE_FMT_ARGB, 0);
+        xeGfx_setTextureData(gTexFrameName,texturepart);
+        gTexFrameName->u_addressing = iClampType;
+        gTexFrameName->v_addressing = iClampType;
         TR
         free(p);
-
+        
+        gTexName = gTexFrameName;
+        
         glGetError();
     } else {
         gTexName = gTexFrameName;
@@ -2184,6 +2159,7 @@ struct XenosSurface * Fake15BitTexture(void) {
             iResY - rSrc.bottom - rRatioRect.top,
             x1, y1);
 */
+    TR;
 
     if (glGetError()) {
         char * p = (char *) malloc(iFTex * iFTex * 4);
@@ -2750,7 +2726,7 @@ void DefineSubTextureSortHiRes(void) {
 
 
 /////////////////////////////////////////////////////////////////////////////
-void DefineSubTextureSort(void) {
+void _DefineSubTextureSort(void) {
     if (iHiResTextures) {
         DefineSubTextureSortHiRes();
         return;
@@ -2766,7 +2742,29 @@ void DefineSubTextureSort(void) {
     //TR;
     XeTexSubImage(XTexS, YTexS, DXTexS, DYTexS,texturepart);
 }
+void DefineSubTextureSort(void) {
+    if (iHiResTextures) {
+        DefineSubTextureSortHiRes();
+        return;
+    }
 
+    if (!gTexName) {
+        gTexName = Xe_CreateTexture(xe, 256, 256, 1,  XE_FMT_8888 | XE_FMT_ARGB, 0);
+
+        gTexName->u_addressing = iClampType;
+        gTexName->v_addressing = iClampType;
+
+        if (iFilterType) {
+            gTexName->use_filtering = XE_TEXF_LINEAR;
+        }
+        else{
+            gTexName->use_filtering = XE_TEXF_POINT;
+        }
+        
+    }
+
+    XeTexSubImage(XTexS, YTexS, DXTexS, DYTexS, texturepart);
+}
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -3141,16 +3139,9 @@ ENDLOOP:
     return &tsx->Opaque;
 }
 
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-//
-// search cache for free place (on compress)
-//
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-
+/*
+search cache for free place (on compress)
+*/
 BOOL GetCompressTexturePlace(textureSubCacheEntryS * tsx) {
     int i, j, k, iMax, iC;
     uint32_t rx, ry, mx, my;
@@ -3276,16 +3267,9 @@ TENDLOOP:
     return TRUE;
 }
 
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-//
-// compress texture cache (to make place for new texture part, if needed)
-//
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-
+/*
+compress texture cache(to make place for new texture part, if needed)
+*/
 void CompressTextureSpace(void) {
     textureSubCacheEntryS * tsx, * tsg, * tsb;
     int i, j, k, m, n, iMax;
@@ -3433,16 +3417,9 @@ void CompressTextureSpace(void) {
     DrawSemiTrans = sOldDST;
 }
 
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-//
-// main entry for searching/creating textures, called from prim.c
-//
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-
+/*
+* main entry for searching/creating textures, called from prim.c
+*/
 struct XenosSurface * SelectSubTextureS(int TextureMode, uint32_t GivenClutId) {
     //printf("SelectSubTextureS(%08x,%08x);\r\n",TextureMode,GivenClutId);
     unsigned char * OPtr;

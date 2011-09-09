@@ -26,7 +26,7 @@
 #include "prim.h"
 #include "texture.h"
 #include "menu.h"
-
+#include "xe.h"
 ////////////////////////////////////////////////////////////////////////////////////
 // defines
 
@@ -122,7 +122,7 @@ BOOL bGLBlend;
 /*
 PFNGLBLENDEQU glBlendEquationEXTEx = NULL;
 PFNGLCOLORTABLEEXT glColorTableEXTEx = NULL;
-*/
+ */
 // gfx card buffer infos
 
 int iDepthFunc = 0;
@@ -236,12 +236,12 @@ void SetExtGLFuncs(void) {
         }
         TCF[1] = XP8BGRA_1;
 #endif
-        
+
         XeAlphaFunc(XE_CMP_GREATER, 0.49f);
     } else // no opaque mode?
     {
         TR;
-#if 0
+#if 1
         TCF[0] = TCF[1] = P8BGRA;
         PalTexturedColourFn = P8BGRA; // -> init col func
         XeAlphaFunc(XE_CMP_NOTEQUAL, 0); // --> set alpha func
@@ -276,7 +276,7 @@ void SetExtGLFuncs(void) {
 
 GLuint gTexScanName = 0;
 
-GLubyte texscan[4][16] ={
+GLubyte texscan[4][16] = {
     {R_TSP, G_TSP, B_TSP, N_TSP},
     {O_TSP, N_TSP, O_TSP, N_TSP},
     {B_TSP, N_TSP, R_TSP, G_TSP},
@@ -284,12 +284,13 @@ GLubyte texscan[4][16] ={
 };
 
 void CreateScanLines(void) {
-    
+
 }
 
 ////////////////////////////////////////////////////////////////////////
 // Initialize OGL
 ////////////////////////////////////////////////////////////////////////
+
 int GLinitialize() {
     XeViewport(rRatioRect.left, // init viewport by ratio rect
             iResY - (rRatioRect.top + rRatioRect.bottom),
@@ -314,22 +315,22 @@ int GLinitialize() {
     if (iZBufferDepth) // zbuffer?
     {
         uiBufferBits = XE_CLEAR_COLOR | XE_CLEAR_DS;
-    //    glEnable(GL_DEPTH_TEST);
-    //    glDepthFunc(GL_ALWAYS);
-        Xe_SetZEnable(xe,1);
-        Xe_SetZFunc(xe,XE_CMP_ALWAYS);
+        //    glEnable(GL_DEPTH_TEST);
+        //    glDepthFunc(GL_ALWAYS);
+        Xe_SetZEnable(xe, 1);
+        Xe_SetZFunc(xe, XE_CMP_ALWAYS);
         iDepthFunc = 1;
     } else // no zbuffer?
     {
         uiBufferBits = XE_CLEAR_COLOR;
-    //    glDisable(GL_DEPTH_TEST);
-        Xe_SetZEnable(xe,0);
+        //    glDisable(GL_DEPTH_TEST);
+        Xe_SetZEnable(xe, 0);
     }
 
     //glClearColor(0.0f, 0.0f, 0.0f, 0.0f); // first buffer clear
     //glClear(uiBufferBits);
-    Xe_SetClearColor(xe,0);
-    Xe_Clear(xe,uiBufferBits);
+    Xe_SetClearColor(xe, 0);
+    Xe_Clear(xe, uiBufferBits);
 
     if (bUseLines) // funny lines 
     {
@@ -346,26 +347,26 @@ int GLinitialize() {
     SetExtGLFuncs(); // init all kind of stuff (tex function pointers)
 
     // glEnable(GL_ALPHA_TEST); // wanna alpha test
-    Xe_SetAlphaTestEnable(xe,1);
+    Xe_SetAlphaTestEnable(xe, 1);
 
     if (!bUseAntiAlias) // no anti-alias (default)
     {
-/*
-        glDisable(GL_LINE_SMOOTH);
-        glDisable(GL_POLYGON_SMOOTH);
-        glDisable(GL_POINT_SMOOTH);
-*/
+        /*
+                glDisable(GL_LINE_SMOOTH);
+                glDisable(GL_POLYGON_SMOOTH);
+                glDisable(GL_POINT_SMOOTH);
+         */
     } else // wanna try it? glitches galore...
     {
-/*
-        glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-        glEnable(GL_LINE_SMOOTH);
-        glEnable(GL_POLYGON_SMOOTH);
-        glEnable(GL_POINT_SMOOTH);
-        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-        glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
-        glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-*/
+        /*
+                glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+                glEnable(GL_LINE_SMOOTH);
+                glEnable(GL_POLYGON_SMOOTH);
+                glEnable(GL_POINT_SMOOTH);
+                glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+                glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+                glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+         */
     }
 
     ubGloAlpha = 127; // init some drawing vars
@@ -376,41 +377,42 @@ int GLinitialize() {
     bTexEnabled = FALSE;
     bUsingTWin = FALSE;
 
-/*
+    /*
     
-    if (bDrawDither) 
-        glEnable(GL_DITHER); // dither mode
-    else 
-        glDisable(GL_DITHER);
+        if (bDrawDither) 
+            glEnable(GL_DITHER); // dither mode
+        else 
+            glDisable(GL_DITHER);
 
-    glDisable(GL_FOG); // turn all (currently) unused modes off
-    glDisable(GL_LIGHTING);
-    glDisable(GL_LOGIC_OP);
-    glDisable(GL_STENCIL_TEST);
-    glDisable(GL_TEXTURE_1D);
-    glDisable(GL_TEXTURE_2D);
-    glDisable(GL_CULL_FACE);
+        glDisable(GL_FOG); // turn all (currently) unused modes off
+        glDisable(GL_LIGHTING);
+        glDisable(GL_LOGIC_OP);
+        glDisable(GL_STENCIL_TEST);
+        glDisable(GL_TEXTURE_1D);
+        glDisable(GL_TEXTURE_2D);
+        glDisable(GL_CULL_FACE);
 
-    glPixelTransferi(GL_RED_SCALE, 1); // to be sure:
-    glPixelTransferi(GL_RED_BIAS, 0); // init more OGL vals
-    glPixelTransferi(GL_GREEN_SCALE, 1);
-    glPixelTransferi(GL_GREEN_BIAS, 0);
-    glPixelTransferi(GL_BLUE_SCALE, 1);
-    glPixelTransferi(GL_BLUE_BIAS, 0);
-    glPixelTransferi(GL_ALPHA_SCALE, 1);
-    glPixelTransferi(GL_ALPHA_BIAS, 0);
-*/
+        glPixelTransferi(GL_RED_SCALE, 1); // to be sure:
+        glPixelTransferi(GL_RED_BIAS, 0); // init more OGL vals
+        glPixelTransferi(GL_GREEN_SCALE, 1);
+        glPixelTransferi(GL_GREEN_BIAS, 0);
+        glPixelTransferi(GL_BLUE_SCALE, 1);
+        glPixelTransferi(GL_BLUE_BIAS, 0);
+        glPixelTransferi(GL_ALPHA_SCALE, 1);
+        glPixelTransferi(GL_ALPHA_BIAS, 0);
+     */
 
-/*
-    glFlush(); // we are done...
-    glFinish();
-*/
+    /*
+        glFlush(); // we are done...
+        glFinish();
+     */
 
     CreateScanLines(); // setup scanline stuff (if wanted)
 
     CheckTextureMemory(); // check available tex memory
 
-    if (bKeepRatio) SetAspectRatio(); // set ratio
+    if (bKeepRatio)
+        SetAspectRatio(); // set ratio
 
     if (iShowFPS) // user wants FPS display on startup?
     {
@@ -430,18 +432,6 @@ int GLinitialize() {
 
 void GLcleanup() {
     KillDisplayLists(); // bye display lists
-
-    if (iUseScanLines) // scanlines used?
-    {
-/*
-        if (iScanBlend < 0) {
-            if (gTexScanName != 0) // some scanline tex?
-                glDeleteTextures(1, &gTexScanName); // -> delete it
-            gTexScanName = 0;
-        } else glDeleteLists(uiScanLine, 1); // otherwise del scanline display list
-*/
-    }
-
     CleanupTextureStore(); // bye textures
 }
 
@@ -725,6 +715,15 @@ BOOL offset2(void) {
         if (CheckCoord2()) return TRUE;
     }
 
+    if (!getGteVertex(lx0, ly0, &vertex[0].x, &vertex[0].y)) {
+        vertex[0].x = lx0;
+        vertex[0].y = ly0;
+    }
+    if (!getGteVertex(lx1, ly1, &vertex[1].x, &vertex[1].y)) {
+        vertex[1].x = lx1;
+        vertex[1].y = ly1;
+    }
+
     vertex[0].x = lx0 + PSXDisplay.CumulOffset.x;
     vertex[1].x = lx1 + PSXDisplay.CumulOffset.x;
     vertex[0].y = ly0 + PSXDisplay.CumulOffset.y;
@@ -748,6 +747,19 @@ BOOL offset3(void) {
         ly2 = (short) (((int) ly2 << SIGNSHIFT) >> SIGNSHIFT);
 
         if (CheckCoord3()) return TRUE;
+    }
+
+    if (!getGteVertex(lx0, ly0, &vertex[0].x, &vertex[0].y)) {
+        vertex[0].x = lx0;
+        vertex[0].y = ly0;
+    }
+    if (!getGteVertex(lx1, ly1, &vertex[1].x, &vertex[1].y)) {
+        vertex[1].x = lx1;
+        vertex[1].y = ly1;
+    }
+    if (!getGteVertex(lx2, ly2, &vertex[2].x, &vertex[2].y)) {
+        vertex[2].x = lx2;
+        vertex[2].y = ly2;
     }
 
     vertex[0].x = lx0 + PSXDisplay.CumulOffset.x;
@@ -777,6 +789,23 @@ BOOL offset4(void) {
         ly3 = (short) (((int) ly3 << SIGNSHIFT) >> SIGNSHIFT);
 
         if (CheckCoord4()) return TRUE;
+    }
+
+    if (!getGteVertex(lx0, ly0, &vertex[0].x, &vertex[0].y)) {
+        vertex[0].x = lx0;
+        vertex[0].y = ly0;
+    }
+    if (!getGteVertex(lx1, ly1, &vertex[1].x, &vertex[1].y)) {
+        vertex[1].x = lx1;
+        vertex[1].y = ly1;
+    }
+    if (!getGteVertex(lx2, ly2, &vertex[2].x, &vertex[2].y)) {
+        vertex[2].x = lx2;
+        vertex[2].y = ly2;
+    }
+    if (!getGteVertex(lx3, ly3, &vertex[3].x, &vertex[3].y)) {
+        vertex[3].x = lx3;
+        vertex[3].y = ly3;
     }
 
     vertex[0].x = lx0 + PSXDisplay.CumulOffset.x;
@@ -941,8 +970,8 @@ void assignTextureVRAMWrite(void) {
 #endif
 }
 
-struct XenosSurface *  gLastTex = 0;
-struct XenosSurface *  gLastFMode = (GLuint) - 1;
+struct XenosSurface * gLastTex = 0;
+struct XenosSurface * gLastFMode = (GLuint) - 1;
 
 ///////////////////////////////////////////////////////// 
 
@@ -999,10 +1028,11 @@ void assignTextureSprite(void) {
 
         if (iFilterType > 2) {
             if (gLastTex != gTexName || gLastFMode != 0) {
-/*
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
- */
+                /*
+                                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                 */
+                gTexName->use_filtering = XE_TEXF_POINT;
                 gLastTex = gTexName;
                 gLastFMode = 0;
 
@@ -1055,10 +1085,11 @@ void assignTexture3(void) {
 
         if (iFilterType > 2) {
             if (gLastTex != gTexName || gLastFMode != 1) {
-/*
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
- */
+                /*
+                                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                 */
+                gTexName->use_filtering = XE_TEXF_POINT;
                 gLastTex = gTexName;
                 gLastFMode = 1;
 
@@ -1121,10 +1152,11 @@ void assignTexture4(void) {
 
         if (iFilterType > 2) {
             if (gLastTex != gTexName || gLastFMode != 1) {
-/*
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-*/
+                /*
+                                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                 */
+                gTexName->use_filtering = XE_TEXF_POINT;
                 gLastTex = gTexName;
                 gLastFMode = 1;
             }
@@ -1195,7 +1227,7 @@ void SetOGLDisplaySettings(BOOL DisplaySet) {
         if (bSetClip || !EqualRect(&rC, &rX)) {
             rC = rX;
             //glScissor(rC.left, rC.top, rC.right, rC.bottom);
-            Xe_SetScissor(xe,1,rC.left, rC.top, rC.right, rC.bottom);
+            Xe_SetScissor(xe, 1, rC.left, rC.top, rC.right, rC.bottom);
             bSetClip = FALSE;
         }
         return;
@@ -1282,7 +1314,7 @@ void SetOGLDisplaySettings(BOOL DisplaySet) {
 
     if (bSetClip || !EqualRect(&r, &rC)) {
         //glScissor(r.left, r.top, r.right, r.bottom);
-        Xe_SetScissor(xe,1,rC.left, rC.top, rC.right, rC.bottom);
+        Xe_SetScissor(xe, 1, rC.left, rC.top, rC.right, rC.bottom);
         rC = r;
         bSetClip = FALSE;
     }

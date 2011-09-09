@@ -182,106 +182,48 @@ uint32_t BGR16to24(uint32_t BGR) {
 ////////////////////////////////////////////////////////////////////////
 // OpenGL primitive drawing commands
 ////////////////////////////////////////////////////////////////////////
-
-typedef struct PsxVerticeFormats {
-    float x, y, z, w;
-    float u, v;
-    //unsigned int color;
-    float r,g,b,a;
-} PsxVerticeFormats;
-
-PsxVerticeFormats PsxVertex[4];
+#include "xe.h"
 
 void iXeDrawQuad(PsxVerticeFormats * psxvertices);
 void iXeDrawTri2(PsxVerticeFormats * psxvertices);
 void iXeDrawTri(PsxVerticeFormats * psxvertices);
 
-//#define COL(x) GETLE32(&x)
-//#define COL(x) BGR16to24(x)
-
-/*
-u32 COL(u32 BGR){
-    u8 alpha = (u8)0xff000000UL >> 24;
-    u16 c = (u16)BGR;
-    u32 color;
-    u8 *d = color;
-    d[0]=alpha;
-    d[3] = (BGR&0xF800)>>8;
-    d[2] = (BGR&0x7E0)>>3;
-    d[1] = (BGR&0x1F)<<3;
-    return color;
-}
-*/
-
-/*
-#define FRED(x) (((GETLE16(&x)) & 0x1f) / 32.0f)
-#define FGREEN(x) ((((GETLE16(&x))>>5) & 0x1f) / 32.0f)
-#define FBLUE(x) ((((GETLE16(&x))>>10) & 0x1f) / 32.0f)
-*/
-/*
-#define FRED(x) ((((x)>>24) & 0xFF) / 256.0f)
-#define FGREEN(x) ((((x)>>16) & 0xFF) / 256.0f)
-#define FBLUE(x) ((((x)>>8) & 0xFF) / 256.0f)
-#define FALPHA(x) ((((x)>>0) & 0xFF) / 256.0f)
-*/
-/*
-#define FRED(x) ((((x))>>8 & 0x1f) / 32.0f)
-#define FGREEN(x) (((((x))>>13) & 0x1f) / 32.0f)
-#define FBLUE(x) (((((x))>>18) & 0x1f) / 32.0f)
-*/
-
-/*
-#define FRED(x) ((((x))>>0 & 0x1f) / 32.0f)
-#define FGREEN(x) (((((x))>>5) & 0x1f) / 32.0f)
-#define FBLUE(x) (((((x))>>10) & 0x1f) / 32.0f)
-*/
-/*
-#define FRED(x) ((((x)>>0) & 0xFF) / 256.0f)
-#define FGREEN(x) ((((x)>>8) & 0xFF) / 256.0f)
-#define FBLUE(x) ((((x)>>16) & 0xFF) / 256.0f)
-*/
-/*
-#define FRED(x) ((((x)<<3) & 0x1F) / 256.0f)
-#define FGREEN(x) ((((x)>>3) & 0x7E0) / 2016.0f)
-#define FBLUE(x) ((((x)>>8) & 0xF800) / 63488.0f)
-*/
-#define FRED(x) ((((x)>>0) & 0xFF) / 256.0f)
-#define FGREEN(x) ((((x)>>8) & 0xFF) / 256.0f)
-#define FBLUE(x) ((((x)>>16) & 0xFF) / 256.0f)
-#define FALPHA(x) ((((x)>>24) & 0xFF) / 256.0f)
-#define FCOL(x,y)
-
-#define FCOL0{      \
-    PsxVertex[0].a = 0.f;PsxVertex[0].r = 0.f;PsxVertex[0].g = 0.f;PsxVertex[0].b = 0.f; \
-    PsxVertex[1].a = 0.f;PsxVertex[1].r = 0.f;PsxVertex[1].g = 0.f;PsxVertex[1].b = 0.f; \
-    PsxVertex[2].a = 0.f;PsxVertex[2].r = 0.f;PsxVertex[2].g = 0.f;PsxVertex[2].b = 0.f; \
-    PsxVertex[3].a = 0.f;PsxVertex[3].r = 0.f;PsxVertex[3].g = 0.f;PsxVertex[3].b = 0.f; \
+#define FCOL0 {      \
+    PsxVertex[0].color = 0.f; \
+    PsxVertex[1].color = 0.f; \
+    PsxVertex[2].color = 0.f; \
+    PsxVertex[3].color = 0.f; \
 }
 
-#define FCOL1{      \
-    PsxVertex[0].a = FALPHA(vertex1->c.lcol);PsxVertex[0].r = FRED(vertex1->c.lcol);PsxVertex[0].g = FGREEN(vertex1->c.lcol);PsxVertex[0].b = FBLUE(vertex1->c.lcol); \
-    PsxVertex[1].a = FALPHA(vertex1->c.lcol);PsxVertex[1].r = FRED(vertex1->c.lcol);PsxVertex[1].g = FGREEN(vertex1->c.lcol);PsxVertex[1].b = FBLUE(vertex1->c.lcol); \
-    PsxVertex[2].a = FALPHA(vertex1->c.lcol);PsxVertex[2].r = FRED(vertex1->c.lcol);PsxVertex[2].g = FGREEN(vertex1->c.lcol);PsxVertex[2].b = FBLUE(vertex1->c.lcol); \
-    PsxVertex[3].a = FALPHA(vertex1->c.lcol);PsxVertex[3].r = FRED(vertex1->c.lcol);PsxVertex[3].g = FGREEN(vertex1->c.lcol);PsxVertex[3].b = FBLUE(vertex1->c.lcol); \
+#define FCOL1 {      \
+    PsxVertex[0].color = vertex1->c.lcol; \
+    PsxVertex[1].color = vertex1->c.lcol; \
+    PsxVertex[2].color = vertex1->c.lcol; \
+    PsxVertex[3].color = vertex1->c.lcol; \
 }
 
-#define FCOL3{      \
-    PsxVertex[0].a = FALPHA(vertex1->c.lcol);PsxVertex[0].r = FRED(vertex1->c.lcol);PsxVertex[0].g = FGREEN(vertex1->c.lcol);PsxVertex[0].b = FBLUE(vertex1->c.lcol); \
-    PsxVertex[1].a = FALPHA(vertex2->c.lcol);PsxVertex[1].r = FRED(vertex2->c.lcol);PsxVertex[1].g = FGREEN(vertex2->c.lcol);PsxVertex[1].b = FBLUE(vertex2->c.lcol); \
-    PsxVertex[2].a = FALPHA(vertex3->c.lcol);PsxVertex[2].r = FRED(vertex3->c.lcol);PsxVertex[2].g = FGREEN(vertex3->c.lcol);PsxVertex[2].b = FBLUE(vertex3->c.lcol); \
+#define FCOL3 {      \
+    PsxVertex[0].color = vertex1->c.lcol; \
+    PsxVertex[1].color = vertex2->c.lcol; \
+    PsxVertex[2].color = vertex3->c.lcol; \
 }
 
-#define FCOL4{      \
-    PsxVertex[0].a = FALPHA(vertex1->c.lcol);PsxVertex[0].r = FRED(vertex1->c.lcol);PsxVertex[0].g = FGREEN(vertex1->c.lcol);PsxVertex[0].b = FBLUE(vertex1->c.lcol); \
-    PsxVertex[1].a = FALPHA(vertex2->c.lcol);PsxVertex[1].r = FRED(vertex2->c.lcol);PsxVertex[1].g = FGREEN(vertex2->c.lcol);PsxVertex[1].b = FBLUE(vertex2->c.lcol); \
-    PsxVertex[3].a = FALPHA(vertex3->c.lcol);PsxVertex[3].r = FRED(vertex3->c.lcol);PsxVertex[3].g = FGREEN(vertex3->c.lcol);PsxVertex[3].b = FBLUE(vertex3->c.lcol); \
-    PsxVertex[2].a = FALPHA(vertex4->c.lcol);PsxVertex[2].r = FRED(vertex4->c.lcol);PsxVertex[2].g = FGREEN(vertex4->c.lcol);PsxVertex[2].b = FBLUE(vertex4->c.lcol); \
+#define FCOL4 {      \
+    PsxVertex[0].color = vertex1->c.lcol; \
+    PsxVertex[1].color = vertex2->c.lcol; \
+    PsxVertex[2].color = vertex4->c.lcol; \
+    PsxVertex[3].color = vertex3->c.lcol; \
 }
-
+#define FCOLQ {      \
+    PsxVertex[0].color = vertex1->c.lcol; \
+    PsxVertex[1].color = vertex2->c.lcol; \
+    PsxVertex[2].color = vertex3->c.lcol; \
+    PsxVertex[3].color = vertex4->c.lcol; \
+}
 
 __inline void PRIMdrawTexturedQuad(OGLVertex* vertex1, OGLVertex* vertex2,
         OGLVertex* vertex3, OGLVertex* vertex4) {
-
+    LockVb();
     PsxVertex[0].u = vertex1->sow;
     PsxVertex[0].v = vertex1->tow;
     PsxVertex[0].x = vertex1->x;
@@ -310,13 +252,14 @@ __inline void PRIMdrawTexturedQuad(OGLVertex* vertex1, OGLVertex* vertex2,
     
     FCOL0;
     iXeDrawTri2(PsxVertex);
+    UnlockVb();
 }
 
 /////////////////////////////////////////////////////////
 
 __inline void PRIMdrawTexturedTri(OGLVertex* vertex1, OGLVertex* vertex2,
         OGLVertex* vertex3) {
-
+    LockVb();
     PsxVertex[0].u = vertex1->sow;
     PsxVertex[0].v = vertex1->tow;
     PsxVertex[0].x = vertex1->x;
@@ -339,12 +282,14 @@ __inline void PRIMdrawTexturedTri(OGLVertex* vertex1, OGLVertex* vertex2,
     
     FCOL0;
     iXeDrawTri(PsxVertex);
+    UnlockVb();
 }
 
 /////////////////////////////////////////////////////////
 
 __inline void PRIMdrawTexGouraudTriColor(OGLVertex* vertex1, OGLVertex* vertex2,
         OGLVertex* vertex3) {
+    LockVb();
     PsxVertex[0].u = vertex1->sow;
     PsxVertex[0].v = vertex1->tow;
     PsxVertex[0].x = vertex1->x;
@@ -368,13 +313,14 @@ __inline void PRIMdrawTexGouraudTriColor(OGLVertex* vertex1, OGLVertex* vertex2,
     Xe_SetPixelShaderConstantB(xe,0,1);
 
     iXeDrawTri(PsxVertex);
+    UnlockVb();
 }
 
 /////////////////////////////////////////////////////////
 // hmm ?
 __inline void PRIMdrawTexGouraudTriColorQuad(OGLVertex* vertex1, OGLVertex* vertex2,
         OGLVertex* vertex3, OGLVertex* vertex4) {
-
+    LockVb();
     PsxVertex[0].u = vertex1->sow;
     PsxVertex[0].v = vertex1->tow;
     PsxVertex[0].x = vertex1->x;
@@ -399,16 +345,18 @@ __inline void PRIMdrawTexGouraudTriColorQuad(OGLVertex* vertex1, OGLVertex* vert
     PsxVertex[3].y = vertex4->y;
     PsxVertex[3].z = vertex4->z;
 
-    FCOL4;
+    FCOLQ;
     
     Xe_SetPixelShaderConstantB(xe,0,1);
 
     iXeDrawTri2(PsxVertex);
+    UnlockVb();
 }
 
 /////////////////////////////////////////////////////////
 
 __inline void PRIMdrawTri(OGLVertex* vertex1, OGLVertex* vertex2, OGLVertex* vertex3) {
+    LockVb();
     PsxVertex[0].u = 0;
     PsxVertex[0].v = 0;
     PsxVertex[1].u = 0;
@@ -428,12 +376,13 @@ __inline void PRIMdrawTri(OGLVertex* vertex1, OGLVertex* vertex2, OGLVertex* ver
     PsxVertex[2].y = vertex3->y;
     PsxVertex[2].z = vertex3->z;
 
-    //FCOL1;
-    FCOL0;
+    FCOL1;
+    //FCOL0;
     
     Xe_SetPixelShaderConstantB(xe,0,0);
 
     iXeDrawTri(PsxVertex);
+    UnlockVb();
 }
 
 /////////////////////////////////////////////////////////
@@ -441,6 +390,7 @@ __inline void PRIMdrawTri(OGLVertex* vertex1, OGLVertex* vertex2, OGLVertex* ver
 __inline void PRIMdrawTri2(OGLVertex* vertex1, OGLVertex* vertex2,
         OGLVertex* vertex3, OGLVertex* vertex4) {
 
+    LockVb();
     PsxVertex[0].x = vertex1->x;
     PsxVertex[0].y = vertex1->y;
     PsxVertex[0].z = vertex1->z;
@@ -467,11 +417,11 @@ __inline void PRIMdrawTri2(OGLVertex* vertex1, OGLVertex* vertex2,
     PsxVertex[2].v = 0;
 
     Xe_SetPixelShaderConstantB(xe,0,0);
-    //FCOL1;
-    FCOL0;
-
+    FCOL1;
+    //FCOL0;
 
     iXeDrawTri2(PsxVertex);
+    UnlockVb();
 }
 
 /////////////////////////////////////////////////////////
@@ -479,6 +429,7 @@ __inline void PRIMdrawTri2(OGLVertex* vertex1, OGLVertex* vertex2,
 __inline void PRIMdrawGouraudTriColor(OGLVertex* vertex1, OGLVertex* vertex2,
         OGLVertex* vertex3) {
 
+    LockVb();
     PsxVertex[0].u = 0;
     PsxVertex[0].v = 0;
     PsxVertex[2].u = 0;
@@ -502,6 +453,7 @@ __inline void PRIMdrawGouraudTriColor(OGLVertex* vertex1, OGLVertex* vertex2,
     Xe_SetPixelShaderConstantB(xe,0,0);
 
     iXeDrawTri(PsxVertex);
+    UnlockVb();
 }
 
 /////////////////////////////////////////////////////////
@@ -509,6 +461,7 @@ __inline void PRIMdrawGouraudTriColor(OGLVertex* vertex1, OGLVertex* vertex2,
 __inline void PRIMdrawGouraudTri2Color(OGLVertex* vertex1, OGLVertex* vertex2,
         OGLVertex* vertex3, OGLVertex* vertex4) {
 
+    LockVb();
     PsxVertex[0].x = vertex1->x;
     PsxVertex[0].y = vertex1->y;
     PsxVertex[0].z = vertex1->z;
@@ -539,12 +492,14 @@ __inline void PRIMdrawGouraudTri2Color(OGLVertex* vertex1, OGLVertex* vertex2,
 
     iXeDrawTri2(PsxVertex);
     //iXeDrawQuad(PsxVertex);
+    UnlockVb();
 }
 
 /////////////////////////////////////////////////////////
 
 __inline void PRIMdrawFlatLine(OGLVertex* vertex1, OGLVertex* vertex2, OGLVertex* vertex3, OGLVertex* vertex4) {
 
+    LockVb();
     PsxVertex[0].x = vertex1->x;
     PsxVertex[0].y = vertex1->y;
     PsxVertex[0].z = vertex1->z;
@@ -574,12 +529,14 @@ __inline void PRIMdrawFlatLine(OGLVertex* vertex1, OGLVertex* vertex2, OGLVertex
     Xe_SetPixelShaderConstantB(xe,0,0);
 
     iXeDrawTri2(PsxVertex);
+    UnlockVb();
 }
 
 /////////////////////////////////////////////////////////
 
 __inline void PRIMdrawGouraudLine(OGLVertex* vertex1, OGLVertex* vertex2, OGLVertex* vertex3, OGLVertex* vertex4) {
 
+    LockVb();
     PsxVertex[0].x = vertex1->x;
     PsxVertex[0].y = vertex1->y;
     PsxVertex[0].z = vertex1->z;
@@ -605,10 +562,11 @@ __inline void PRIMdrawGouraudLine(OGLVertex* vertex1, OGLVertex* vertex2, OGLVer
     PsxVertex[2].u = 0;
     PsxVertex[2].v = 0;
 
-    FCOL4;
+    FCOLQ;
     Xe_SetPixelShaderConstantB(xe,0,0);
 
     iXeDrawTri2(PsxVertex);
+    UnlockVb();
 }
 
 /////////////////////////////////////////////////////////
@@ -616,6 +574,7 @@ __inline void PRIMdrawGouraudLine(OGLVertex* vertex1, OGLVertex* vertex2, OGLVer
 __inline void PRIMdrawQuad(OGLVertex* vertex1, OGLVertex* vertex2,
         OGLVertex* vertex3, OGLVertex* vertex4) {
 
+    LockVb();
     PsxVertex[0].x = vertex1->x;
     PsxVertex[0].y = vertex1->y;
     PsxVertex[0].z = vertex1->z;
@@ -641,11 +600,12 @@ __inline void PRIMdrawQuad(OGLVertex* vertex1, OGLVertex* vertex2,
     PsxVertex[2].u = 0;
     PsxVertex[2].v = 0;
 
-    //FCOL1;
-    FCOL0;
+    FCOL1;
+    //FCOL0;
     Xe_SetPixelShaderConstantB(xe,0,0);
 
     iXeDrawTri2(PsxVertex);
+    UnlockVb();
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -699,12 +659,7 @@ void SetSemiTrans(void) {
             TransSets[GlobalTextABR].dstFac != obm2) {
         obm1 = TransSets[GlobalTextABR].srcFac;
         obm2 = TransSets[GlobalTextABR].dstFac;
-/*
-        Xe_SetSrcBlend(xe, obm1);
-        Xe_SetDestBlend(xe, obm2);
-        Xe_SetSrcBlendAlpha(xe, obm1);
-        Xe_SetDestBlendAlpha(xe, obm2);
-*/
+
         XeBlendFunc(obm1,obm2);
     }
 }
@@ -713,12 +668,7 @@ void SetScanTrans(void) // blending for scan lines
 {
     obm1 = TransSets[0].srcFac;
     obm2 = TransSets[0].dstFac;
-/*
-    Xe_SetSrcBlend(xe, obm1);
-    Xe_SetDestBlend(xe, obm2);
-    Xe_SetSrcBlendAlpha(xe, obm1);
-    Xe_SetDestBlendAlpha(xe, obm2);
-*/
+
     XeBlendFunc(obm1,obm2);
 }
 
@@ -726,12 +676,7 @@ void SetScanTexTrans(void) // blending for scan mask texture
 {
     obm1 = TransSets[2].srcFac;
     obm2 = TransSets[2].dstFac;
-/*
-    Xe_SetSrcBlend(xe, obm1);
-    Xe_SetDestBlend(xe, obm2);
-    Xe_SetSrcBlendAlpha(xe, obm1);
-    Xe_SetDestBlendAlpha(xe, obm2);
-*/
+
     XeBlendFunc(obm1,obm2);
 }
 
@@ -808,12 +753,7 @@ void SetSemiTransMulti(int Pass) {
 
     if (bm1 != obm1 || bm2 != obm2) {
         //glBlendFunc(bm1, bm2); // set blend func
-/*
-        Xe_SetSrcBlend(xe, bm1);
-        Xe_SetDestBlend(xe, bm2);
-        Xe_SetSrcBlendAlpha(xe, bm1);
-        Xe_SetDestBlendAlpha(xe, bm2);
-*/
+
         XeBlendFunc(obm1,obm2);
         obm1 = bm1;
         obm2 = bm2;

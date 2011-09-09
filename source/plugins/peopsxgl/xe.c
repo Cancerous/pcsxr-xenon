@@ -21,20 +21,11 @@ void xeGfx_setTextureData(void * tex, void * buffer) {
         int dstbytes = 4;
         int y, x;
         int j, i = 0;
-        /*
-
-                surf->width = width;
-                surf->height = height;
-         */
 
         int pitch = surf->wpitch;
 
         for (y = 0; y < (surf->height); y++) {
-            //dstdata = surfbuf + (y * width + xoffset) * dstbytes;
-            //srcdata = buffer + ((surf->width)*(y))+x;
-            //dstdata = surfbuf + (y-yoffset)*(surf->wpitch);// ok
             dstdata = surfbuf + (y)*(pitch); // ok
-            //srcdata = buffer + ((surf->width)*(y))+xoffset;
             for (x = 0; x < (surf->width); x++) {
 
                 dstdata[0] = srcdata[0];

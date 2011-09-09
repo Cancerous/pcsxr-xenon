@@ -35,6 +35,11 @@ static int vertexCount = 0;
 float screen[2] = {0, 0};
 static PsxVerticeFormats * vertices = NULL;
 
+
+static BOOL needSync = FALSE;
+
+PsxVerticeFormats * PsxVertex = NULL;
+
 void SaveFbToPng(const char *filename);
 
 void ResetVb() {
@@ -58,53 +63,35 @@ void fpoint(PsxVerticeFormats * psxvertices) {
     }
 }
 
-void iXeDrawTri(PsxVerticeFormats * psxvertices) {
-
-#if 1
-    fpoint(psxvertices);
-
+void LockVb(){
+    if(needSync)
+        Xe_Sync(xe);
+    needSync = FALSE;
+    
     Xe_SetStreamSource(xe, 0, vb, vertexCount, 4);
-    vertices = (PsxVerticeFormats *) Xe_VB_Lock(xe, vb, vertexCount, 3 * sizeof (PsxVerticeFormats), XE_LOCK_WRITE);
-    memcpy(vertices, psxvertices, 3 * sizeof (PsxVerticeFormats));
+    PsxVertex = (PsxVerticeFormats *) Xe_VB_Lock(xe, vb, vertexCount, 4 * sizeof (PsxVerticeFormats), XE_LOCK_WRITE);
+}
+
+void UnlockVb(){
     Xe_VB_Unlock(xe, vb);
+}
 
+void iXeDrawTri(PsxVerticeFormats * psxvertices) {
+    fpoint(psxvertices);
     Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLELIST, 0, 1);
-
     vertexCount += 3 * sizeof (PsxVerticeFormats);
-#endif
-
 }
 
 void iXeDrawTri2(PsxVerticeFormats * psxvertices) {
     fpoint(psxvertices);
-
-    Xe_SetStreamSource(xe, 0, vb, vertexCount, 4);
-    vertices = (PsxVerticeFormats *) Xe_VB_Lock(xe, vb, vertexCount, 4 * sizeof (PsxVerticeFormats), XE_LOCK_WRITE);
-    memcpy(vertices, psxvertices, 4 * sizeof (PsxVerticeFormats));
-    Xe_VB_Unlock(xe, vb);
-
     Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLESTRIP, 0, 2);
-
     vertexCount += 4 * sizeof (PsxVerticeFormats);
 }
 
 void iXeDrawQuad(PsxVerticeFormats * psxvertices) {
     fpoint(psxvertices);
-
-    Xe_SetStreamSource(xe, 0, vb, vertexCount, 4);
-    vertices = (PsxVerticeFormats *) Xe_VB_Lock(xe, vb, vertexCount, 6 * sizeof (PsxVerticeFormats), XE_LOCK_WRITE);
-
-    memcpy(&vertices[0], &psxvertices[0], 1 * sizeof (PsxVerticeFormats));
-    memcpy(&vertices[1], &psxvertices[1], 1 * sizeof (PsxVerticeFormats));
-    memcpy(&vertices[2], &psxvertices[2], 1 * sizeof (PsxVerticeFormats));
-    memcpy(&vertices[3], &psxvertices[1], 1 * sizeof (PsxVerticeFormats));
-    memcpy(&vertices[4], &psxvertices[3], 1 * sizeof (PsxVerticeFormats));
-    memcpy(&vertices[5], &psxvertices[2], 1 * sizeof (PsxVerticeFormats));
-    Xe_VB_Unlock(xe, vb);
-
     Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLELIST, 0, 2);
     vertexCount += 6 * sizeof (PsxVerticeFormats);
-
 }
 
 unsigned long ulInitDisplay() {
@@ -120,8 +107,8 @@ unsigned long ulInitDisplay() {
         {
             {XE_USAGE_POSITION, 0, XE_TYPE_FLOAT4},
             {XE_USAGE_TEXCOORD, 0, XE_TYPE_FLOAT2},
-            // {XE_USAGE_COLOR, 0, XE_TYPE_UBYTE4},
-            {XE_USAGE_COLOR, 0, XE_TYPE_FLOAT4},
+            {XE_USAGE_COLOR, 0, XE_TYPE_UBYTE4},
+            //{XE_USAGE_COLOR, 0, XE_TYPE_FLOAT4},
         }
     };
 
@@ -179,9 +166,12 @@ void saveShots() {
 
 void DoBufferSwap() {
     //TR
-    Xe_Resolve(xe);
+    // Xe_Resolve(xe);
     //TR
-    Xe_Sync(xe);
+    // Xe_Sync(xe);
+    needSync = TRUE;
+    Xe_ResolveInto(xe,fb,XE_SOURCE_COLOR,0);
+    Xe_Execute(xe); // render everything in background !
     //TR
     //printf("draw %d vertices\r\n",vertexCount);
     vertexCount = 0;

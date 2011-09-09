@@ -93,6 +93,8 @@ typedef void GLvoid;
 #define PSEgetLibVersion        GPUPSEgetLibVersion
 
 
+#define GPUaddVertex            PEOPS_GPUaddVertex
+
 //new
 #define GPUvBlank               PEOPS_GPUvBlank
 #define GPUvisualVibration      PEOPS_GPUvisualVibration

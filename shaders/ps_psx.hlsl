@@ -9,7 +9,7 @@ struct _IN
 
 float4 main(_IN data): COLOR {
     float4 Color;
-    if( b_mul_tex)
+    if(b_mul_tex)
     {
         Color = tex2D( tex0, data.uv) * data.col;
     }

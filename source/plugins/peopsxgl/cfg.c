@@ -29,7 +29,7 @@
 #include "stdafx.h"
 #include "externals.h"
 #include "cfg.h"
-
+int bGteAccuracy = FALSE;
 void ReadConfig(void) // read config (linux file)
 {
     iResX = 1280;
@@ -52,7 +52,7 @@ void ReadConfig(void) // read config (linux file)
     bUseFastMdec = TRUE;
     dwCfgFixes = 0;
     bUseFixes = FALSE;
-    iFrameTexType = 1;
+    iFrameTexType = 0;//  0: Emulated vram - effects need FVP | 1: Black - Fast but no special effects | 2: Gfx card buffer - Can be slow | 4: Full software drawing (FVP)
     iFrameReadType = 0;
     bUse15bitMdec = FALSE;
     iShowFPS = 0;

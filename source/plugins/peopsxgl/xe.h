@@ -1,3 +1,7 @@
+#define XE_TEXF_POINT 0
+#define XE_TEXF_LINEAR 1
+
+
 void XeOrtho(int l, int r, int b, int t, int zn, int zf);
 void InitGlSurface();
 
@@ -35,13 +39,18 @@ void XeTexUseFiltering(int enabled);
 typedef struct PsxVerticeFormats {
     float x, y, z, w;
     float u, v;
-    //unsigned int color;
-    float r, g, b, a;
+    unsigned int color;
+    //float r,g,b,a;
 } PsxVerticeFormats;
+
+extern PsxVerticeFormats * PsxVertex;
 
 void iXeDrawTri(PsxVerticeFormats * psxvertices);
 void iXeDrawTri2(PsxVerticeFormats * psxvertices);
 void iXeDrawQuad(PsxVerticeFormats * psxvertices);
+void LockVb();
+void UnlockVb();
+
 
 void XeOrtho(int l, int r, int b, int t, int zn, int zf);
 void CloseDisplay();

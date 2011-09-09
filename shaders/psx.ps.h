@@ -35,18 +35,18 @@ dcl_color_centroid r1
 
 
     exec
-    tfetch2D r0.zyx_, r0.xy, tf0
+    tfetch2D r0.wzyx, r0.xy, tf0
     alloc colors
     cjmp !b128, L5
     exec
-    mul r1.xyz, r0.zyx, r1.xyz
+    mul r0, r0.wzyx, r1
     jmp L6
 label L5
     exec
-    add r1.xyz, r0.zyx, r1.xyz
+    add r0, r0.wzyx, r1
 label L6
     exece
-    mov oC0, r1
+    mov oC0, r0
 
 // PDB hint 00000000-00000000-00000000
 
@@ -67,7 +67,7 @@ const DWORD g_xps_main[] =
     0x00000008, 0x00020000, 0x00001842, 0x00010003, 0x00000001, 0x00003050, 
     0x0000f1a0, 0x00011004, 0x00001200, 0xc4000000, 0x00000005, 0x1005b200, 
     0x12000000, 0x00002006, 0x1006b000, 0x12000000, 0x00001007, 0x00002200, 
-    0x00000000, 0x10080001, 0x1f1ffe0a, 0x00004000, 0xc8070001, 0x0062c000, 
-    0xe1000100, 0xc8070001, 0x0062c000, 0xe0000100, 0xc80f8000, 0x00000000, 
-    0xe2010100, 0x00000000, 0x00000000, 0x00000000
+    0x00000000, 0x10080001, 0x1f1ff053, 0x00004000, 0xc80f0000, 0x00770000, 
+    0xe1000100, 0xc80f0000, 0x00770000, 0xe0000100, 0xc80f8000, 0x00000000, 
+    0xe2000000, 0x00000000, 0x00000000, 0x00000000
 };

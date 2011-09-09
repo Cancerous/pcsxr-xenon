@@ -144,6 +144,8 @@ void PEOPS_GPUvBlank(int val);
 void PEOPS_GPUvisualVibration(uint32_t iSmall, uint32_t iBig);
 void PEOPS_GPUmakeSnapshot(void);
 void PEOPS_GPUcursor(int iPlayer, int x, int y);
+void PEOPS_GPUaddVertex(short sx, short sy, s64 fx, s64 fy, s64 fz);
+
 #define EMPTY_PLUGIN \
 	{ NULL,      \
 	  0,         \
@@ -452,7 +454,7 @@ void PEOPS_GPUcursor(int iPlayer, int x, int y);
 // HW GPU
 #define GPU_HW_PEOPS_PLUGIN \
 	{ "/GPU",      \
-	  17,         \
+	  18,         \
 	  { { "GPUinit",  \
 	      PEOPS_GPUinit }, \
 	    { "GPUshutdown",	\
@@ -486,9 +488,12 @@ void PEOPS_GPUcursor(int iPlayer, int x, int y);
             { "GPUcursor", \
 	      PEOPS_GPUcursor}, \
 	    { "GPUupdateLace", \
-	      PEOPS_GPUupdateLace} \
+	      PEOPS_GPUupdateLace}, \
+            { "GPUaddVertex", \
+            PEOPS_GPUaddVertex} \
 	       } }
-
+//{ "GPUaddVertex", \
+//PEOPS_GPUaddVertex} \
 
 
 
