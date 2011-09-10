@@ -9,13 +9,8 @@ void InitGlSurface();
 void XeViewport(int left, int top, int right, int bottom);
 
 // tex
-void XeTexImage(int internalformat, int width, int height, int format, const void *pixels);
-void XeSetTexture();
-void XeBindTexture(int i);
-struct XenosSurface * XeGetTextureInSlot();
-void XeDeleteTextures(int nbr, int * id) ;
-void XeGenTextures(int nbr, int * id);
-
+void xeGfx_setTextureData(void * tex, void * buffer);
+void XeTexSubImage(struct XenosSurface * surf, int srcbpp, int dstbpp, int xoffset, int yoffset, int width, int height, const void * buffer);
 
 // scissor
 void XeDisableScissor();

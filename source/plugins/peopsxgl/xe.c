@@ -8,6 +8,48 @@ void InitGlSurface() {
 
 }
 
+
+void XeTexSubImage(struct XenosSurface * surf, int srcbpp, int dstbpp, int xoffset, int yoffset, int width, int height, const void * buffer){
+    if(surf){
+        //copy data
+       // printf("xeGfx_setTextureData\n");
+        uint8_t * surfbuf =(uint8_t*)Xe_Surface_LockRect(xe,surf,0,0,0,0,XE_LOCK_WRITE);
+        uint8_t * srcdata = (uint8_t*)buffer;
+        uint8_t * dstdata = surfbuf;
+        int srcbytes = srcbpp;
+	int dstbytes = dstbpp;
+        int y,x;
+        int j,i = 0;
+
+        int pitch = (surf->wpitch);
+        int offset = xoffset*dstbytes;
+
+        for (y = yoffset; y < (yoffset + height); y++)
+	{
+            // dstdata = surfbuf + (y*pitch)+(xoffset*dstbytes);// ok
+            dstdata = surfbuf + (y*pitch)+(offset);// ok
+            for (x = xoffset; x < (xoffset + width); x++)
+            {
+                if(srcbpp==4&&dstbytes==4){
+                    // 0 a r
+                    // 1 r g
+                    // 2 g b
+                    // 3 b a
+                    dstdata[0] = srcdata[0];
+                    dstdata[1] = srcdata[1];
+                    dstdata[2] = srcdata[2];
+                    dstdata[3] = srcdata[3];
+
+                    srcdata += srcbytes;
+                    dstdata += dstbytes;
+                }
+            }
+        }
+
+        Xe_Surface_Unlock(xe,surf);
+    }
+}
+
 void xeGfx_setTextureData(void * tex, void * buffer) {
     //printf("xeGfx_setTextureData\n");
     struct XenosSurface * surf = (struct XenosSurface *) tex;

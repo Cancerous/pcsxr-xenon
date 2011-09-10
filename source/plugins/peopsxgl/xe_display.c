@@ -33,8 +33,6 @@ static struct XenosDevice _xe;
 
 static int vertexCount = 0;
 float screen[2] = {0, 0};
-static PsxVerticeFormats * vertices = NULL;
-
 
 static BOOL needSync = FALSE;
 
@@ -175,7 +173,7 @@ void DoBufferSwap() {
     //TR
     //printf("draw %d vertices\r\n",vertexCount);
     vertexCount = 0;
-   // saveShots();
+    // saveShots();
     XeResetStates();
 }
 
@@ -221,13 +219,13 @@ void SaveFbToPng(const char *filename) {
 
     if (!png_ptr) {
         printf("[read_png_file] png_create_read_struct failed\n");
-        return 0;
+        return;
     }
 
     info_ptr = png_create_info_struct(png_ptr);
     if (!info_ptr) {
         printf("[read_png_file] png_create_info_struct failed\n");
-        return 0;
+        return;
     }
 
     png_init_io(png_ptr, fp);
@@ -240,11 +238,13 @@ void SaveFbToPng(const char *filename) {
     //png_set_packing(png_ptr);
     
     // wait for gpu to be ready            
+
 /*
     while((*((uint32_t*)0xec801740) & 0x80000000) == 0) {
             // Wait for gpu Lock
     };
 */
+
     //uint32_t * fb_backup = (uint32_t *)malloc(((height*(width*4))*sizeof(uint32_t*)));
     
     int x,y;
@@ -252,7 +252,7 @@ void SaveFbToPng(const char *filename) {
         for(x=0;x<width;x++){
 #define base (((y >> 5)*32*width + ((x >> 5)<<10) \
     + (x&3) + ((y&1)<<2) + (((x&31)>>2)<<3) + (((y&31)>>1)<<6)) ^ ((y&8)<<2))
-            fb_backup[base] = &fb+(y*width)+x;
+            fb_backup[base] = fb[(y*width)+x];
         }
     }
     png_bytep * row_pointers = (png_bytep*) malloc(sizeof(png_bytep) * height);

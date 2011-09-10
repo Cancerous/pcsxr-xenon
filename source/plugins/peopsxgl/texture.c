@@ -57,8 +57,8 @@
 // can be a pain in the ass to port the plugin to another byte order :)
 //
 ////////////////////////////////////////////////////////////////////////////////////
-void XeTexImage(int internalformat, int width, int height, int format,const void *pixels);
-#define xeSetTexture()
+
+
 #define _IN_TEXTURE
 
 #include "externals.h"
@@ -78,50 +78,12 @@ int glGetError(){
     return 0;
 }
 
+/*
 struct XenosSurface *T_CreateTexture(struct XenosDevice *xe, unsigned int width, unsigned int height, unsigned int levels, int format, int tiled);
 
 #define Xe_CreateTexture T_CreateTexture
+*/
 
-struct PSXUV gPsxUV;//offset
-void XeTexSubImage(int xoffset, int yoffset, int width, int height, const void * buffer){
-    struct XenosSurface * surf = gTexName;
-    if(surf){
-        //copy data
-       // printf("xeGfx_setTextureData\n");
-        uint8_t * surfbuf =(uint8_t*)Xe_Surface_LockRect(xe,surf,0,0,0,0,XE_LOCK_WRITE);
-        uint8_t * srcdata = (uint8_t*)buffer;
-        uint8_t * dstdata = surfbuf;
-        int srcbytes = 4;
-	int dstbytes = 4;
-        int y,x;
-        int j,i = 0;
-
-        int pitch = (surf->wpitch);
-        int offset = xoffset*dstbytes;
-
-        for (y = yoffset; y < (yoffset + height); y++)
-	{
-            // dstdata = surfbuf + (y*pitch)+(xoffset*dstbytes);// ok
-            dstdata = surfbuf + (y*pitch)+(offset);// ok
-            for (x = xoffset; x < (xoffset + width); x++)
-            {
-                // 0 a r
-                // 1 r g
-                // 2 g b
-                // 3 b a
-                dstdata[0] = srcdata[0];
-                dstdata[1] = srcdata[1];
-                dstdata[2] = srcdata[2];
-                dstdata[3] = srcdata[3];
-
-                srcdata += srcbytes;
-                dstdata += dstbytes;
-            }
-        }
-
-        Xe_Surface_Unlock(xe,surf);
-    }
-}
 
 ////////////////////////////////////////////////////////////////////////
 // texture conversion buffer ..
@@ -259,16 +221,12 @@ unsigned short MAXSORTTEX = 196;
 ////////////////////////////////////////////////////////////////////////
 
 uint32_t XP8RGBA(uint32_t BGR) {
-#if 1
     if (!(BGR & 0xffff)) return 0x50000000;
     if (DrawSemiTrans && !(BGR & 0x8000)) {
         ubOpaqueDraw = 1;
         return ((((BGR << 3)&0xf8) | ((BGR << 6)&0xf800) | ((BGR << 9)&0xf80000))&0xffffff);
     }
     return ((((BGR << 3)&0xf8) | ((BGR << 6)&0xf800) | ((BGR << 9)&0xf80000))&0xffffff) | 0xff000000;
-#else
-    return BGR;
-#endif
 }
 
 uint32_t XP8RGBAEx(uint32_t BGR) {
@@ -315,12 +273,8 @@ uint32_t XP8RGBAEx_0(uint32_t BGR) {
 }
 
 uint32_t XP8BGRA_0(uint32_t BGR) {
-#if 1
     if (!(BGR & 0xffff)) return 0x50000000;
     return ((((BGR >> 7)&0xf8) | ((BGR << 6)&0xf800) | ((BGR << 19)&0xf80000))&0xffffff) | 0xff000000;
-#else
-    return BGR;
-#endif
 }
 
 uint32_t XP8BGRAEx_0(uint32_t BGR) {
@@ -383,16 +337,12 @@ uint32_t XP8RGBAEx_1(uint32_t BGR) {
 }
 
 uint32_t XP8BGRA_1(uint32_t BGR) {
-#if 1
     if (!(BGR & 0xffff)) return 0x50000000;
     if (!(BGR & 0x8000)) {
         ubOpaqueDraw = 1;
         return ((((BGR >> 7)&0xf8) | ((BGR << 6)&0xf800) | ((BGR << 19)&0xf80000))&0xffffff);
     }
     return ((((BGR >> 7)&0xf8) | ((BGR << 6)&0xf800) | ((BGR << 19)&0xf80000))&0xffffff) | 0xff000000;
-#else
-    return BGR;
-#endif
 }
 
 uint32_t XP8BGRAEx_1(uint32_t BGR) {
@@ -497,7 +447,7 @@ int iFTexA = 512;
 int iFTexB = 512;
 
 void CheckTextureMemory(void) {
-    iSortTexCnt = 8;
+    iSortTexCnt = 16;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -530,10 +480,10 @@ void InitializeTextureStore() {
     if (!iUsePalTextures) iTexWndLimit /= 2;
 
     memset(wcWndtexStore, 0, sizeof (textureWndCacheEntry) *MAXWNDTEXCACHE);
-    texturepart = (GLubyte *) malloc(256 * 256 * 4);
+    texturepart = (u8 *) malloc(256 * 256 * 4);
     memset(texturepart, 0, 256 * 256 * 4);
     if (iHiResTextures)
-        texturebuffer = (GLubyte *) malloc(512 * 512 * 4);
+        texturebuffer = (u8 *) malloc(512 * 512 * 4);
     else texturebuffer = NULL;
 
     for (i = 0; i < 3; i++) // -> info for 32*3
@@ -626,6 +576,7 @@ void ResetTextureArea(BOOL bDelTex) {
     //----------------------------------------------------//
     if (bDelTex) {
        // XeBindTexture(0);
+        XeDisableTexture();
         gTexName = 0;
     }
     //----------------------------------------------------//
@@ -930,7 +881,6 @@ void DefineTextureWnd(void) {
 ////////////////////////////////////////////////////////////////////////
 // tex window: load stretched ZN ???
 ////////////////////////////////////////////////////////////////////////
-
 void LoadStretchWndTexturePage(int pageid, int mode, short cx, short cy) {
     TR;
     uint32_t start, row, column, j, sxh, sxm, ldx, ldy, ldxo, s;
@@ -1163,6 +1113,7 @@ TR;
             // others are not possible !
     }
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 // tex window: load packed simple
@@ -1447,16 +1398,12 @@ struct XenosSurface * LoadTextureWnd(int pageid, int TextureMode, uint32_t Given
             if (TextureMode == 1)
                 for (row = 1; row < 129; row++)
                 {
-                    l += ((GETLE32(lSRCPtr)) - 1) * row;
-
-                    *lSRCPtr++;
+                    l += ((GETLE32(lSRCPtr++)) - 1) * row;
                 }
             else
                 for (row = 1; row < 9; row++)
                 {
-                    l += ((GETLE32(lSRCPtr)) - 1) << row;
-
-                    *lSRCPtr++;
+                    l += ((GETLE32(lSRCPtr++)) - 1) << row;
                 }
 #else
              if (TextureMode == 1) for (row = 1; row < 129; row++) l += ((*lSRCPtr++) - 1) * row;
@@ -1547,7 +1494,7 @@ void DefinePackedTextureMovie(void) {
     }
     gTexName = gTexMovieName;
 
-    XeTexSubImage(0,0,(xrMovieArea.x1 - xrMovieArea.x0),(xrMovieArea.y1 - xrMovieArea.y0),texturepart);
+    XeTexSubImage(gTexName,4,4,0,0,(xrMovieArea.x1 - xrMovieArea.x0),(xrMovieArea.y1 - xrMovieArea.y0),texturepart);
     TR;
 }
 
@@ -1570,7 +1517,7 @@ void DefineTextureMovie(void) {
     }
     gTexName = gTexMovieName;
 
-    XeTexSubImage(0,0,(xrMovieArea.x1 - xrMovieArea.x0),(xrMovieArea.y1 - xrMovieArea.y0),texturepart);
+    XeTexSubImage(gTexName,4,4,0,0,(xrMovieArea.x1 - xrMovieArea.x0),(xrMovieArea.y1 - xrMovieArea.y0),texturepart);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1721,9 +1668,7 @@ struct XenosSurface * LoadTextureMovieFast(void) {
                 }
 
             }
-            //TR;
         }
-        //TR;
         DefineTextureMovie();
     }
     return gTexName;
@@ -1978,8 +1923,6 @@ struct XenosSurface * BlackFake15BitTexture(void) {
 
         } else {
             gTexName = gTexFrameName;
-            //XeBindTexture(gTexName);
-            xeSetTexture();
         }
 
         ubOpaqueDraw = 0;
@@ -2263,10 +2206,16 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
                     *(px + 2) = (LTCOL((*wSRCPtr+2)));
                     *(px + 3) = (LTCOL((*wSRCPtr+3)));
 */
+/*
                     *px = (LTCOL(GETLE32(wSRCPtr)));
                     *(px + 1) = (LTCOL(GETLE32(wSRCPtr+1)));
                     *(px + 2) = (LTCOL(GETLE32(wSRCPtr+2)));
                     *(px + 3) = (LTCOL(GETLE32(wSRCPtr+3)));
+*/
+                    *px = (LTCOL(GETLE16(wSRCPtr)));
+                    *(px + 1) = (LTCOL(GETLE16(wSRCPtr+1)));
+                    *(px + 2) = (LTCOL(GETLE16(wSRCPtr+2)));
+                    *(px + 3) = (LTCOL(GETLE16(wSRCPtr+3)));
                     
                     row--;
                     px += 4;
@@ -2279,7 +2228,8 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
                         n_yi = (TXV & ~0xf) + ((TXU >> 4) & 0xf);
 
                         //*ta++ = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x03) << 2)) & 0x0f));
-                        *ta++ = *(pa + ((GETLE32(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x03) << 2)) & 0x0f));
+                        //*ta++ = *(pa + ((GETLE32(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x03) << 2)) & 0x0f));
+                        *ta++ = *(pa + ((GETLE16(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x03) << 2)) & 0x0f));
                     }
                     ta += xalign;
                 }
@@ -2302,10 +2252,16 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
                 *(px + 2) = (LTCOL((*(wSRCPtr + 2))));
                 *(px + 3) = (LTCOL((*(wSRCPtr + 3))));
 */
+/*
                 *px = (LTCOL(GETLE32(wSRCPtr)));
                 *(px + 1) = (LTCOL(GETLE32(wSRCPtr + 1)));
                 *(px + 2) = (LTCOL(GETLE32(wSRCPtr + 2)));
                 *(px + 3) = (LTCOL(GETLE32(wSRCPtr + 3)));
+*/
+                *px = (LTCOL(GETLE16(wSRCPtr)));
+                *(px + 1) = (LTCOL(GETLE16(wSRCPtr + 1)));
+                *(px + 2) = (LTCOL(GETLE16(wSRCPtr + 2)));
+                *(px + 3) = (LTCOL(GETLE16(wSRCPtr + 3)));
                 row--;
                 px += 4;
                 wSRCPtr += 4;
@@ -2321,25 +2277,32 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
                 if (sxm) 
                 {
                     //*ta++ = (*(pa + (((*cSRCPtr++) >> 4) & 0xF)));
-                    *ta++ = (*(pa + ((GETLE32(cSRCPtr++) >> 4) & 0xF)));
+                    //*ta++ = (*(pa + ((GETLE32(cSRCPtr++) >> 4) & 0xF)));
+                    *ta++ = (*(pa + ((GETLE16(cSRCPtr++) >> 4) & 0xF)));
                 }
 
                 for (row = j; row < x2a; row += 2) {
                     //*ta = (*(pa + ((*cSRCPtr++) & 0xF)));
                     //*(ta + 1) = (*(pa + (((*cSRCPtr++) >> 4) & 0xF)));
+/*
                     *ta = (*(pa + (GETLE32(cSRCPtr++) & 0xF)));
                     *(ta + 1) = (*(pa + ((GETLE32(cSRCPtr++) >> 4) & 0xF)));
+*/
+                     *ta = (*(pa + (GETLE16(cSRCPtr++) & 0xF)));
+                    *(ta + 1) = (*(pa + ((GETLE16(cSRCPtr++) >> 4) & 0xF)));
                     cSRCPtr++;
                     ta += 2;
                 }
 
                 if (row <= x2) {
                    // *ta++ = (*(pa + ((*cSRCPtr++) & 0xF)));
-                     *ta++ = (*(pa + (GETLE32(cSRCPtr++) & 0xF)));
+                    // *ta++ = (*(pa + (GETLE32(cSRCPtr++) & 0xF)));
+                    *ta++ = (*(pa + (GETLE16(cSRCPtr++) & 0xF)));
                     row++;
                     if (row <= x2) {
                         // *ta++ = (*(pa + (((*cSRCPtr++) >> 4) & 0xF)));
-                        *ta++ = (*(pa + ((GETLE32(cSRCPtr++) >> 4) & 0xF)));
+                        // *ta++ = (*(pa + ((GETLE32(cSRCPtr++) >> 4) & 0xF)));
+                        *ta++ = (*(pa + ((GETLE16(cSRCPtr++) >> 4) & 0xF)));
                     }
                 }
 
@@ -2363,10 +2326,16 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
                     *(px + 2) = LTCOL((*(wSRCPtr + 2)));
                     *(px + 3) = LTCOL((*(wSRCPtr + 3)));
 */
+/*
                     *px = (LTCOL(GETLE32(wSRCPtr)));
                     *(px + 1) = (LTCOL(GETLE32(wSRCPtr + 1)));
                     *(px + 2) = (LTCOL(GETLE32(wSRCPtr + 2)));
                     *(px + 3) = (LTCOL(GETLE32(wSRCPtr + 3)));
+*/
+                    *px = (LTCOL(GETLE16(wSRCPtr)));
+                    *(px + 1) = (LTCOL(GETLE16(wSRCPtr + 1)));
+                    *(px + 2) = (LTCOL(GETLE16(wSRCPtr + 2)));
+                    *(px + 3) = (LTCOL(GETLE16(wSRCPtr + 3)));
                     row--;
                     px += 4;
                     wSRCPtr += 4;
@@ -2378,7 +2347,8 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
                         n_yi = (TXV & ~0x7) + ((TXU >> 5) & 0x7);
 
                         //*ta++ = *(pa + (((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi)) >> ((TXU & 0x01) << 3)) & 0xff));
-                        *ta++ = *(pa + (((GETLE32(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi)) >> ((TXU & 0x01) << 3)) & 0xff));
+                        //*ta++ = *(pa + (((GETLE32(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi)) >> ((TXU & 0x01) << 3)) & 0xff));
+                        *ta++ = *(pa + (((GETLE16(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi)) >> ((TXU & 0x01) << 3)) & 0xff));
                     }
                     ta += xalign;
                 }
@@ -2402,10 +2372,16 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
                     *(px + 2) = LTCOL(*(wSRCPtr + 2));
                     *(px + 3) = LTCOL(*(wSRCPtr + 3));
 */
+/*
                     *px = (LTCOL(GETLE32(wSRCPtr)));
                     *(px + 1) = (LTCOL(GETLE32(wSRCPtr + 1)));
                     *(px + 2) = (LTCOL(GETLE32(wSRCPtr + 2)));
                     *(px + 3) = (LTCOL(GETLE32(wSRCPtr + 3)));
+*/
+                    *px = (LTCOL(GETLE16(wSRCPtr)));
+                    *(px + 1) = (LTCOL(GETLE16(wSRCPtr + 1)));
+                    *(px + 2) = (LTCOL(GETLE16(wSRCPtr + 2)));
+                    *(px + 3) = (LTCOL(GETLE16(wSRCPtr + 3)));
                     row--;
                     px += 4;
                     wSRCPtr += 4;
@@ -2431,7 +2407,8 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
                     row = dx;
                     do {
                         //*ta++ = LTCOL(*(wSRCPtr + *cSRCPtr++));
-                        *ta++ = LTCOL(GETLE32(wSRCPtr + *cSRCPtr++));
+                        // *ta++ = LTCOL(GETLE32(wSRCPtr + *cSRCPtr++));
+                        *ta++ = LTCOL(GETLE16(wSRCPtr + *cSRCPtr++));
                         // *ta++ = LTCOL(GETLE32(wSRCPtr + GETLE32(cSRCPtr++))); // crash ?
                         row--;
                     } while (row);
@@ -2456,7 +2433,8 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
                 row = dx;
                 do {
                     //*ta++ = LTCOL(*wSRCPtr++);
-                    *ta++ = (LTCOL(GETLE32(wSRCPtr++)));
+                    //*ta++ = (LTCOL(GETLE32(wSRCPtr++)));
+                    *ta++ = (LTCOL(GETLE16(wSRCPtr++)));
                     row--;
                 } while (row);
                 ta += xalign;
@@ -2476,14 +2454,16 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
         pa = (uint32_t *) texturepart + x2a;
         row = x2a;
         do {
-            *ta++ = GETLE32(pa++);
+            //*ta++ = GETLE32(pa++);
+            *ta++=*pa++;
             row--;
         } while (row);
         pa = (uint32_t *) texturepart + dy*x2a;
         ta = pa + x2a;
         row = x2a;
         do {
-            *ta++ = GETLE32(pa++);
+            //*ta++ = GETLE32(pa++);
+            *ta++=*pa++;
             row--;
         } while (row);
         YTexS--;
@@ -2495,7 +2475,8 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
         pa = ta + 1;
         row = dy;
         do {
-            *ta = GETLE32(pa);
+            //*ta = GETLE32(pa);
+            *ta = *pa;
             ta += x2a;
             pa += x2a;
             row--;
@@ -2504,7 +2485,8 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
         ta = pa + 1;
         row = dy;
         do {
-            *ta = GETLE32(pa);
+            //*ta = GETLE32(pa);
+            *ta = *pa;
             ta += x2a;
             pa += x2a;
             row--;
@@ -2713,35 +2695,12 @@ void DefineSubTextureSortHiRes(void) {
             Super2xSaI_ex8(texturepart, DXTexS * 4, texturebuffer, DXTexS, DYTexS);
     }
 
-    XeTexSubImage(XTexS << 1, YTexS << 1,
+    XeTexSubImage(gTexName,4,4,XTexS << 1, YTexS << 1,
             DXTexS << 1, DYTexS << 1,texturebuffer);
-     xeSetTexture();
-
-/*
-    glTexSubImage2D(GL_TEXTURE_2D, 0, XTexS << 1, YTexS << 1,
-            DXTexS << 1, DYTexS << 1,
-            giWantedFMT, giWantedTYPE, texturebuffer);
-*/
 }
 
 
 /////////////////////////////////////////////////////////////////////////////
-void _DefineSubTextureSort(void) {
-    if (iHiResTextures) {
-        DefineSubTextureSortHiRes();
-        return;
-    }
-
-    if (!gTexName) {
-        //glTexImage2D(GL_TEXTURE_2D, 0, giWantedRGBA, 256, 256, 0, giWantedFMT, giWantedTYPE, texturepart);
-        gTexName = Xe_CreateTexture(xe, 256, 256, 1,  XE_FMT_8888 | XE_FMT_ARGB, 0);
-        xeGfx_setTextureData(gTexName, texturepart);
-        TR;
-    }
-
-    //TR;
-    XeTexSubImage(XTexS, YTexS, DXTexS, DYTexS,texturepart);
-}
 void DefineSubTextureSort(void) {
     if (iHiResTextures) {
         DefineSubTextureSortHiRes();
@@ -2763,7 +2722,7 @@ void DefineSubTextureSort(void) {
         
     }
 
-    XeTexSubImage(XTexS, YTexS, DXTexS, DYTexS, texturepart);
+    XeTexSubImage(gTexName,4,4,XTexS, YTexS, DXTexS, DYTexS, texturepart);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -2853,6 +2812,15 @@ unsigned char * CheckTextureInSubSCache(int TextureMode, uint32_t GivenClutId, u
     tsg = pscSubtexStore[TextureMode][GlobalTexturePage];
     tsg += ((GivenClutId & CLUTCHK) >> CLUTSHIFT) * SOFFB;
 
+/*
+    TR;
+    printf("tsg %d\r\n",tsg->ClutID);
+    printf("tsg %d\r\n",tsg->cTexID);
+    printf("tsg %d\r\n",tsg->posTX);
+    printf("tsg %d\r\n",tsg->posTY);
+    printf("tsg %d\r\n",tsg->pos.l);
+*/
+    
     iMax = tsg->pos.l;
     if (iMax) {
         i = iMax;
@@ -2861,9 +2829,13 @@ unsigned char * CheckTextureInSubSCache(int TextureMode, uint32_t GivenClutId, u
             if (GivenClutId == tsb->ClutID &&
                     (INCHECK(tsb->pos, npos))) {
                 {
+/*
                     cx = tsb->pos.c[3] - tsb->posTX;
                     cy = tsb->pos.c[1] - tsb->posTY;
-
+*/
+                    cx = tsb->pos.c[3] - tsb->posTX;
+                    cy = tsb->pos.c[1] - tsb->posTY;
+                    
                     gl_ux[0] -= cx;
                     gl_ux[1] -= cx;
                     gl_ux[2] -= cx;
@@ -2934,9 +2906,11 @@ unsigned char * CheckTextureInSubSCache(int TextureMode, uint32_t GivenClutId, u
                     //npos.l = rfree.l;
                     //PUTLE32((uint32_t *)&gl_ux[4],npos.l);
                     
+/*
                     dump_gl_uv();
                     printf("npos.l => %x\r\n",npos.l);
                     printf("npos.l => %x\r\n",rfree.l);
+*/
                     
                     rx = (int) rfree.c[2]-(int) rfree.c[3];
                     ry = (int) rfree.c[0]-(int) rfree.c[1];
@@ -2950,6 +2924,14 @@ unsigned char * CheckTextureInSubSCache(int TextureMode, uint32_t GivenClutId, u
         }
         tsx = tsg + iMax;
         tsg->pos.l = iMax;
+/*
+        TR;
+        printf("tsg %d\r\n",tsg->ClutID);
+        printf("tsg %d\r\n",tsg->cTexID);
+        printf("tsg %d\r\n",tsg->posTX);
+        printf("tsg %d\r\n",tsg->posTY);
+        printf("tsg %d\r\n",tsg->pos.l);
+*/
     }
 
     //----------------------------------------------------//
@@ -3136,6 +3118,12 @@ ENDLOOP:
     XTexS = rfree.c[3];
     YTexS = rfree.c[1];
 
+/*
+    TR;
+    printf("XTexS :%d\r\n",XTexS);
+    printf("YTexS :%d\r\n",YTexS);
+*/
+    
     return &tsx->Opaque;
 }
 
@@ -3264,6 +3252,14 @@ TENDLOOP:
     XTexS = rfree.c[3];
     YTexS = rfree.c[1];
 
+/*
+    TR;
+    printf("cXAdj :%d\r\n",cXAdj);
+    printf("cYAdj :%d\r\n",cYAdj);
+    printf("XTexS :%d\r\n",XTexS);
+    printf("YTexS :%d\r\n",YTexS);
+*/
+    
     return TRUE;
 }
 
@@ -3332,16 +3328,12 @@ void CompressTextureSpace(void) {
                                 if (j == 1)
                                     for (row = 1; row < 129; row++)
                                     {
-                                        l += ((GETLE32(lSRCPtr)) - 1) * row;
-
-                                        *lSRCPtr++;
+                                        l += ((GETLE32(lSRCPtr++)) - 1) * row;
                                     }
                                 else
                                     for (row = 1; row < 9; row++)
                                     {
-                                        l += ((GETLE32(lSRCPtr)) - 1) << row;
-
-                                        *lSRCPtr++;
+                                        l += ((GETLE32(lSRCPtr++)) - 1) << row;
                                     }
 
                                 l = ((l + HIWORD(l))&0x3fffL) << 16;
@@ -3491,16 +3483,12 @@ struct XenosSurface * SelectSubTextureS(int TextureMode, uint32_t GivenClutId) {
             if (TextureMode == 1)
                 for (row = 1; row < 129; row++)
                 {
-                    l += ((GETLE32(lSRCPtr)) - 1) * row;
-
-                    *lSRCPtr++;
+                    l += ((GETLE32(lSRCPtr++)) - 1) * row;
                 }
             else
                 for (row = 1; row < 9; row++)
                 {
-                    l += ((GETLE32(lSRCPtr)) - 1) << row;
-
-                    *lSRCPtr++;
+                    l += ((GETLE32(lSRCPtr++)) - 1) << row;
                 }
             l = (l + HIWORD(l))&0x3fffL;
             GivenClutId |= (l << 16);
@@ -3537,9 +3525,11 @@ struct XenosSurface * SelectSubTextureS(int TextureMode, uint32_t GivenClutId) {
 /////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
+/*
 #undef Xe_CreateTexture
 
 struct XenosSurface *T_CreateTexture(struct XenosDevice *xe, unsigned int width, unsigned int height, unsigned int levels, int format, int tiled){
     printf("Xe_CreateTexture : %d | %d \r\n",width,height);
     return Xe_CreateTexture(xe,width,height,levels,format,tiled);
 }
+*/

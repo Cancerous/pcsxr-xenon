@@ -41,7 +41,7 @@ void ReadConfig(void) {
     iVolume = 1;
     iXAPitch = 0;
     iSPUIRQWait = 0;
-    iUseTimer = 2;// USE THREAD
+    iUseTimer = 0;// USE THREAD
     iUseReverb = 2;
     iUseInterpolation = 2;
     iDisStereo = 0;
