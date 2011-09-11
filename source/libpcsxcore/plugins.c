@@ -222,7 +222,7 @@ void CALLBACK GPU__clearDynarec(void (CALLBACK *callback)(void)) {}
 void CALLBACK GPU__vBlank(int val) {}
 void CALLBACK GPU__registerCallback(void (CALLBACK *callback)(int)) {}
 void CALLBACK GPU__idle(void) {}
-void CALLBACK GPU__visualVibration(unsigned long iSmall, unsigned long iBig) {}
+void CALLBACK GPU__visualVibration(unsigned long iSmall, unsigned long iBig) {printf("rrrr\r\n");}
 void CALLBACK GPU__cursor(int player, int x, int y) {}
 void CALLBACK GPU__addVertex(short sx,short sy,s64 fx,s64 fy,s64 fz) {}
 

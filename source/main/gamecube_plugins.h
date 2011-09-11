@@ -146,6 +146,77 @@ void PEOPS_GPUmakeSnapshot(void);
 void PEOPS_GPUcursor(int iPlayer, int x, int y);
 void PEOPS_GPUaddVertex(short sx, short sy, s64 fx, s64 fy, s64 fz);
 
+//dfinput 
+char *INPUT_PSEgetLibName(void);
+uint32_t INPUT_PSEgetLibType(void);
+uint32_t INPUT_PSEgetLibVersion(void);
+long INPUT_PADinit(long flags);
+long INPUT_PADshutdown(void);
+long INPUT_PADopen(unsigned long *Disp);
+long INPUT_PADclose(void);
+long INPUT_PADquery(void);
+unsigned char INPUT_PADstartPoll(int pad);
+unsigned char INPUT_PADpoll(unsigned char value);
+long INPUT_PADreadPort1(PadDataS *pad);
+long INPUT_PADreadPort2(PadDataS *pad);
+long INPUT_PADkeypressed(void);
+long INPUT_PADconfigure(void);
+void INPUT_PADabout(void);
+long INPUT_PADtest(void);
+void INPUT_PADregisterVibration(void (*callback)(uint32_t, uint32_t));
+void INPUT_PADsetMode(const int pad, const int mode);
+#define DF_PAD1_PLUGIN \
+	{ "/PAD1",      \
+	  10,         \
+	  { { "PADinit",  \
+	      INPUT_PADinit }, \
+	    { "PADshutdown",	\
+	      INPUT_PADshutdown}, \
+	    { "PADopen", \
+	      INPUT_PADopen}, \
+	    { "PADclose", \
+	      INPUT_PADclose}, \
+            { "PADquery", \
+	      INPUT_PADquery}, \
+            { "PADpoll", \
+	      INPUT_PADpoll}, \
+            { "PADstartPoll", \
+	      INPUT_PADstartPoll}, \
+            { "PADregisterVibration", \
+	      INPUT_PADregisterVibration}, \
+            { "PADsetMode", \
+	      INPUT_PADsetMode}, \
+	    { "PADreadPort1", \
+	      INPUT_PADreadPort1} \
+           } \
+        } 
+	    
+#define DF_PAD2_PLUGIN \
+	{ "/PAD2",      \
+	  10,         \
+	  { { "PADinit",  \
+	      INPUT_PADinit }, \
+	    { "PADshutdown",	\
+	      INPUT_PADshutdown}, \
+	    { "PADopen", \
+	      INPUT_PADopen}, \
+	    { "PADclose", \
+	      INPUT_PADclose}, \
+            { "PADquery", \
+	      INPUT_PADquery}, \
+            { "PADpoll", \
+	      INPUT_PADpoll}, \
+            { "PADstartPoll", \
+	      INPUT_PADstartPoll}, \
+            { "PADregisterVibration", \
+	      INPUT_PADregisterVibration}, \
+            { "PADsetMode", \
+	      INPUT_PADsetMode}, \
+	    { "PADreadPort2", \
+	      INPUT_PADreadPort2} \
+           } \
+        } 
+
 #define EMPTY_PLUGIN \
 	{ NULL,      \
 	  0,         \
@@ -548,8 +619,8 @@ void cdrcimg_set_fname(const char *fname);
 
 
 #define PLUGIN_SLOT_0 EMPTY_PLUGIN
-#define PLUGIN_SLOT_1 PAD1_PLUGIN
-#define PLUGIN_SLOT_2 PAD2_PLUGIN
+#define PLUGIN_SLOT_1 DF_PAD1_PLUGIN
+#define PLUGIN_SLOT_2 DF_PAD2_PLUGIN
 #define PLUGIN_SLOT_3 EMPTY_PLUGIN
 //#define PLUGIN_SLOT_3 EMPTY_PLUGIN
 //#define PLUGIN_SLOT_4 SPU_NULL_PLUGIN
