@@ -63,41 +63,41 @@ typedef void GLvoid;
 
 #ifdef LIBXENON
 
-#define GPUopen			PEOPS_GPUopen
-#define GPUdisplayText		PEOPS_GPUdisplayText
-#define GPUdisplayFlags		PEOPS_GPUdisplayFlags
-#define GPUmakeSnapshot		PEOPS_GPUmakeSnapshot
-#define GPUinit			PEOPS_GPUinit
-#define GPUclose		PEOPS_GPUclose
-#define GPUshutdown		PEOPS_GPUshutdown
-#define GPUcursor		PEOPS_GPUcursor
-#define GPUupdateLace		PEOPS_GPUupdateLace
-#define GPUreadStatus		PEOPS_GPUreadStatus
-#define GPUwriteStatus		PEOPS_GPUwriteStatus
-#define GPUreadDataMem		PEOPS_GPUreadDataMem
-#define GPUreadData		PEOPS_GPUreadData
-#define GPUwriteDataMem		PEOPS_GPUwriteDataMem
-#define GPUwriteData		PEOPS_GPUwriteData
-#define GPUsetMode		PEOPS_GPUsetMode
-#define GPUgetMode		PEOPS_GPUgetMode
-#define GPUdmaChain		PEOPS_GPUdmaChain
-#define GPUconfigure		PEOPS_GPUconfigure
-#define GPUabout		PEOPS_GPUabout
-#define GPUtest			PEOPS_GPUtest
-#define GPUfreeze		PEOPS_GPUfreeze
-#define GPUgetScreenPic		PEOPS_GPUgetScreenPic
-#define GPUshowScreenPic	PEOPS_GPUshowScreenPic
+#define GPUopen			HW_GPUopen
+#define GPUdisplayText		HW_GPUdisplayText
+#define GPUdisplayFlags		HW_GPUdisplayFlags
+#define GPUmakeSnapshot		HW_GPUmakeSnapshot
+#define GPUinit			HW_GPUinit
+#define GPUclose		HW_GPUclose
+#define GPUshutdown		HW_GPUshutdown
+#define GPUcursor		HW_GPUcursor
+#define GPUupdateLace		HW_GPUupdateLace
+#define GPUreadStatus		HW_GPUreadStatus
+#define GPUwriteStatus		HW_GPUwriteStatus
+#define GPUreadDataMem		HW_GPUreadDataMem
+#define GPUreadData		HW_GPUreadData
+#define GPUwriteDataMem		HW_GPUwriteDataMem
+#define GPUwriteData		HW_GPUwriteData
+#define GPUsetMode		HW_GPUsetMode
+#define GPUgetMode		HW_GPUgetMode
+#define GPUdmaChain		HW_GPUdmaChain
+#define GPUconfigure		HW_GPUconfigure
+#define GPUabout		HW_GPUabout
+#define GPUtest			HW_GPUtest
+#define GPUfreeze		HW_GPUfreeze
+#define GPUgetScreenPic		HW_GPUgetScreenPic
+#define GPUshowScreenPic	HW_GPUshowScreenPic
 
 #define PSEgetLibName           GPUPSEgetLibName
 #define PSEgetLibType           GPUPSEgetLibType
 #define PSEgetLibVersion        GPUPSEgetLibVersion
 
 
-#define GPUaddVertex            PEOPS_GPUaddVertex
+#define GPUaddVertex            HW_GPUaddVertex
 
 //new
-#define GPUvBlank               PEOPS_GPUvBlank
-#define GPUvisualVibration      PEOPS_GPUvisualVibration
+#define GPUvBlank               HW_GPUvBlank
+#define GPUvisualVibration      HW_GPUvisualVibration
 #endif
 
 

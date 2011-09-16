@@ -18,7 +18,7 @@ MACHDEP =  -DXENON -m32 -mno-altivec -fno-pic  -fno-pic -mpowerpc64 -mhard-float
 TARGET		:=  $(notdir $(CURDIR))
 BUILD		:=  build
 #SOURCES		:=  source/shaders lib/zlib source/libpcsxcore_df source/main  source/main/usb source/plugins/xenon_input source/plugins/xenon_audio_repair source/fakegl   source/plugins/cdr   source/plugins/xenon_gfx source/ppc #  source/plugins/gxvideo # source/dynarec 
-PLUGINS		:=  source/plugins/dfinput source/shaders source/plugins/xenon_input source/plugins/xenon_audio source/plugins/peopsxgl source/plugins/cdrcimg# source/plugins/xenon_gfx
+PLUGINS		:=  source/plugins/dfinput source/shaders source/plugins/xenon_input source/plugins/xenon_audio source/plugins/peopsxgl source/plugins/cdrcimg # source/plugins/xenon_gfx
 CORE		:=  lib/zlib source/libpcsxcore source/ppcr	 # source/libpcsxcore/ppc #source/ppcr	
 #CORE		:=  lib/zlib source/libpcsxcore_df source/ppc
 #LIB		:=  source/fakegl
@@ -39,13 +39,13 @@ LDFLAGS	=	-g $(MACHDEP) -Wl,--gc-sections -Wl,-Map,$(notdir $@).map
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
 #---------------------------------------------------------------------------------
-LIBS	:=	-lxenon -lm -lz -lpng -lbz2
+LIBS	:=	-lxenon -lm -lz -lpng -lbz2 
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
 # include and lib
 #---------------------------------------------------------------------------------
-LIBDIRS	:= libs
+LIBDIRS	:= libs 
 
 #---------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional

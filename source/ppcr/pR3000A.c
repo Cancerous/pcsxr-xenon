@@ -15,7 +15,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-
+#include <inttypes.h> 
 #include <malloc.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -49,7 +49,7 @@ static char recRAM[0x200000] __attribute__((aligned(128))); /* and the ptr to th
 static char recROM[0x080000] __attribute__((aligned(128))); /* and here */
 
 static u32 pc; /* recompiler pc */
-static u32 pcold; /* recompiler oldpc */
+static uint32_t pcold; /* recompiler oldpc */
 static int count; /* recompiler intruction count */
 static int branch; /* set for branch */
 static u32 target; /* branch target */

@@ -32,10 +32,10 @@ extern "C" {
 #include "config.h"
 
 // System includes
+#include <inttypes.h>    
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
@@ -56,7 +56,7 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 typedef uintptr_t uptr;
-
+//
 typedef uint8_t boolean;
 
 #ifndef TRUE

@@ -15,9 +15,13 @@
 #include <pngconf.h>
 
 #include "xe.h"
+#include "gl_api.h"
 
 typedef unsigned int DWORD;
 #include "psx.ps.h"
+#include "psx.ps.f.h"
+#include "psx.ps.g.h"
+#include "psx.ps.c.h"
 #include "psx.vs.h"
 #define TR {printf("[Trace] in function %s, line %d, file %s\n",__FUNCTION__,__LINE__,__FILE__);}
 
@@ -27,14 +31,17 @@ typedef unsigned int DWORD;
 extern struct XenosDevice *xe;
 static struct XenosShader * g_pVertexShader = NULL;
 static struct XenosShader * g_pPixelShader = NULL;
+
+static struct XenosShader * g_pPixelShaderC = NULL;
+static struct XenosShader * g_pPixelShaderF = NULL;
+static struct XenosShader * g_pPixelShaderG = NULL;
+
 static struct XenosSurface * fb = NULL;
 static struct XenosVertexBuffer *vb = NULL;
 static struct XenosDevice _xe;
 
 static int vertexCount = 0;
 float screen[2] = {0, 0};
-
-static BOOL needSync = FALSE;
 
 PsxVerticeFormats * PsxVertex = NULL;
 
@@ -48,7 +55,6 @@ void CreateVb() {
     vb = Xe_CreateVertexBuffer(xe, MAX_VERTEX_COUNT * sizeof (PsxVerticeFormats));
 }
 
-
 void fpoint(PsxVerticeFormats * psxvertices) {
     psxvertices[0].w = psxvertices[1].w = psxvertices[2].w = psxvertices[3].w = 1;
     int i = 0;
@@ -58,38 +64,39 @@ void fpoint(PsxVerticeFormats * psxvertices) {
         // psxvertices[i].y = psxvertices[i].y / 480.f;
         psxvertices[i].x = ((psxvertices[i].x / screen[0])*2.f) - 1.0f;
         psxvertices[i].y = ((psxvertices[i].y / screen[1])*2.f) - 1.0f;
+        psxvertices[i].z = -psxvertices[i].z;
     }
 }
 
-void LockVb(){
-    if(needSync)
-        Xe_Sync(xe);
-    needSync = FALSE;
-    
+void LockVb() {
     Xe_SetStreamSource(xe, 0, vb, vertexCount, 4);
     PsxVertex = (PsxVerticeFormats *) Xe_VB_Lock(xe, vb, vertexCount, 4 * sizeof (PsxVerticeFormats), XE_LOCK_WRITE);
 }
 
-void UnlockVb(){
-    Xe_VB_Unlock(xe, vb);
+void UnlockVb() {
+    //Xe_VB_Unlock(xe, vb);
 }
 
 void iXeDrawTri(PsxVerticeFormats * psxvertices) {
     fpoint(psxvertices);
     Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLELIST, 0, 1);
+    Xe_VB_Unlock(xe, vb);
     vertexCount += 3 * sizeof (PsxVerticeFormats);
 }
 
 void iXeDrawTri2(PsxVerticeFormats * psxvertices) {
     fpoint(psxvertices);
     Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLESTRIP, 0, 2);
+    Xe_VB_Unlock(xe, vb);
     vertexCount += 4 * sizeof (PsxVerticeFormats);
 }
 
 void iXeDrawQuad(PsxVerticeFormats * psxvertices) {
     fpoint(psxvertices);
-    Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLELIST, 0, 2);
-    vertexCount += 6 * sizeof (PsxVerticeFormats);
+    //Xe_DrawPrimitive(xe, XE_PRIMTYPE_QUADLIST, 0, 1);
+    Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLESTRIP, 0, 2);
+    Xe_VB_Unlock(xe, vb);
+    vertexCount += 4 * sizeof (PsxVerticeFormats);
 }
 
 unsigned long ulInitDisplay() {
@@ -106,10 +113,19 @@ unsigned long ulInitDisplay() {
             {XE_USAGE_POSITION, 0, XE_TYPE_FLOAT4},
             {XE_USAGE_TEXCOORD, 0, XE_TYPE_FLOAT2},
             {XE_USAGE_COLOR, 0, XE_TYPE_UBYTE4},
-            //{XE_USAGE_COLOR, 0, XE_TYPE_FLOAT4},
         }
     };
 
+    
+    g_pPixelShaderC = Xe_LoadShaderFromMemory(xe, (void*) g_xps_psC);
+    Xe_InstantiateShader(xe, g_pPixelShaderC, 0);
+    
+    
+    g_pPixelShaderF = Xe_LoadShaderFromMemory(xe, (void*) g_xps_psF);
+    Xe_InstantiateShader(xe, g_pPixelShaderF, 0);
+    
+    g_pPixelShaderG = Xe_LoadShaderFromMemory(xe, (void*) g_xps_psG);
+    Xe_InstantiateShader(xe, g_pPixelShaderG, 0);
 
     g_pPixelShader = Xe_LoadShaderFromMemory(xe, (void*) g_xps_main);
     Xe_InstantiateShader(xe, g_pPixelShader, 0);
@@ -132,8 +148,14 @@ unsigned long ulInitDisplay() {
 
 
     InitGlSurface();
-
+#ifdef USE_GL_API
+    glInit();
+#endif
     edram_init(xe);
+    
+    Xe_Resolve(xe);
+    Xe_Sync(xe);
+    
     return 1;
 }
 
@@ -141,140 +163,21 @@ void CloseDisplay() {
 
 }
 
-
-
-int ss = 0;
-char sshot[256];
-
-void saveShots() {
-    static unsigned long lastTick = 10000;
-    static int frames = 0;
-    unsigned long nowTick;
-    frames++;
-    nowTick = mftb() / (PPC_TIMEBASE_FREQ / 1000);
-    if (lastTick + 10000 <= nowTick) {
-        printf("SaveFbToPng\r\n");
-        sprintf(sshot,"uda:/sshot.%03d.png",ss);
-        SaveFbToPng(sshot);
-        ss++;
-        frames = 0;
-        lastTick = nowTick;
-    }
-}
-
 void DoBufferSwap() {
-    //TR
-    // Xe_Resolve(xe);
-    //TR
-    // Xe_Sync(xe);
-    needSync = TRUE;
-    Xe_ResolveInto(xe,fb,XE_SOURCE_COLOR,0);
-    Xe_Execute(xe); // render everything in background !
+    Xe_Resolve(xe);
+    Xe_Sync(xe);
     //TR
     //printf("draw %d vertices\r\n",vertexCount);
     vertexCount = 0;
+    
+#ifdef USE_GL_API
+    glReset();
+#endif
+    
     // saveShots();
     XeResetStates();
+
 }
-
-void PEOPS_GPUdisplayText(char * pText) // some debug func
-{
-    printf(pText);
-}
-
-struct ati_info {
-	uint32_t unknown1[4];
-	uint32_t base;
-	uint32_t unknown2[8];
-	uint32_t width;
-	uint32_t height;
-} __attribute__ ((__packed__)) ;
-
-uint32_t fb_backup[1280*720*4];
-
-void SaveFbToPng(const char *filename) {
-    /* create file */
-    FILE *fp = fopen(filename, "wb");
-    if (fp == NULL) {
-        printf("SaveFbToPng failed\r\n");
-        return;
-    }
-    
-    uint32_t height = *((uint32_t*)0xec806138);
-    uint32_t width = *((uint32_t*)0xec806134);
-    uint32_t pitch = *((uint32_t*)0xec806120);
-    
-    struct ati_info *ai = (struct ati_info*)0xec806100ULL;
-    
-    //uint8_t *data = (int8_t *)0xec806110;
-    unsigned char * data = (unsigned char*)(long)(ai->base | 0x80000000);
-    uint32_t * fb = (uint32_t*)data;
-    uint8_t * fb8 = (uint8_t*)data;
-    
-    png_structp png_ptr;
-    png_infop info_ptr;
-    /* initialize stuff */
-    png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-
-
-    if (!png_ptr) {
-        printf("[read_png_file] png_create_read_struct failed\n");
-        return;
-    }
-
-    info_ptr = png_create_info_struct(png_ptr);
-    if (!info_ptr) {
-        printf("[read_png_file] png_create_info_struct failed\n");
-        return;
-    }
-
-    png_init_io(png_ptr, fp);
-
-    png_set_IHDR(png_ptr, info_ptr, width, height,
-            8, PNG_COLOR_TYPE_RGB_ALPHA, PNG_INTERLACE_NONE,
-            PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
-
-    png_write_info(png_ptr, info_ptr);
-    //png_set_packing(png_ptr);
-    
-    // wait for gpu to be ready            
-
-/*
-    while((*((uint32_t*)0xec801740) & 0x80000000) == 0) {
-            // Wait for gpu Lock
-    };
-*/
-
-    //uint32_t * fb_backup = (uint32_t *)malloc(((height*(width*4))*sizeof(uint32_t*)));
-    
-    int x,y;
-    for(y=0;y<height;y++){
-        for(x=0;x<width;x++){
-#define base (((y >> 5)*32*width + ((x >> 5)<<10) \
-    + (x&3) + ((y&1)<<2) + (((x&31)>>2)<<3) + (((y&31)>>1)<<6)) ^ ((y&8)<<2))
-            fb_backup[base] = fb[(y*width)+x];
-        }
-    }
-    png_bytep * row_pointers = (png_bytep*) malloc(sizeof(png_bytep) * height);
-
-    
-    
-    TR;
-    for (y=0; y<height; y++){
-        row_pointers[y] = (png_bytep)(u8 *)(fb8 + (y * (pitch)));
-    }
-
-    TR;
-    png_write_image(png_ptr, row_pointers);
-
-    png_write_end(png_ptr, NULL);
-    
-    free(row_pointers);
-   // free(fb_backup);
-    fclose(fp);
-}
-
-
 
 void XeOrtho(int l, int r, int b, int t, int zn, int zf) {
     // TR
@@ -290,4 +193,28 @@ void XeResetStates() {
     Xe_SetCullMode(xe, XE_CULL_NONE);
 
     //Xe_SetFillMode(xe,0x25,0x25);
+}
+
+
+void XeClear(){
+
+/*
+    Xe_Clear(xe,~0);
+    Xe_Resolve(xe);
+*/
+
+    //Xe_ResolveInto(xe,Xe_GetFramebufferSurface(xe),0,XE_CLEAR_COLOR);
+}
+
+
+void XeSetCombinerC(){
+    Xe_SetShader(xe, SHADER_TYPE_PIXEL, g_pPixelShaderC, 0);
+}
+
+void XeSetCombinerF(){
+    Xe_SetShader(xe, SHADER_TYPE_PIXEL, g_pPixelShaderF, 0);
+}
+
+void XeSetCombinerG(){
+    Xe_SetShader(xe, SHADER_TYPE_PIXEL, g_pPixelShaderG, 0);
 }

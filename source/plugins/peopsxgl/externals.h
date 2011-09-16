@@ -28,13 +28,13 @@ extern struct XenosDevice *xe;
 
 #define CLUTUSED     0x80000000
 
-//#define SETCOL(x)  if(x.c.lcol!=ulOLDCOL) {ulOLDCOL=x.c.lcol;glColor4ubv(x.c.col);} 
-//#define SETPCOL(x)  if(x->c.lcol!=ulOLDCOL) {ulOLDCOL=x->c.lcol;glColor4ubv(x->c.col);}
+#define SETCOL(x)  if(x.c.lcol!=ulOLDCOL) {ulOLDCOL=x.c.lcol;glColor4ubv(x.c.col);} 
+#define SETPCOL(x)  if(x->c.lcol!=ulOLDCOL) {ulOLDCOL=x->c.lcol;glColor4ubv(x->c.col);}
 //#define SETCOL(x)  if(x.c.lcol!=ulOLDCOL) {ulOLDCOL=x.c.lcol;vertex[0].c.lcol = ulOLDCOL;vertex[1].c.lcol = ulOLDCOL;vertex[2].c.lcol = ulOLDCOL;vertex[3].c.lcol = ulOLDCOL;} 
 //#define SETPCOL(x)  if(x->c.lcol!=ulOLDCOL) {ulOLDCOL=x->c.lcol;vertex[0].c.lcol = ulOLDCOL;vertex[1].c.lcol = ulOLDCOL;vertex[2].c.lcol = ulOLDCOL;vertex[3].c.lcol = ulOLDCOL;}
 
-#define SETCOL(x)  if(x.c.lcol!=ulOLDCOL) {ulOLDCOL=x.c.lcol;vertex[0].c.lcol = ulOLDCOL;vertex[1].c.lcol = ulOLDCOL;vertex[2].c.lcol = ulOLDCOL;vertex[3].c.lcol = ulOLDCOL;} 
-#define SETPCOL(x)  if(x->c.lcol!=ulOLDCOL) {ulOLDCOL=x->c.lcol;}
+//#define SETCOL(x)  if(x.c.lcol!=ulOLDCOL) {ulOLDCOL=x.c.lcol;vertex[0].c.lcol = ulOLDCOL;vertex[1].c.lcol = ulOLDCOL;vertex[2].c.lcol = ulOLDCOL;vertex[3].c.lcol = ulOLDCOL;} 
+//#define SETPCOL(x)  if(x->c.lcol!=ulOLDCOL) {ulOLDCOL=x->c.lcol;}
 
 #define GL_TO_EDGE_CLAMP              0x812F
 

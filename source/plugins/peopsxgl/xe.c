@@ -1,6 +1,6 @@
 #include <xenos/xe.h>
 #include <xenos/xenos.h>
-#define printf
+//#define printf
 #define TR {printf("[Trace] in function %s, line %d, file %s\n",__FUNCTION__,__LINE__,__FILE__);}
 struct XenosDevice *xe = NULL;
 
@@ -8,12 +8,11 @@ void InitGlSurface() {
 
 }
 
-
 void XeTexSubImage(struct XenosSurface * surf, int srcbpp, int dstbpp, int xoffset, int yoffset, int width, int height, const void * buffer){
     if(surf){
         //copy data
-       // printf("xeGfx_setTextureData\n");
-        uint8_t * surfbuf =(uint8_t*)Xe_Surface_LockRect(xe,surf,0,0,0,0,XE_LOCK_WRITE);
+        //printf("xeGfx_setTextureData\n");
+        uint8_t * surfbuf = (uint8_t*)Xe_Surface_LockRect(xe,surf,0,0,0,0,XE_LOCK_WRITE);
         uint8_t * srcdata = (uint8_t*)buffer;
         uint8_t * dstdata = surfbuf;
         int srcbytes = srcbpp;
@@ -22,12 +21,19 @@ void XeTexSubImage(struct XenosSurface * surf, int srcbpp, int dstbpp, int xoffs
         int j,i = 0;
 
         int pitch = (surf->wpitch);
-        int offset = xoffset*dstbytes;
+        int offset = 0;
 
         for (y = yoffset; y < (yoffset + height); y++)
 	{
-            // dstdata = surfbuf + (y*pitch)+(xoffset*dstbytes);// ok
-            dstdata = surfbuf + (y*pitch)+(offset);// ok
+            offset = (y*pitch)+(xoffset*dstbytes);
+            
+/*
+            if(surf->height != surf->hpitch){
+                offset=0;
+            }
+*/
+            dstdata = surfbuf + offset;// ok
+            //dstdata = surfbuf + (y*pitch)+(offset);// ok
             for (x = xoffset; x < (xoffset + width); x++)
             {
                 if(srcbpp==4&&dstbytes==4){
@@ -46,7 +52,7 @@ void XeTexSubImage(struct XenosSurface * surf, int srcbpp, int dstbpp, int xoffs
             }
         }
 
-        Xe_Surface_Unlock(xe,surf);
+         Xe_Surface_Unlock(xe,surf);
     }
 }
 
@@ -86,17 +92,7 @@ void xeGfx_setTextureData(void * tex, void * buffer) {
 
 void XeViewport(int left, int top, int right, int bottom) {
     TR
-
-            /*
-                float persp[4][4] = {
-                    {w,0,0,2*x+w-1.0f},
-                    {0,h,0,-2*y-h+1.0f},
-                    {0,0,0.5f,0.5f},
-                        {0,0,0,1},
-                };
-             */
-
-            float persp[4][4] = {
+    float persp[4][4] = {
         {1, 0, 0, 0},
         {0, 1, 0, 0},
         {0, 0, 1, 0},
@@ -162,10 +158,11 @@ void XeEnableBlend() {
     Xe_SetBlendControl(xe,blend_src,XE_BLENDOP_ADD,blend_dst,blend_src,XE_BLENDOP_ADD,blend_dst);
 }
 
-
+#if 0
 void XeClear(uint32_t color) {
     TR
     Xe_SetClearColor(xe, color);
     //Xe_Resolve(xe);
     XeResetStates();
 }
+#endif

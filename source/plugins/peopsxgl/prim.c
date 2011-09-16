@@ -25,6 +25,7 @@
 #include "draw.h"
 #include "soft.h"
 #include "texture.h"
+#include "xe.h"
 
 ////////////////////////////////////////////////////////////////////////
 // defines
@@ -42,6 +43,7 @@
 #define DEFOPAQUEOFF { \
         XeAlphaFunc(XE_CMP_GREATER, 0.49f); \
 }
+
 
 #define Xe_Clear
 
@@ -132,6 +134,7 @@ void UpdateGlobalTP(unsigned short gdata) {
 
 unsigned int DoubleBGR2RGB(unsigned int BGR) {
     //TR
+/*
     unsigned int ebx, eax, edx;
 
     ebx = (BGR & 0x000000ff) << 1;
@@ -144,81 +147,27 @@ unsigned int DoubleBGR2RGB(unsigned int BGR) {
     if (edx & 0x01000000) edx = 0x00ff0000;
 
     return (ebx | eax | edx);
+*/
+    return BGR;
 }
 
 unsigned short BGR24to16(uint32_t BGR) {
     return ((BGR >> 3)&0x1f) | ((BGR & 0xf80000) >> 9) | ((BGR & 0xf800) >> 6);
 }
-/*
 
-void rgb16to24(const uint8_t *src, uint8_t *dst, int src_size)
-{
- const uint16_t *end;
- uint8_t *d = dst;
- const uint16_t *s = (const uint16_t *)src;
- end = s + src_size/2;
- while (s < end) {
-
-     bgr = *s++;
-     *d++ = (bgr&0xF800)>>8;
-     *d++ = (bgr&0x7E0)>>3;
-     *d++ = (bgr&0x1F)<<3;
-     *d++ = 255;
- }
-}
-*/
-
-uint32_t BGR16to24(uint32_t BGR) {
-    uint32_t dst;
-    uint8_t *d = dst;
-    register uint16_t bgr = (const uint16_t )BGR;
-    *d++ = (BGR>>24)&0xFF;
-    *d++ = (bgr&0xF800)>>8;
-    *d++ = (bgr&0x7E0)>>3;
-    *d++ = (bgr&0x1F)<<3;
-
-    return dst;
-}
 ////////////////////////////////////////////////////////////////////////
 // OpenGL primitive drawing commands
 ////////////////////////////////////////////////////////////////////////
-#include "xe.h"
 
-void iXeDrawQuad(PsxVerticeFormats * psxvertices);
-void iXeDrawTri2(PsxVerticeFormats * psxvertices);
-void iXeDrawTri(PsxVerticeFormats * psxvertices);
 
-#define FCOL0 {      \
-    PsxVertex[0].color = 0.f; \
-    PsxVertex[1].color = 0.f; \
-    PsxVertex[2].color = 0.f; \
-    PsxVertex[3].color = 0.f; \
-}
 
-#define FCOL1 {      \
-    PsxVertex[0].color = vertex1->c.lcol; \
-    PsxVertex[1].color = vertex1->c.lcol; \
-    PsxVertex[2].color = vertex1->c.lcol; \
-    PsxVertex[3].color = vertex1->c.lcol; \
-}
+#include "gl_api.h"
+#ifndef USE_GL_API
+uint32_t gl_color = 0xffffffff;
 
-#define FCOL3 {      \
-    PsxVertex[0].color = vertex1->c.lcol; \
-    PsxVertex[1].color = vertex2->c.lcol; \
-    PsxVertex[2].color = vertex3->c.lcol; \
-}
-
-#define FCOL4 {      \
-    PsxVertex[0].color = vertex1->c.lcol; \
-    PsxVertex[1].color = vertex2->c.lcol; \
-    PsxVertex[2].color = vertex4->c.lcol; \
-    PsxVertex[3].color = vertex3->c.lcol; \
-}
-#define FCOLQ {      \
-    PsxVertex[0].color = vertex1->c.lcol; \
-    PsxVertex[1].color = vertex2->c.lcol; \
-    PsxVertex[2].color = vertex3->c.lcol; \
-    PsxVertex[3].color = vertex4->c.lcol; \
+void glColor4ubv(u8 *v) {
+    uint32_t c = *(uint32_t*) v;
+    gl_color = c;
 }
 
 __inline void PRIMdrawTexturedQuad(OGLVertex* vertex1, OGLVertex* vertex2,
@@ -249,10 +198,15 @@ __inline void PRIMdrawTexturedQuad(OGLVertex* vertex1, OGLVertex* vertex2,
     PsxVertex[3].z = vertex4->z;
 
     Xe_SetPixelShaderConstantB(xe,0,0);
-    
-    FCOL0;
-    iXeDrawTri2(PsxVertex);
+
+    PsxVertex[0].color = gl_color;
+    PsxVertex[1].color = gl_color;
+    PsxVertex[2].color = gl_color;
+    PsxVertex[3].color = gl_color;
+
     UnlockVb();
+    iXeDrawTri2(PsxVertex);
+    gl_color = 0;
 }
 
 /////////////////////////////////////////////////////////
@@ -277,12 +231,16 @@ __inline void PRIMdrawTexturedTri(OGLVertex* vertex1, OGLVertex* vertex2,
     PsxVertex[2].x = vertex3->x;
     PsxVertex[2].y = vertex3->y;
     PsxVertex[2].z = vertex3->z;
-    
+
     Xe_SetPixelShaderConstantB(xe,0,0);
+
+    PsxVertex[0].color = gl_color;
+    PsxVertex[1].color = gl_color;
+    PsxVertex[2].color = gl_color;
     
-    FCOL0;
-    iXeDrawTri(PsxVertex);
     UnlockVb();
+    iXeDrawTri(PsxVertex);
+    gl_color = 0;
 }
 
 /////////////////////////////////////////////////////////
@@ -308,12 +266,17 @@ __inline void PRIMdrawTexGouraudTriColor(OGLVertex* vertex1, OGLVertex* vertex2,
     PsxVertex[2].y = vertex3->y;
     PsxVertex[2].z = vertex3->z;
 
-    FCOL3;
-    
-    Xe_SetPixelShaderConstantB(xe,0,1);
+    SETPCOL(vertex1);
+    PsxVertex[0].color = gl_color;
+    SETPCOL(vertex2);
+    PsxVertex[1].color = gl_color;
+    SETPCOL(vertex3);
+    PsxVertex[2].color = gl_color;
 
-    iXeDrawTri(PsxVertex);
+    Xe_SetPixelShaderConstantB(xe, 0, 1);
     UnlockVb();
+    iXeDrawTri(PsxVertex);
+gl_color = 0;
 }
 
 /////////////////////////////////////////////////////////
@@ -345,24 +308,25 @@ __inline void PRIMdrawTexGouraudTriColorQuad(OGLVertex* vertex1, OGLVertex* vert
     PsxVertex[3].y = vertex4->y;
     PsxVertex[3].z = vertex4->z;
 
-    FCOLQ;
-    
-    Xe_SetPixelShaderConstantB(xe,0,1);
+    SETPCOL(vertex1);
+    PsxVertex[0].color = gl_color;
+    SETPCOL(vertex2);
+    PsxVertex[1].color = gl_color;
+    SETPCOL(vertex3);
+    PsxVertex[2].color = gl_color;
+    SETPCOL(vertex4);
+    PsxVertex[3].color = gl_color;
 
-    iXeDrawTri2(PsxVertex);
+    Xe_SetPixelShaderConstantB(xe, 0, 1);
     UnlockVb();
+    iXeDrawTri2(PsxVertex);
+gl_color = 0;
 }
 
 /////////////////////////////////////////////////////////
 
 __inline void PRIMdrawTri(OGLVertex* vertex1, OGLVertex* vertex2, OGLVertex* vertex3) {
     LockVb();
-    PsxVertex[0].u = 0;
-    PsxVertex[0].v = 0;
-    PsxVertex[1].u = 0;
-    PsxVertex[1].v = 0;
-    PsxVertex[2].u = 0;
-    PsxVertex[2].v = 0;
 
     PsxVertex[0].x = vertex1->x;
     PsxVertex[0].y = vertex1->y;
@@ -376,13 +340,15 @@ __inline void PRIMdrawTri(OGLVertex* vertex1, OGLVertex* vertex2, OGLVertex* ver
     PsxVertex[2].y = vertex3->y;
     PsxVertex[2].z = vertex3->z;
 
-    FCOL1;
-    //FCOL0;
-    
-    Xe_SetPixelShaderConstantB(xe,0,0);
+    PsxVertex[0].color = gl_color;
+    PsxVertex[1].color = gl_color;
+    PsxVertex[2].color = gl_color;
+    PsxVertex[3].color = gl_color;
 
-    iXeDrawTri(PsxVertex);
+    Xe_SetPixelShaderConstantB(xe, 0, 0);
     UnlockVb();
+    iXeDrawTri(PsxVertex);
+gl_color = 0;
 }
 
 /////////////////////////////////////////////////////////
@@ -407,21 +373,16 @@ __inline void PRIMdrawTri2(OGLVertex* vertex1, OGLVertex* vertex2,
     PsxVertex[2].y = vertex4->y;
     PsxVertex[2].z = vertex4->z;
 
-    PsxVertex[0].u = 0;
-    PsxVertex[0].v = 0;
-    PsxVertex[1].u = 0;
-    PsxVertex[1].v = 0;
-    PsxVertex[3].u = 0;
-    PsxVertex[3].v = 0;
-    PsxVertex[2].u = 0;
-    PsxVertex[2].v = 0;
-
-    Xe_SetPixelShaderConstantB(xe,0,0);
-    FCOL1;
-    //FCOL0;
-
-    iXeDrawTri2(PsxVertex);
+    Xe_SetPixelShaderConstantB(xe, 0, 0);
+        
+    PsxVertex[0].color = gl_color;
+    PsxVertex[1].color = gl_color;
+    PsxVertex[2].color = gl_color;
+    PsxVertex[3].color = gl_color;
+    
     UnlockVb();
+    iXeDrawTri2(PsxVertex);
+gl_color = 0;
 }
 
 /////////////////////////////////////////////////////////
@@ -430,12 +391,6 @@ __inline void PRIMdrawGouraudTriColor(OGLVertex* vertex1, OGLVertex* vertex2,
         OGLVertex* vertex3) {
 
     LockVb();
-    PsxVertex[0].u = 0;
-    PsxVertex[0].v = 0;
-    PsxVertex[2].u = 0;
-    PsxVertex[2].v = 0;
-    PsxVertex[1].u = 0;
-    PsxVertex[1].v = 0;
 
     PsxVertex[0].x = vertex1->x;
     PsxVertex[0].y = vertex1->y;
@@ -449,15 +404,22 @@ __inline void PRIMdrawGouraudTriColor(OGLVertex* vertex1, OGLVertex* vertex2,
     PsxVertex[2].y = vertex3->y;
     PsxVertex[2].z = vertex3->z;
 
-    FCOL3;
-    Xe_SetPixelShaderConstantB(xe,0,0);
-
-    iXeDrawTri(PsxVertex);
+    SETPCOL(vertex1);
+    PsxVertex[0].color = gl_color;
+    SETPCOL(vertex2);
+    PsxVertex[1].color = gl_color;
+    SETPCOL(vertex3);
+    PsxVertex[2].color = gl_color;    
+    
+    Xe_SetPixelShaderConstantB(xe, 0, 0);
     UnlockVb();
+    iXeDrawTri(PsxVertex);
+gl_color = 0;
 }
 
 /////////////////////////////////////////////////////////
 //hmm ?
+
 __inline void PRIMdrawGouraudTri2Color(OGLVertex* vertex1, OGLVertex* vertex2,
         OGLVertex* vertex3, OGLVertex* vertex4) {
 
@@ -478,21 +440,21 @@ __inline void PRIMdrawGouraudTri2Color(OGLVertex* vertex1, OGLVertex* vertex2,
     PsxVertex[2].y = vertex4->y;
     PsxVertex[2].z = vertex4->z;
 
-    PsxVertex[0].u = 0;
-    PsxVertex[0].v = 0;
-    PsxVertex[1].u = 0;
-    PsxVertex[1].v = 0;
-    PsxVertex[3].u = 0;
-    PsxVertex[3].v = 0;
-    PsxVertex[2].u = 0;
-    PsxVertex[2].v = 0;
 
-    FCOL4;
-    Xe_SetPixelShaderConstantB(xe,0,0);
-
+    SETPCOL(vertex1);
+    PsxVertex[0].color = gl_color;
+    SETPCOL(vertex2);
+    PsxVertex[1].color = gl_color;
+    SETPCOL(vertex3);
+    PsxVertex[2].color = gl_color;
+    SETPCOL(vertex4);
+    PsxVertex[3].color = gl_color;
+    
+    Xe_SetPixelShaderConstantB(xe, 0, 0);
+    UnlockVb();
     iXeDrawTri2(PsxVertex);
     //iXeDrawQuad(PsxVertex);
-    UnlockVb();
+gl_color = 0;
 }
 
 /////////////////////////////////////////////////////////
@@ -516,20 +478,18 @@ __inline void PRIMdrawFlatLine(OGLVertex* vertex1, OGLVertex* vertex2, OGLVertex
     PsxVertex[3].y = vertex4->y;
     PsxVertex[3].z = vertex4->z;
 
-    PsxVertex[0].u = 0;
-    PsxVertex[0].v = 0;
-    PsxVertex[1].u = 0;
-    PsxVertex[1].v = 0;
-    PsxVertex[3].u = 0;
-    PsxVertex[3].v = 0;
-    PsxVertex[2].u = 0;
-    PsxVertex[2].v = 0;
-
-    FCOL1;
-    Xe_SetPixelShaderConstantB(xe,0,0);
-
-    iXeDrawTri2(PsxVertex);
+    SETPCOL(vertex1);
+    PsxVertex[0].color = gl_color;
+    PsxVertex[1].color = gl_color;
+    PsxVertex[2].color = gl_color;
+    PsxVertex[3].color = gl_color;
+    
+    Xe_SetPixelShaderConstantB(xe, 0, 0);
     UnlockVb();
+    
+    //iXeDrawTri2(PsxVertex);
+    iXeDrawQuad(PsxVertex);
+gl_color = 0;
 }
 
 /////////////////////////////////////////////////////////
@@ -553,20 +513,21 @@ __inline void PRIMdrawGouraudLine(OGLVertex* vertex1, OGLVertex* vertex2, OGLVer
     PsxVertex[3].y = vertex4->y;
     PsxVertex[3].z = vertex4->z;
 
-    PsxVertex[0].u = 0;
-    PsxVertex[0].v = 0;
-    PsxVertex[1].u = 0;
-    PsxVertex[1].v = 0;
-    PsxVertex[3].u = 0;
-    PsxVertex[3].v = 0;
-    PsxVertex[2].u = 0;
-    PsxVertex[2].v = 0;
-
-    FCOLQ;
-    Xe_SetPixelShaderConstantB(xe,0,0);
-
-    iXeDrawTri2(PsxVertex);
+    SETPCOL(vertex1);
+    PsxVertex[0].color = gl_color;
+    SETPCOL(vertex2);
+    PsxVertex[1].color = gl_color;
+    SETPCOL(vertex3);
+    PsxVertex[2].color = gl_color;
+    SETPCOL(vertex4);
+    PsxVertex[3].color = gl_color;
+    
+    Xe_SetPixelShaderConstantB(xe, 0, 0);
     UnlockVb();
+    
+    //iXeDrawTri2(PsxVertex);
+    iXeDrawQuad(PsxVertex);
+    gl_color = 0;
 }
 
 /////////////////////////////////////////////////////////
@@ -591,23 +552,236 @@ __inline void PRIMdrawQuad(OGLVertex* vertex1, OGLVertex* vertex2,
     PsxVertex[3].y = vertex4->y;
     PsxVertex[3].z = vertex4->z;
 
-    PsxVertex[0].u = 0;
-    PsxVertex[0].v = 0;
-    PsxVertex[1].u = 0;
-    PsxVertex[1].v = 0;
-    PsxVertex[3].u = 0;
-    PsxVertex[3].v = 0;
-    PsxVertex[2].u = 0;
-    PsxVertex[2].v = 0;
-
-    FCOL1;
-    //FCOL0;
-    Xe_SetPixelShaderConstantB(xe,0,0);
-
-    iXeDrawTri2(PsxVertex);
+    PsxVertex[0].color = gl_color;
+    PsxVertex[1].color = gl_color;
+    PsxVertex[2].color = gl_color;
+    PsxVertex[3].color = gl_color;
+    
+    Xe_SetPixelShaderConstantB(xe, 0, 0);
     UnlockVb();
+    
+    //iXeDrawTri2(PsxVertex);
+    iXeDrawQuad(PsxVertex);
+gl_color = 0;
+}
+#else
+
+////////////////////////////////////////////////////////////////////////
+// OpenGL primitive drawing commands
+////////////////////////////////////////////////////////////////////////
+
+__inline void PRIMdrawTexturedQuad(OGLVertex* vertex1, OGLVertex* vertex2,
+                                   OGLVertex* vertex3, OGLVertex* vertex4)
+{
+    
+    XeSetCombinerF();
+    
+ glBegin(GL_TRIANGLE_STRIP);
+  glTexCoord2fv(&vertex1->sow);
+  glVertex3fv(&vertex1->x);
+
+  glTexCoord2fv(&vertex2->sow);
+  glVertex3fv(&vertex2->x);
+
+  glTexCoord2fv(&vertex4->sow);
+  glVertex3fv(&vertex4->x);
+
+  glTexCoord2fv(&vertex3->sow);
+  glVertex3fv(&vertex3->x);
+ glEnd();
 }
 
+/////////////////////////////////////////////////////////
+
+__inline void PRIMdrawTexturedTri(OGLVertex* vertex1, OGLVertex* vertex2,
+                                  OGLVertex* vertex3)
+{
+    XeSetCombinerF();
+    
+ glBegin(GL_TRIANGLES);
+  glTexCoord2fv(&vertex1->sow);
+  glVertex3fv(&vertex1->x);
+
+  glTexCoord2fv(&vertex2->sow);
+  glVertex3fv(&vertex2->x);
+
+  glTexCoord2fv(&vertex3->sow);
+  glVertex3fv(&vertex3->x);
+ glEnd();
+}
+
+/////////////////////////////////////////////////////////
+
+__inline void PRIMdrawTexGouraudTriColor(OGLVertex* vertex1, OGLVertex* vertex2,
+                                         OGLVertex* vertex3)
+{
+    XeSetCombinerG();
+    
+ glBegin(GL_TRIANGLES);
+
+  SETPCOL(vertex1);
+  glTexCoord2fv(&vertex1->sow);
+  glVertex3fv(&vertex1->x);
+
+  SETPCOL(vertex2);
+  glTexCoord2fv(&vertex2->sow);
+  glVertex3fv(&vertex2->x);
+
+  SETPCOL(vertex3);
+  glTexCoord2fv(&vertex3->sow);
+  glVertex3fv(&vertex3->x);
+ glEnd();
+}
+
+/////////////////////////////////////////////////////////
+
+__inline void PRIMdrawTexGouraudTriColorQuad(OGLVertex* vertex1, OGLVertex* vertex2,
+                                             OGLVertex* vertex3, OGLVertex* vertex4)
+{
+    
+    XeSetCombinerG();
+ glBegin(GL_TRIANGLE_STRIP);
+  SETPCOL(vertex1);
+  glTexCoord2fv(&vertex1->sow);
+  glVertex3fv(&vertex1->x);
+
+  SETPCOL(vertex2);
+  glTexCoord2fv(&vertex2->sow);
+  glVertex3fv(&vertex2->x);
+
+  SETPCOL(vertex4);
+  glTexCoord2fv(&vertex4->sow);
+  glVertex3fv(&vertex4->x);
+
+  SETPCOL(vertex3);
+  glTexCoord2fv(&vertex3->sow);
+  glVertex3fv(&vertex3->x);
+ glEnd();
+}
+
+/////////////////////////////////////////////////////////
+
+__inline void PRIMdrawTri(OGLVertex* vertex1, OGLVertex* vertex2, OGLVertex* vertex3)
+{
+    XeSetCombinerF();
+    
+ glBegin(GL_TRIANGLES);
+  glVertex3fv(&vertex1->x);
+  glVertex3fv(&vertex2->x);
+  glVertex3fv(&vertex3->x);
+ glEnd();
+}
+
+/////////////////////////////////////////////////////////
+
+__inline void PRIMdrawTri2(OGLVertex* vertex1, OGLVertex* vertex2,
+                           OGLVertex* vertex3, OGLVertex* vertex4)
+{
+    XeSetCombinerF();
+    
+ glBegin(GL_TRIANGLE_STRIP);
+  glVertex3fv(&vertex1->x);
+  glVertex3fv(&vertex3->x);
+  glVertex3fv(&vertex2->x);
+  glVertex3fv(&vertex4->x);
+ glEnd();
+}
+
+/////////////////////////////////////////////////////////
+
+__inline void PRIMdrawGouraudTriColor(OGLVertex* vertex1, OGLVertex* vertex2,
+                                      OGLVertex* vertex3)
+{
+    XeSetCombinerG();
+    
+ glBegin(GL_TRIANGLES);
+  SETPCOL(vertex1);
+  glVertex3fv(&vertex1->x);
+
+  SETPCOL(vertex2);
+  glVertex3fv(&vertex2->x);
+
+  SETPCOL(vertex3);
+  glVertex3fv(&vertex3->x);
+ glEnd();
+}
+
+/////////////////////////////////////////////////////////
+
+__inline void PRIMdrawGouraudTri2Color(OGLVertex* vertex1, OGLVertex* vertex2,
+                                       OGLVertex* vertex3, OGLVertex* vertex4)
+{
+    XeSetCombinerG();
+    
+ glBegin(GL_TRIANGLE_STRIP);
+  SETPCOL(vertex1);
+  glVertex3fv(&vertex1->x);
+
+  SETPCOL(vertex3);
+  glVertex3fv(&vertex3->x);
+
+  SETPCOL(vertex2);
+  glVertex3fv(&vertex2->x);
+
+  SETPCOL(vertex4);
+  glVertex3fv(&vertex4->x);
+ glEnd();
+}
+
+/////////////////////////////////////////////////////////
+
+__inline void PRIMdrawFlatLine(OGLVertex* vertex1, OGLVertex* vertex2,OGLVertex* vertex3, OGLVertex* vertex4)
+{
+    XeSetCombinerF();
+    
+ glBegin(GL_QUADS);
+
+  SETPCOL(vertex1);
+
+  glVertex3fv(&vertex1->x);
+  glVertex3fv(&vertex2->x);
+  glVertex3fv(&vertex3->x);
+  glVertex3fv(&vertex4->x);
+ glEnd();
+}
+
+/////////////////////////////////////////////////////////
+
+__inline void PRIMdrawGouraudLine(OGLVertex* vertex1, OGLVertex* vertex2,OGLVertex* vertex3, OGLVertex* vertex4)
+{
+    XeSetCombinerG();
+    
+ glBegin(GL_QUADS);
+
+  SETPCOL(vertex1);
+  glVertex3fv(&vertex1->x);
+
+  SETPCOL(vertex2);
+  glVertex3fv(&vertex2->x);
+
+  SETPCOL(vertex3);
+  glVertex3fv(&vertex3->x);
+
+  SETPCOL(vertex4);
+  glVertex3fv(&vertex4->x);
+ glEnd();
+}
+
+/////////////////////////////////////////////////////////
+
+__inline void PRIMdrawQuad(OGLVertex* vertex1, OGLVertex* vertex2,
+                           OGLVertex* vertex3, OGLVertex* vertex4)
+{
+    XeSetCombinerC();
+    
+ glBegin(GL_QUADS);
+  glVertex3fv(&vertex1->x);
+  glVertex3fv(&vertex2->x);
+  glVertex3fv(&vertex3->x);
+  glVertex3fv(&vertex4->x);
+ glEnd();
+}
+#endif
 ////////////////////////////////////////////////////////////////////////
 // Transparent blending settings
 ////////////////////////////////////////////////////////////////////////
@@ -655,8 +829,11 @@ void SetSemiTrans(void) {
         bBlendEnable = TRUE;
     } // wanna blend
 
-    if (TransSets[GlobalTextABR].srcFac != obm1 ||
-            TransSets[GlobalTextABR].dstFac != obm2) {
+    if (
+            TransSets[GlobalTextABR].srcFac != obm1 ||
+            TransSets[GlobalTextABR].dstFac != obm2
+    ) 
+    {
         obm1 = TransSets[GlobalTextABR].srcFac;
         obm2 = TransSets[GlobalTextABR].dstFac;
 
@@ -933,7 +1110,9 @@ void SetOpaqueColor(uint32_t DrawAttributes) {
     if (bDrawNonShaded) return; // no shading? bye
 
     DrawAttributes = DoubleBGR2RGB(DrawAttributes); // multipass is just half color, so double it on opaque pass
-    vertex[0].c.lcol = DrawAttributes | 0xff000000;
+    //vertex[0].c.lcol = DrawAttributes | 0xff000000;
+    vertex[0].c.lcol = DrawAttributes;
+    vertex[0].c.a = 0xff;
     SETCOL(vertex[0]); // set color
 }
 
@@ -1480,8 +1659,14 @@ void UploadScreen(int Position) {
     bDrawTextured = TRUE; // just doing textures
     bDrawSmoothShaded = FALSE;
 
-    if (bGLBlend) vertex[0].c.lcol = 0xff7f7f7f; // set solid col
-    else vertex[0].c.lcol = 0xffffffff;
+    if (bGLBlend) {
+        vertex[0].c.lcol = 0x7f7f7f; // set solid col
+        vertex[0].c.a = 0xff;
+    }
+    else {
+        vertex[0].c.lcol = 0xffffffff;
+        vertex[0].c.a = 0xff;
+    }
     SETCOL(vertex[0]);
 
     SetOGLDisplaySettings(0);
@@ -1639,7 +1824,7 @@ void cmdSTP(unsigned char * baseAddr) {
 
 void cmdTexturePage(unsigned char * baseAddr) {
     uint32_t gdata = GETLE32(&((uint32_t*) baseAddr)[0]);
-    UpdateGlobalTP((unsigned short) gdata);
+    UpdateGlobalTP(gdata);
     GlobalTextREST = (gdata & 0x00ffffff) >> 9;
 }
 
@@ -2132,21 +2317,27 @@ void primBlkFill(unsigned char * baseAddr) {
                 (lx2 >= pd->DisplayEnd.x - 16) &&
                 (ly2 >= pd->DisplayEnd.y - 16)) {
 
-
-
             /*
-                        GLclampf g, b, r;
-                        g = ((GLclampf) GREEN(gpuData[0])) / 255.0f;
-                        b = ((GLclampf) BLUE(gpuData[0])) / 255.0f;
-                        r = ((GLclampf) RED(gpuData[0])) / 255.0f;
+            GLclampf g, b, r;
+            g = ((GLclampf) GREEN(gpuData[0])) / 255.0f;
+            b = ((GLclampf) BLUE(gpuData[0])) / 255.0f;
+            r = ((GLclampf) RED(gpuData[0])) / 255.0f;
 
-                        glDisable(GL_SCISSOR_TEST);
-                        glClearColor(r, g, b, 1.0f);
-                        glClear(uiBufferBits);
+            glDisable(GL_SCISSOR_TEST);
+            glClearColor(r, g, b, 1.0f);
+            glClear(uiBufferBits);
              */
+            
             //Xe_SetClearColor(xe,color&0xFF000000);
-            Xe_SetClearColor(xe, COLOR(color) | 0xFF000000);
-            Xe_Clear(xe, ~0);
+            XeColor clearcolor;
+            clearcolor.color = 0;
+            clearcolor.r = RED(gpuData[0]);
+            clearcolor.g = GREEN(gpuData[0]);
+            clearcolor.b = BLUE(gpuData[0]);
+            clearcolor.a = 0xFF;
+
+            Xe_SetClearColor(xe,clearcolor.color);
+            XeClear();
 
             gl_z = 0.0f;
 
@@ -2157,7 +2348,9 @@ void primBlkFill(unsigned char * baseAddr) {
                 bDrawSmoothShaded = FALSE;
                 SetRenderState((uint32_t) 0x01000000);
                 SetRenderMode((uint32_t) 0x01000000, FALSE);
-                vertex[0].c.lcol = 0xff000000;
+                //vertex[0].c.lcol = 0xff000000;
+                vertex[0].c.lcol = 0;
+                vertex[0].c.a = 0xff;
                 SETCOL(vertex[0]);
                 if (ly0 > pd->DisplayPosition.y) {
                     vertex[0].x = 0;
@@ -2189,7 +2382,9 @@ void primBlkFill(unsigned char * baseAddr) {
             bDrawSmoothShaded = FALSE;
             SetRenderState((uint32_t) 0x01000000);
             SetRenderMode((uint32_t) 0x01000000, FALSE);
-            vertex[0].c.lcol = color | 0xff000000;
+            //vertex[0].c.lcol = color | 0xff000000;
+            vertex[0].c.lcol = color;
+            vertex[0].c.a = 0xff;
             SETCOL(vertex[0]);
             // glDisable(GL_SCISSOR_TEST);
             PRIMdrawQuad(&vertex[0], &vertex[1], &vertex[2], &vertex[3]);
@@ -2724,7 +2919,7 @@ void primSprt8(unsigned char * baseAddr) {
     sprtY = GETLEs16(&sgpuData[3]);
     sprtW = 8;
     sprtH = 8;
-    
+
     //TR;
 
     lx0 = sprtX;
@@ -2733,7 +2928,7 @@ void primSprt8(unsigned char * baseAddr) {
     offsetST();
 
     // do texture stuff
-    gl_ux[0] = gl_ux[3] = baseAddr[8]; //gpuData[2]&0xff;
+    gl_ux[0] = gl_ux[3] = GETLE32(&gpuData[2])&0xff;
 
     if (usMirror & 0x1000) {
         s = gl_ux[0];
@@ -2749,7 +2944,7 @@ void primSprt8(unsigned char * baseAddr) {
     if (s > 255) s = 255;
     gl_ux[1] = gl_ux[2] = s;
     // Y coords
-    gl_vy[0] = gl_vy[1] = baseAddr[9]; //(gpuData[2]>>8)&0xff;
+    gl_vy[0] = gl_vy[1] = (GETLE32(&gpuData[2])>>8)&0xff;
 
     if (usMirror & 0x2000) {
         s = gl_vy[0];
@@ -2846,7 +3041,7 @@ void primSprt16(unsigned char * baseAddr) {
     sprtY = GETLEs16(&sgpuData[3]);
     sprtW = 16;
     sprtH = 16;
-    
+
     //TR;
 
     lx0 = sprtX;
@@ -2855,7 +3050,7 @@ void primSprt16(unsigned char * baseAddr) {
     offsetST();
 
     // do texture stuff
-    gl_ux[0] = gl_ux[3] = baseAddr[8]; //gpuData[2]&0xff;
+    gl_ux[0] = gl_ux[3] = GETLE32(&gpuData[2])&0xff;
 
     if (usMirror & 0x1000) {
         s = gl_ux[0];
@@ -2871,7 +3066,7 @@ void primSprt16(unsigned char * baseAddr) {
     if (s > 255) s = 255;
     gl_ux[1] = gl_ux[2] = s;
     // Y coords
-    gl_vy[0] = gl_vy[1] = baseAddr[9]; //(gpuData[2]>>8)&0xff;
+    gl_vy[0] = gl_vy[1] = (GETLE32(&gpuData[2])>>8)&0xff;
 
     if (usMirror & 0x2000) {
         s = gl_vy[0];
@@ -2956,6 +3151,7 @@ void primSprt16(unsigned char * baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void primSprtSRest(unsigned char * baseAddr, unsigned short type) {
+    return;
     uint32_t *gpuData = ((uint32_t *) baseAddr);
     short *sgpuData = ((short *) baseAddr);
     short s;
@@ -2965,7 +3161,7 @@ void primSprtSRest(unsigned char * baseAddr, unsigned short type) {
     sprtY = GETLEs16(&sgpuData[3]);
     sprtW = GETLEs16(&sgpuData[6]) & 0x3ff;
     sprtH = GETLEs16(&sgpuData[7]) & 0x1ff;
-    
+
     //TR;
 
     // do texture stuff
@@ -3133,6 +3329,10 @@ void primSprtSRest(unsigned char * baseAddr, unsigned short type) {
     }
 }
 
+/**
+ * the most used in tekken
+ * @param baseAddr
+ */
 void primSprtS(unsigned char * baseAddr) {
     uint32_t *gpuData = ((uint32_t *) baseAddr);
     short *sgpuData = ((short *) baseAddr);
@@ -3146,7 +3346,7 @@ void primSprtS(unsigned char * baseAddr) {
     sprtH = GETLEs16(&sgpuData[7]) & 0x1ff;
 
     //TR;
-    
+
     if (!sprtH) return;
     if (!sprtW) return;
 
@@ -3350,7 +3550,7 @@ BOOL bDrawOffscreenFrontFF9G4(void) {
 }
 
 /**
- * endian 
+ * endian
  */
 BOOL bCheckFF9G4(unsigned char * baseAddr) {
     static unsigned char pFF9G4Cache[32];
@@ -3363,11 +3563,11 @@ BOOL bCheckFF9G4(unsigned char * baseAddr) {
                 iFF9Fix = 2;
                 memcpy(pFF9G4Cache, baseAddr, 32);
 
-                if (GETLE16(&sgpuData[2]) == 142) {
+                if (GETLEs16(&sgpuData[2]) == 142) {
                     //sgpuData[2] += 65;
-                    PUTLE16(&sgpuData[2], GETLE16(&sgpuData[2]) + 65);
+                    PUTLE16(&sgpuData[2], GETLEs16(&sgpuData[2]) + 65);
                     //sgpuData[10] += 65;
-                    PUTLE16(&sgpuData[10], GETLE16(&sgpuData[10]) + 65);
+                    PUTLE16(&sgpuData[10], GETLEs16(&sgpuData[10]) + 65);
                 }
                 return TRUE;
             } else iFF9Fix = 1;
@@ -3594,12 +3794,12 @@ void primPolyFT3(unsigned char * baseAddr) {
     if (offset3()) return;
 
     // do texture UV coordinates stuff
-    gl_ux[0] = gl_ux[3] = baseAddr[8]; //gpuData[2]&0xff;
-    gl_vy[0] = gl_vy[3] = baseAddr[9]; //(gpuData[2]>>8)&0xff;
-    gl_ux[1] = baseAddr[16]; //gpuData[4]&0xff;
-    gl_vy[1] = baseAddr[17]; //(gpuData[4]>>8)&0xff;
-    gl_ux[2] = baseAddr[24]; //gpuData[6]&0xff;
-    gl_vy[2] = baseAddr[25]; //(gpuData[6]>>8)&0xff;
+    gl_ux[0] = gl_ux[3] = (GETLE32(&gpuData[2]) & 0xff); //gpuData[2]&0xff;
+    gl_vy[0] = gl_vy[3] = (GETLE32(&gpuData[2])>>8 & 0xff); //(gpuData[2]>>8)&0xff;
+    gl_ux[1] = (GETLE32(&gpuData[4]) & 0xff); //gpuData[4]&0xff;
+    gl_vy[1] = (GETLE32(&gpuData[4])>>8 & 0xff); //(gpuData[4]>>8)&0xff;
+    gl_ux[2] = (GETLE32(&gpuData[6]) & 0xff); //gpuData[6]&0xff;
+    gl_vy[2] = (GETLE32(&gpuData[6])>>8 & 0xff); //(gpuData[6]>>8)&0xff;
 
     UpdateGlobalTP(GETLE32(&gpuData[4]) >> 16);
     ulClutID = GETLE32(&gpuData[2]) >> 16;
@@ -3975,17 +4175,17 @@ void primPolyFT4(unsigned char * baseAddr) {
 
     if (offset4()) return;
 
-    gl_vy[0] = baseAddr[9]; //((gpuData[2]>>8)&0xff);
-    gl_vy[1] = baseAddr[17]; //((gpuData[4]>>8)&0xff);
-    gl_vy[2] = baseAddr[25]; //((gpuData[6]>>8)&0xff);
-    gl_vy[3] = baseAddr[33]; //((gpuData[8]>>8)&0xff);
+    gl_vy[0] = ((GETLE32(&gpuData[2])>>8)&0xff);
+    gl_vy[1] = ((GETLE32(&gpuData[4])>>8)&0xff);
+    gl_vy[2] = ((GETLE32(&gpuData[6])>>8)&0xff);
+    gl_vy[3] = ((GETLE32(&gpuData[8])>>8)&0xff);
 
-    gl_ux[0] = baseAddr[8]; //(gpuData[2]&0xff);
-    gl_ux[1] = baseAddr[16]; //(gpuData[4]&0xff);
-    gl_ux[2] = baseAddr[24]; //(gpuData[6]&0xff);
-    gl_ux[3] = baseAddr[32]; //(gpuData[8]&0xff);
+    gl_ux[0] = (GETLE32(&gpuData[2])&0xff);
+    gl_ux[1] = (GETLE32(&gpuData[4])&0xff);
+    gl_ux[2] = (GETLE32(&gpuData[6])&0xff);
+    gl_ux[3] = (GETLE32(&gpuData[8])&0xff);
 
-    UpdateGlobalTP((unsigned short) GETLE32(&gpuData[4]) >> 16);
+    UpdateGlobalTP(GETLE32(&gpuData[4]) >> 16);
     ulClutID = (GETLE32(&gpuData[2]) >> 16);
     uint32_t color = GETLE32(&gpuData[0]);
 
@@ -4060,12 +4260,12 @@ void primPolyGT3(unsigned char *baseAddr) {
     if (offset3()) return;
 
     // do texture stuff
-    gl_ux[0] = gl_ux[3] = baseAddr[8]; //gpuData[2]&0xff;
-    gl_vy[0] = gl_vy[3] = baseAddr[9]; //(gpuData[2]>>8)&0xff;
-    gl_ux[1] = baseAddr[20]; //gpuData[5]&0xff;
-    gl_vy[1] = baseAddr[21]; //(gpuData[5]>>8)&0xff;
-    gl_ux[2] = baseAddr[32]; //gpuData[8]&0xff;
-    gl_vy[2] = baseAddr[33]; //(gpuData[8]>>8)&0xff;
+    gl_ux[0] = gl_ux[3] = GETLE32(&gpuData[2])&0xff;
+    gl_vy[0] = gl_vy[3] = (GETLE32(&gpuData[2])>>8)&0xff;
+    gl_ux[1] = GETLE32(&gpuData[5])&0xff;
+    gl_vy[1] = (GETLE32(&gpuData[5])>>8)&0xff;
+    gl_ux[2] = GETLE32(&gpuData[8])&0xff;
+    gl_vy[2] = (GETLE32(&gpuData[8])>>8)&0xff;
 
     UpdateGlobalTP(GETLE32(&gpuData[5]) >> 16);
     ulClutID = (GETLE32(&gpuData[2]) >> 16);
@@ -4146,7 +4346,7 @@ void primPolyGT3(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 // cmd: smooth shaded Poly3
 ////////////////////////////////////////////////////////////////////////
-
+// OK
 void primPolyG3(unsigned char *baseAddr) {
     uint32_t *gpuData = ((uint32_t *) baseAddr);
     short *sgpuData = ((short *) baseAddr);
@@ -4193,7 +4393,7 @@ void primPolyG3(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 // cmd: smooth shaded Texture4
 ////////////////////////////////////////////////////////////////////////
-
+// KO
 void primPolyGT4(unsigned char *baseAddr) {
     uint32_t *gpuData = ((uint32_t *) baseAddr);
     short *sgpuData = ((short *) baseAddr);
@@ -4210,16 +4410,16 @@ void primPolyGT4(unsigned char *baseAddr) {
     if (offset4()) return;
 
     // do texture stuff
-    gl_ux[0] = baseAddr[8]; //gpuData[2]&0xff;
-    gl_vy[0] = baseAddr[9]; //(gpuData[2]>>8)&0xff;
-    gl_ux[1] = baseAddr[20]; //gpuData[5]&0xff;
-    gl_vy[1] = baseAddr[21]; //(gpuData[5]>>8)&0xff;
-    gl_ux[2] = baseAddr[32]; //gpuData[8]&0xff;
-    gl_vy[2] = baseAddr[33]; //(gpuData[8]>>8)&0xff;
-    gl_ux[3] = baseAddr[44]; //gpuData[11]&0xff;
-    gl_vy[3] = baseAddr[45]; //(gpuData[11]>>8)&0xff;
+    gl_ux[0] = GETLE32(&gpuData[2])&0xff;
+    gl_vy[0] = (GETLE32(&gpuData[2])>>8)&0xff;
+    gl_ux[1] = GETLE32(&gpuData[5])&0xff;
+    gl_vy[1] = (GETLE32(&gpuData[5])>>8)&0xff;
+    gl_ux[2] = GETLE32(&gpuData[8])&0xff;
+    gl_vy[2] = (GETLE32(&gpuData[8])>>8)&0xff;
+    gl_ux[3] = GETLE32(&gpuData[11])&0xff;
+    gl_vy[3] = (GETLE32(&gpuData[11])>>8)&0xff;
 
-    UpdateGlobalTP((unsigned short) GETLE32(&gpuData[5]) >> 16);
+    UpdateGlobalTP(GETLE32(&gpuData[5]) >> 16);
     ulClutID = GETLE32(&gpuData[2]) >> 16;
 
     uint32_t color_0 = GETLE32(&gpuData[0]);
@@ -4459,10 +4659,8 @@ void primLineG2(unsigned char *baseAddr) {
     lx1 = GETLEs16(&sgpuData[6]);
     ly1 = GETLEs16(&sgpuData[7]);
 
-
     uint32_t color_0 = GETLE32(&gpuData[0]);
     uint32_t color_1 = GETLE32(&gpuData[2]);
-
 
     vertex[0].c.lcol = vertex[3].c.lcol = color_0;
     vertex[1].c.lcol = vertex[2].c.lcol = color_1;
@@ -4474,8 +4672,6 @@ void primLineG2(unsigned char *baseAddr) {
     if ((lx0 == lx1) && (ly0 == ly1)) return;
 
     if (offsetline()) return;
-
-
 
     SetRenderState(color_0);
     SetRenderMode(color_0, FALSE);

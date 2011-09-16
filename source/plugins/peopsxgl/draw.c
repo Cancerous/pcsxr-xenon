@@ -3,7 +3,7 @@
                              -------------------
     begin                : Sun Mar 08 2009
     copyright            : (C) 1999-2009 by Pete Bernert
-    web                  : www.pbernert.com   
+    web                  : www.pbernert.com
  ***************************************************************************/
 
 /***************************************************************************
@@ -74,7 +74,7 @@
 #endif
 #define Xe_SetScissor
 ////////////////////////////////////////////////////////////////////////////////////
-// draw globals; most will be initialized again later (by config or checks) 
+// draw globals; most will be initialized again later (by config or checks)
 
 BOOL bIsFirstFrame = TRUE;
 
@@ -145,6 +145,8 @@ void GetExtInfos(void) {
     bGLFastMovie = FALSE;
     iUsePalTextures = 0;
     bPacked = FALSE;
+
+    iClampType = XE_TEXADDR_MIRROR;
 #if 0
     if (strstr((char *) glGetString(GL_EXTENSIONS), // packed pixels available?
             "GL_EXT_packed_pixels"))
@@ -172,7 +174,7 @@ void GetExtInfos(void) {
 #endif
 
 #ifndef __sun
-    if (iGPUHeight != 1024 && // no pal textures in ZN mode (height=1024)! 
+    if (iGPUHeight != 1024 && // no pal textures in ZN mode (height=1024)!
             strstr((char *) glGetString(GL_EXTENSIONS), // otherwise: check ogl support
             "GL_EXT_paletted_texture")) {
         iUsePalTextures = 1; // -> wow, supported, get func pointer
@@ -197,8 +199,180 @@ void GetExtInfos(void) {
 ////////////////////////////////////////////////////////////////////////
 // Setup some stuff depending on user settings or in-game toggle
 ////////////////////////////////////////////////////////////////////////
-
+#define LoadPackedSubTexturePageSort NULL
 void SetExtGLFuncs(void) {
+    //----------------------------------------------------//
+
+    SetFixes(); // update fix infos
+
+    //----------------------------------------------------//
+
+    //----------------------------------------------------//
+    int bAdvancedBlend = FALSE;
+    if (bAdvancedBlend) 
+        bUseMultiPass = TRUE; // -> pseudo-advanced with 2 passes
+    else 
+        bUseMultiPass = FALSE; // -> or simple 'bright color' mode
+    
+    bGLBlend = FALSE; // -> no ext blending!
+
+
+    //----------------------------------------------------//
+    // init standard tex quality 0-2, and big alpha mode 3
+
+    if (!(dwActFixes & 0x4000) && iFilterType && iTexQuality >= 3)
+        bSmallAlpha = TRUE;
+    else bSmallAlpha = FALSE;
+
+    if (bOpaquePass) // opaque mode?
+    {
+        if (dwActFixes & 32) {
+            TCF[0] = CP8RGBA_0;
+            PalTexturedColourFn = CP8RGBA; // -> init col func
+        } else {
+            TCF[0] = XP8RGBA_0;
+            PalTexturedColourFn = XP8RGBA; // -> init col func
+        }
+
+        TCF[1] = XP8RGBA_1;
+       XeAlphaFunc(XE_CMP_GREATER, 0.49f);
+    } else // no opaque mode?
+    {
+        TCF[0] = TCF[1] = P8RGBA;
+        PalTexturedColourFn = P8RGBA; // -> init col func
+        XeAlphaFunc(XE_CMP_NOTEQUAL, 0); // --> set alpha func
+    }
+
+    //----------------------------------------------------//
+
+    LoadSubTexFn = LoadSubTexturePageSort; // init load tex ptr
+
+    giWantedFMT = XE_FMT_ARGB; // init ogl tex format
+
+    switch (iTexQuality) // -> quality:
+    {
+            //--------------------------------------------------//
+        case 0: // -> don't care
+            giWantedRGBA = XE_FMT_ARGB;
+            giWantedTYPE = XE_FMT_5551;
+            break;
+            //--------------------------------------------------//
+        case 1: // -> R4G4B4A4
+            if (bGLExt) {
+                giWantedRGBA = XE_FMT_ARGB;
+                giWantedTYPE = XE_FMT_5551;
+                LoadSubTexFn = LoadPackedSubTexturePageSort;
+                if (bOpaquePass) {
+                    if (dwActFixes & 32) PTCF[0] = CP4RGBA_0;
+                    else PTCF[0] = XP4RGBA_0;
+                    PTCF[1] = XP4RGBA_1;
+                } else {
+                    PTCF[0] = PTCF[1] = P4RGBA;
+                }
+            } else {
+                giWantedRGBA = XE_FMT_ARGB;
+                giWantedTYPE = XE_FMT_5551;
+            }
+            break;
+            //--------------------------------------------------//
+        case 2: // -> R5B5G5A1
+            if (bGLExt) {
+                giWantedRGBA = XE_FMT_ARGB;
+                giWantedTYPE = XE_FMT_5551;
+                LoadSubTexFn = LoadPackedSubTexturePageSort;
+                if (bOpaquePass) {
+                    if (dwActFixes & 32) PTCF[0] = CP5RGBA_0;
+                    else PTCF[0] = XP5RGBA_0;
+                    PTCF[1] = XP5RGBA_1;
+                } else {
+                    PTCF[0] = PTCF[1] = P5RGBA;
+                }
+            } else {
+                giWantedRGBA = XE_FMT_ARGB;
+                giWantedTYPE = XE_FMT_5551;
+            }
+            break;
+            //--------------------------------------------------//
+        case 3: // -> R8G8B8A8
+            giWantedRGBA = XE_FMT_ARGB;
+            giWantedTYPE = XE_FMT_8888;
+
+            if (bSmallAlpha) {
+                if (bOpaquePass) // opaque mode?
+                {
+                    if (dwActFixes & 32) {
+                        TCF[0] = CP8RGBAEx_0;
+                        PalTexturedColourFn = CP8RGBAEx;
+                    } else {
+                        TCF[0] = XP8RGBAEx_0;
+                        PalTexturedColourFn = XP8RGBAEx;
+                    }
+                    TCF[1] = XP8RGBAEx_1;
+                }
+            }
+
+            break;
+            //--------------------------------------------------//
+        case 4: // -> R8G8B8A8
+            giWantedRGBA = XE_FMT_BGRA;
+            giWantedTYPE = XE_FMT_8888;
+
+            if (1) {
+                giWantedFMT = XE_FMT_BGRA;
+
+                if (bOpaquePass) // opaque mode?
+                {
+                    if (bSmallAlpha) {
+                        if (dwActFixes & 32) {
+                            TCF[0] = CP8BGRAEx_0;
+                            PalTexturedColourFn = CP8RGBAEx;
+                        } else {
+                            TCF[0] = XP8BGRAEx_0;
+                            PalTexturedColourFn = XP8RGBAEx;
+                        }
+                        TCF[1] = XP8BGRAEx_1;
+                    } else {
+                        if (dwActFixes & 32) {
+                            TCF[0] = CP8BGRA_0;
+                            PalTexturedColourFn = CP8RGBA;
+                        } else {
+                            TCF[0] = XP8BGRA_0;
+                            PalTexturedColourFn = XP8RGBA;
+                        }
+                        TCF[1] = XP8BGRA_1;
+                    }
+                } else // no opaque mode?
+                {
+                    TCF[0] = TCF[1] = P8BGRA; // -> init col func
+                }
+            } else {
+                iTexQuality = 3;
+                if (bSmallAlpha) {
+                    if (bOpaquePass) // opaque mode?
+                    {
+                        if (dwActFixes & 32) {
+                            TCF[0] = CP8RGBAEx_0;
+                            PalTexturedColourFn = CP8RGBAEx;
+                        } else {
+                            TCF[0] = XP8RGBAEx_0;
+                            PalTexturedColourFn = XP8RGBAEx;
+                        }
+                        TCF[1] = XP8RGBAEx_1;
+                    }
+                }
+            }
+
+            break;
+            //--------------------------------------------------//
+    }
+
+    bBlendEnable = FALSE; // init blending: off
+    XeDisableBlend();
+
+    SetScanTrans(); // init scan lines (if wanted)
+}
+
+void _SetExtGLFuncs(void) {
     //----------------------------------------------------//
 
     SetFixes(); // update fix infos
@@ -244,12 +418,11 @@ void SetExtGLFuncs(void) {
 #if 1
         TCF[0] = TCF[1] = P8BGRA;
         PalTexturedColourFn = P8BGRA; // -> init col func
-        XeAlphaFunc(XE_CMP_NOTEQUAL, 0); // --> set alpha func
 #else
         TCF[0] = TCF[1] = P8RGBA;
         PalTexturedColourFn = P8RGBA; // -> init col func
-        XeAlphaFunc(XE_CMP_NOTEQUAL, 0); // --> set alpha func
 #endif
+        XeAlphaFunc(XE_CMP_NOTEQUAL, 0); // --> set alpha func
     }
 
     //----------------------------------------------------//
@@ -302,10 +475,12 @@ int GLinitialize() {
     Xe_SetScissor(xe, 1, 0, 0, iResX, iResY);
 
 #ifndef OWNSCALE
+/*
     glMatrixMode(GL_TEXTURE); // init psx tex sow and tow if not "ownscale"
     glLoadIdentity();
     glScalef(1.0f / 255.99f, 1.0f / 255.99f, 1.0f); // geforce precision hack
-#endif 
+*/
+#endif
     TR
     //glMatrixMode(GL_PROJECTION); // init projection with psx resolution
     //glLoadIdentity();
@@ -332,7 +507,7 @@ int GLinitialize() {
     Xe_SetClearColor(xe, 0);
     Xe_Clear(xe, uiBufferBits);
 
-    if (bUseLines) // funny lines 
+    if (bUseLines) // funny lines
     {
         // glPolygonMode(GL_FRONT, GL_LINE);
         // glPolygonMode(GL_BACK, GL_LINE);
@@ -378,10 +553,10 @@ int GLinitialize() {
     bUsingTWin = FALSE;
 
     /*
-    
-        if (bDrawDither) 
+
+        if (bDrawDither)
             glEnable(GL_DITHER); // dither mode
-        else 
+        else
             glDisable(GL_DITHER);
 
         glDisable(GL_FOG); // turn all (currently) unused modes off
@@ -447,7 +622,7 @@ void GLcleanup() {
 // Offset stuff
 ////////////////////////////////////////////////////////////////////////
 
-// please note: it is hardly do-able in a hw/accel plugin to get the 
+// please note: it is hardly do-able in a hw/accel plugin to get the
 //              real psx polygon coord mapping right... the following
 //              works not to bad with many games, though
 
@@ -700,7 +875,7 @@ BOOL offsetline(void) {
     return FALSE;
 }
 
-///////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////
 
 BOOL offset2(void) {
     if (bDisplayNotSet)
@@ -732,7 +907,7 @@ BOOL offset2(void) {
     return FALSE;
 }
 
-///////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////
 
 BOOL offset3(void) {
     if (bDisplayNotSet)
@@ -772,7 +947,7 @@ BOOL offset3(void) {
     return FALSE;
 }
 
-///////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////
 
 BOOL offset4(void) {
     if (bDisplayNotSet)
@@ -820,7 +995,7 @@ BOOL offset4(void) {
     return FALSE;
 }
 
-///////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////
 
 void offsetST(void) {
     if (bDisplayNotSet)
@@ -852,7 +1027,7 @@ void offsetST(void) {
     vertex[3].y = ly3 + PSXDisplay.CumulOffset.y;
 }
 
-///////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////
 
 void offsetScreenUpload(int Position) {
     if (bDisplayNotSet)
@@ -908,7 +1083,7 @@ void offsetScreenUpload(int Position) {
     }
 }
 
-///////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////
 
 void offsetBlk(void) {
     if (bDisplayNotSet)
@@ -970,10 +1145,10 @@ void assignTextureVRAMWrite(void) {
 #endif
 }
 
-struct XenosSurface * gLastTex = 0;
-struct XenosSurface * gLastFMode = (GLuint) - 1;
+struct XenosSurface * gLastTex = NULL;
+GLuint gLastFMode = (GLuint) - 1;
 
-///////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////
 
 void assignTextureSprite(void) {
     if (bUsingTWin) {
@@ -1054,7 +1229,7 @@ void assignTextureSprite(void) {
 
 }
 
-///////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////
 
 void assignTexture3(void) {
     if (bUsingTWin) {
@@ -1116,7 +1291,7 @@ void assignTexture3(void) {
     }
 }
 
-///////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////
 
 void assignTexture4(void) {
     if (bUsingTWin) {
@@ -1139,6 +1314,7 @@ void assignTexture4(void) {
         vertex[2].tow = (float) gl_vy[2] / ST_FAC;
         vertex[3].sow = (float) gl_ux[3] / ST_FAC;
         vertex[3].tow = (float) gl_vy[3] / ST_FAC;
+
 #else
         vertex[0].sow = gl_ux[0];
         vertex[0].tow = gl_vy[0];
@@ -1196,7 +1372,7 @@ void assignTexture4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 // SetDisplaySettings: "simply" calcs the new drawing area and updates
-//                     the ogl clipping (scissor) 
+//                     the ogl clipping (scissor)
 
 BOOL bSetClip = FALSE;
 
@@ -1232,7 +1408,7 @@ void SetOGLDisplaySettings(BOOL DisplaySet) {
         }
         return;
     }
-    //----------------------------------------------------// 
+    //----------------------------------------------------//
 
     PSXDisplay.GDrawOffset.y = PreviousPSXDisplay.DisplayPosition.y;
     PSXDisplay.GDrawOffset.x = PreviousPSXDisplay.DisplayPosition.x;

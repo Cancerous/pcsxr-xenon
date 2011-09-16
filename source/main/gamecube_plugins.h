@@ -146,6 +146,27 @@ void PEOPS_GPUmakeSnapshot(void);
 void PEOPS_GPUcursor(int iPlayer, int x, int y);
 void PEOPS_GPUaddVertex(short sx, short sy, s64 fx, s64 fy, s64 fz);
 
+/* hw gpu plugins */
+long HW_GPUopen(unsigned long *, char *, char *); 
+long HW_GPUinit(void);
+long HW_GPUshutdown(void);
+long HW_GPUclose(void);
+void HW_GPUwriteStatus(unsigned long);
+void HW_GPUwriteData(unsigned long);
+void HW_GPUwriteDataMem(unsigned long *, int);
+unsigned long HW_GPUreadStatus(void);
+unsigned long HW_GPUreadData(void);
+void HW_GPUreadDataMem(unsigned long *, int);
+long HW_GPUdmaChain(unsigned long *,unsigned long);
+void HW_GPUupdateLace(void);
+void HW_GPUdisplayText(char *);
+long HW_GPUfreeze(unsigned long,GPUFreeze_t *);
+void HW_GPUvBlank(int val);
+void HW_GPUvisualVibration(uint32_t iSmall, uint32_t iBig);
+void HW_GPUmakeSnapshot(void);
+void HW_GPUcursor(int iPlayer, int x, int y);
+void HW_GPUaddVertex(short sx, short sy, s64 fx, s64 fy, s64 fz);
+
 //dfinput 
 char *INPUT_PSEgetLibName(void);
 uint32_t INPUT_PSEgetLibType(void);
@@ -440,7 +461,7 @@ void INPUT_PADsetMode(const int pad, const int mode);
 	      CDR__getBufferSub} \
 	       } }
 
-#if 0 // SOFT
+#if 1 // SOFT
 #define GPU_PEOPS_PLUGIN \
 	{ "/GPU",      \
 	  18,         \
@@ -527,45 +548,48 @@ void INPUT_PADsetMode(const int pad, const int mode);
 	{ "/GPU",      \
 	  18,         \
 	  { { "GPUinit",  \
-	      PEOPS_GPUinit }, \
+	      HW_GPUinit }, \
 	    { "GPUshutdown",	\
-	      PEOPS_GPUshutdown}, \
+	      HW_GPUshutdown}, \
 	    { "GPUopen", \
-	      PEOPS_GPUopen}, \
+	      HW_GPUopen}, \
 	    { "GPUclose", \
-	      PEOPS_GPUclose}, \
+	      HW_GPUclose}, \
 	    { "GPUwriteStatus", \
-	      PEOPS_GPUwriteStatus}, \
+	      HW_GPUwriteStatus}, \
 	    { "GPUwriteData", \
-	      PEOPS_GPUwriteData}, \
+	      HW_GPUwriteData}, \
 	    { "GPUwriteDataMem", \
-	      PEOPS_GPUwriteDataMem}, \
+	      HW_GPUwriteDataMem}, \
 	    { "GPUreadStatus", \
-	      PEOPS_GPUreadStatus}, \
+	      HW_GPUreadStatus}, \
 	    { "GPUreadData", \
-	      PEOPS_GPUreadData}, \
+	      HW_GPUreadData}, \
 	    { "GPUreadDataMem", \
-	      PEOPS_GPUreadDataMem}, \
+	      HW_GPUreadDataMem}, \
 	    { "GPUdmaChain", \
-	      PEOPS_GPUdmaChain}, \
+	      HW_GPUdmaChain}, \
 	    { "GPUdisplayText", \
-	      PEOPS_GPUdisplayText}, \
+	      HW_GPUdisplayText}, \
 	    { "GPUfreeze", \
-	      PEOPS_GPUfreeze}, \
+	      HW_GPUfreeze}, \
             { "GPUmakeSnapshot", \
-	      PEOPS_GPUmakeSnapshot}, \
+	      HW_GPUmakeSnapshot}, \
             { "GPUvisualVibration", \
-	      PEOPS_GPUvisualVibration}, \
+	      HW_GPUvisualVibration}, \
             { "GPUcursor", \
-	      PEOPS_GPUcursor}, \
+	      HW_GPUcursor}, \
 	    { "GPUupdateLace", \
-	      PEOPS_GPUupdateLace}, \
+	      HW_GPUupdateLace}, \
             { "GPUaddVertex", \
-            PEOPS_GPUaddVertex} \
+            HW_GPUaddVertex}, \
+            { "GPUvBlank", \
+            HW_GPUvBlank}, \
 	       } }
-//{ "GPUaddVertex", \
-//PEOPS_GPUaddVertex} \
-
+/*
+{ "GPUaddVertex", \
+PEOPS_GPUaddVertex} \
+*/
 
 
 

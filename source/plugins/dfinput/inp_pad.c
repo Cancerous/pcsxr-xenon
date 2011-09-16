@@ -91,37 +91,22 @@ long INPUT_PADopen(unsigned long *Disp) {
     g.Disp = (void *) Disp;
 
     if (!g.Opened) {
-        /*
-                if (SDL_WasInit(SDL_INIT_EVERYTHING)) {
-                    if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) == -1) {
-                        return PSE_PAD_ERR_FAILURE;
-                    }
-                } else if (SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_NOPARACHUTE) == -1) {
-                    return PSE_PAD_ERR_FAILURE;
-                }
-
-        #if SDL_VERSION_ATLEAST(1,3,0)
-                has_haptic = 0;
-                if (SDL_InitSubSystem(SDL_INIT_HAPTIC) == 0)
-                    has_haptic = 1;
-        #endif
-         */
 
         InitSDLJoy();
         InitKeyboard();
 
         g.KeyLeftOver = 0;
 
-        /*
-                if (g.cfg.Threaded) {
-                    TerminateThread = 0;
+/*
+        if (g.cfg.Threaded) {
+            TerminateThread = 0;
 
-                    if (pthread_create(&ThreadID, NULL, JoyThread, NULL) != 0) {
-                        // thread creation failed, fallback to polling
-                        g.cfg.Threaded = 0;
-                    }
-                }
-         */
+            if (pthread_create(&ThreadID, NULL, JoyThread, NULL) != 0) {
+                // thread creation failed, fallback to polling
+                g.cfg.Threaded = 0;
+            }
+        }
+*/
     }
     TR
     g.Opened = 1;
@@ -131,23 +116,23 @@ long INPUT_PADopen(unsigned long *Disp) {
 
 long INPUT_PADclose(void) {
     if (g.Opened) {
-        /*
-                if (g.cfg.Threaded) {
-                    TerminateThread = 1;
-                    pthread_join(ThreadID, NULL);
-                }
-         */
+/*
+        if (g.cfg.Threaded) {
+            TerminateThread = 1;
+            pthread_join(ThreadID, NULL);
+        }
+ */
 
         DestroySDLJoy();
         DestroyKeyboard();
 
-        /*
-                if (SDL_WasInit(SDL_INIT_EVERYTHING & ~SDL_INIT_JOYSTICK)) {
-                    SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
-                } else {
-                    SDL_Quit();
-                }
-         */
+/*
+        if (SDL_WasInit(SDL_INIT_EVERYTHING & ~SDL_INIT_JOYSTICK)) {
+            SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
+        } else {
+            SDL_Quit();
+        }
+ */
     }
 
     g.Opened = 0;
@@ -383,7 +368,7 @@ static uint8_t CurPad = 0, CurByte = 0, CurCmd = 0, CmdLen = 0;
 unsigned char INPUT_PADstartPoll(int pad) {
     CurPad = pad - 1;
     CurByte = 0;
-    //TR
+
     return 0xFF;
 }
 #if 0
@@ -690,22 +675,9 @@ unsigned char INPUT_PADpoll(unsigned char value) {
                     g.PadState[CurPad].VibF[0] = value;
 
                     if (g.PadState[CurPad].VibF[0] != 0 || g.PadState[CurPad].VibF[1] != 0) {
-#if 0
-#if !SDL_VERSION_ATLEAST(1,3,0) && defined(__linux__)
-                        if (g.PadState[CurPad].VibrateDev == -1 &&
-                                g.PadState[CurPad].JoyDev != NULL) {
-                            linux_set_vibrate(CurPad);
-                        }
-                        if (!linux_vibrate(&g.PadState[CurPad]))
-                            /* only do visual if joy fails */
-#endif
-
-                            if (!JoyHapticRumble(CurPad, g.PadState[CurPad].VibF[0], g.PadState[CurPad].VibF[1]) && gpuVisualVibration != NULL)
-                                gpuVisualVibration(g.PadState[CurPad].VibF[0], g.PadState[CurPad].VibF[1]);
-#else
-                        usbctrl_set_rumble(CurPad,g.PadState[CurPad].VibF[0],g.PadState[CurPad].VibF[1]);
+                        //usbctrl_set_rumble(CurPad, g.PadState[CurPad].VibF[0], g.PadState[CurPad].VibF[1]);
+                        if(gpuVisualVibration)
                         gpuVisualVibration(g.PadState[CurPad].VibF[0], g.PadState[CurPad].VibF[1]);
-#endif
                     }
                 }
 
@@ -713,22 +685,9 @@ unsigned char INPUT_PADpoll(unsigned char value) {
                     g.PadState[CurPad].VibF[1] = value;
 
                     if (g.PadState[CurPad].VibF[0] != 0 || g.PadState[CurPad].VibF[1] != 0) {
-#if 0
-#if !SDL_VERSION_ATLEAST(1,3,0) && defined(__linux__)
-                        if (g.PadState[CurPad].VibrateDev == -1 &&
-                                g.PadState[CurPad].JoyDev != NULL) {
-                            linux_set_vibrate(CurPad);
-                        }
-                        if (!linux_vibrate(&g.PadState[CurPad]))
-                            /* only do visual if joy fails */
-#endif
-
-                            if (!JoyHapticRumble(CurPad, g.PadState[CurPad].VibF[0], g.PadState[CurPad].VibF[1]) && gpuVisualVibration != NULL)
-                                gpuVisualVibration(g.PadState[CurPad].VibF[0], g.PadState[CurPad].VibF[1]);
-#else
-                        usbctrl_set_rumble(CurPad,g.PadState[CurPad].VibF[0],g.PadState[CurPad].VibF[1]);
+                        //usbctrl_set_rumble(CurPad, g.PadState[CurPad].VibF[0], g.PadState[CurPad].VibF[1]);
+                        if(gpuVisualVibration)
                         gpuVisualVibration(g.PadState[CurPad].VibF[0], g.PadState[CurPad].VibF[1]);
-#endif
                     }
                 }
             }

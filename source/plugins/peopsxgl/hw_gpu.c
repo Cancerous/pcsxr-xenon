@@ -38,6 +38,7 @@
 #include "menu.h"
 #include "fps.h"
 #include "key.h"
+#include "xe.h"
 #ifdef _WINDOWS
 #include "resource.h"
 #include "ssave.h"
@@ -432,9 +433,13 @@ void updateDisplay(void) // UPDATE DISPLAY
                 glClear(uiBufferBits);
                 glEnable(GL_SCISSOR_TEST);
          */
+        XeColor xeclearcolor;
+        xeclearcolor.color=0;
+        xeclearcolor.a = 128;
+        
         XeDisableScissor();
-        Xe_SetClearColor(xe, 0x00000080);
-        Xe_Clear(xe,~1);
+        Xe_SetClearColor(xe, xeclearcolor.color);
+        XeClear();
         XeEnableScissor();
 
         gl_z = 0.0f;
@@ -505,7 +510,7 @@ void updateDisplay(void) // UPDATE DISPLAY
 
     if (lClearOnSwap) // clear buffer after swap?
     {
-        GLclampf g, b, r;
+        
 
         if (bDisplayNotSet) // -> set new vals
             SetOGLDisplaySettings(1);
@@ -513,6 +518,7 @@ void updateDisplay(void) // UPDATE DISPLAY
 
 
 /*
+ * GLclampf g, b, r;
 g = ((GLclampf) GREEN(lClearOnSwapColor)) / 255.0f; // -> get col
 b = ((GLclampf) BLUE(lClearOnSwapColor)) / 255.0f;
 r = ((GLclampf) RED(lClearOnSwapColor)) / 255.0f;
@@ -523,9 +529,16 @@ glClear(uiBufferBits);
 glEnable(GL_SCISSOR_TEST);
 */
 
+        XeColor xeclearcolor;
+        xeclearcolor.color=0;
+        xeclearcolor.a = 128;
+        xeclearcolor.r = RED(lClearOnSwapColor);
+        xeclearcolor.g = BLUE(lClearOnSwapColor);
+        xeclearcolor.b = GREEN(lClearOnSwapColor);
+        
         XeDisableScissor();
-        Xe_SetClearColor(xe, COLOR(lClearOnSwapColor)|0x00000080);
-        Xe_Resolve(xe);
+        Xe_SetClearColor(xe, xeclearcolor.color);
+        XeClear();
         XeEnableScissor();
 
         lClearOnSwap = 0; // -> done
@@ -539,7 +552,7 @@ glEnable(GL_SCISSOR_TEST);
             // glClear(GL_DEPTH_BUFFER_BIT);
             // glEnable(GL_SCISSOR_TEST);
             XeDisableScissor();
-            Xe_Clear(xe, ~0);
+            XeClear();
             XeEnableScissor();
         }
     }
@@ -733,7 +746,10 @@ void SetAspectRatio(void) {
             r.right < rRatioRect.right) {
         RECT rC;
         //glClearColor(0, 0, 0, 128);
-        Xe_SetClearColor(xe,0x00000080);
+        XeColor xeclearcolor;
+        xeclearcolor.color=0;
+        xeclearcolor.a = 128;
+        Xe_SetClearColor(xe,xeclearcolor.color);
 
         if (r.right < rRatioRect.right) {
             rC.left = 0;
@@ -742,13 +758,11 @@ void SetAspectRatio(void) {
             rC.bottom = iResY;
             //glScissor(rC.left, rC.top, rC.right, rC.bottom);
             Xe_SetScissor(xe,1,rC.left, rC.top, rC.right, rC.bottom);
-            //glClear(uiBufferBits);
-            Xe_Resolve(xe);
+            XeClear();
             rC.left = iResX - rC.right;
             //glScissor(rC.left, rC.top, rC.right, rC.bottom);
             Xe_SetScissor(xe,1,rC.left, rC.top, rC.right, rC.bottom);
-            //glClear(uiBufferBits);
-            Xe_Resolve(xe);
+            XeClear();
         }
 
         if (r.bottom < rRatioRect.bottom) {
@@ -758,13 +772,11 @@ void SetAspectRatio(void) {
             rC.bottom = r.top;
             //glScissor(rC.left, rC.top, rC.right, rC.bottom);
             Xe_SetScissor(xe,1,rC.left, rC.top, rC.right, rC.bottom);
-            //glClear(uiBufferBits);
-            Xe_Resolve(xe);
+            XeClear();
             rC.top = iResY - rC.bottom;
             //glScissor(rC.left, rC.top, rC.right, rC.bottom);
             Xe_SetScissor(xe,1,rC.left, rC.top, rC.right, rC.bottom);
-            //glClear(uiBufferBits);
-            Xe_Resolve(xe);
+            XeClear();
         }
 
         bSetClip = TRUE;
@@ -2065,4 +2077,8 @@ void CALLBACK GPUdisplayFlags(uint32_t dwFlags) {
 
 void CALLBACK GPUvBlank(int val) {
     vBlank = val;
+}
+void HW_GPUdisplayText(char * pText) // some debug func
+{
+    printf(pText);
 }

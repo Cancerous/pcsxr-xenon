@@ -24,19 +24,37 @@ void XeEnableTexture();
 void XeEnableBlend();
 void XeDisableBlend();
 void XeAlphaFunc(int func, float ref);
+void XeBlendFunc(int src, int dst);
 
 // texture 
 void XeTexWrap(int uwrap, int vwrap);
 void XeTexUseFiltering(int enabled);
 
 
+void XeClear();
+
+struct XenosVertexBuffer *XeGetVb();
+
 // prim
-typedef struct PsxVerticeFormats {
+typedef struct __attribute__((__packed__)) PsxVerticeFormats {
     float x, y, z, w;
     float u, v;
     unsigned int color;
     //float r,g,b,a;
 } PsxVerticeFormats;
+
+
+typedef struct XeColor{
+    union {
+        unsigned int color;
+        struct{
+            uint8_t a;
+            uint8_t r;
+            uint8_t g;
+            uint8_t b;
+        };
+    };
+} XeColor;
 
 extern PsxVerticeFormats * PsxVertex;
 
@@ -50,8 +68,13 @@ void UnlockVb();
 void XeOrtho(int l, int r, int b, int t, int zn, int zf);
 void CloseDisplay();
 void XeResetStates();
-void XeClear(uint32_t color);
+//void XeClear(uint32_t color);
 void DoBufferSwap();
+
+
+void XeSetCombinerC();
+void XeSetCombinerF();
+void XeSetCombinerG();
 
 
 struct PSXUV{

@@ -81,7 +81,7 @@ static char *err = N_("Error Loading Symbol");
 static int errval;
 
 void *SysLoadLibrary(lpctr *lib) {
-    printf("SysLoadLibrary : %s\r\n",lib);
+    //printf("SysLoadLibrary : %s\r\n",lib);
     int i;
     for (i = 0; i < NUM_PLUGINS; i++)
         if ((plugins[i].lib != NULL) && (!strcmp(lib, plugins[i].lib)))
@@ -92,7 +92,7 @@ void *SysLoadLibrary(lpctr *lib) {
 void *cdrcimg_get_sym(const char *sym);
 
 void *SysLoadSym(void *lib, lpctr *sym) {
-    printf("SysLoadSym : %s\r\n",sym);
+    //printf("SysLoadSym : %s\r\n",sym);
     PluginTable* plugin = plugins + (int) lib;
     int i;
     for (i = 0; i < plugin->numSyms; i++)
@@ -100,7 +100,7 @@ void *SysLoadSym(void *lib, lpctr *sym) {
             //printf("SysLoadSym : %s -> %p\r\n",sym,plugin->syms[i].pntr);
             return plugin->syms[i].pntr;
         }
-    printf("SysLoadSym : %s not found\r\n",sym);
+    //printf("SysLoadSym : %s not found\r\n",sym);
     return NULL;
 }
 
