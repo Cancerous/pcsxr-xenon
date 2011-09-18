@@ -84,3 +84,6 @@ struct PSXUV{
     float right;
 };
 extern struct PSXUV gPsxUV;//offset
+
+
+unsigned long ulInitDisplay();

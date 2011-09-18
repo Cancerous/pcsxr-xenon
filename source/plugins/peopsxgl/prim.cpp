@@ -38,7 +38,7 @@
 #define DEFOPAQUEON  { \
         XeAlphaFunc(XE_CMP_EQUAL, 0); \
         bBlendEnable=FALSE; \
-        XeDisableBlend(); \
+        /*XeDisableBlend();*/ \
 }
 #define DEFOPAQUEOFF { \
         XeAlphaFunc(XE_CMP_GREATER, 0.49f); \
@@ -692,7 +692,7 @@ __inline void PRIMdrawTri2(OGLVertex* vertex1, OGLVertex* vertex2,
 __inline void PRIMdrawGouraudTriColor(OGLVertex* vertex1, OGLVertex* vertex2,
                                       OGLVertex* vertex3)
 {
-    XeSetCombinerG();
+    XeSetCombinerC();
     
  glBegin(GL_TRIANGLES);
   SETPCOL(vertex1);
@@ -711,7 +711,7 @@ __inline void PRIMdrawGouraudTriColor(OGLVertex* vertex1, OGLVertex* vertex2,
 __inline void PRIMdrawGouraudTri2Color(OGLVertex* vertex1, OGLVertex* vertex2,
                                        OGLVertex* vertex3, OGLVertex* vertex4)
 {
-    XeSetCombinerG();
+    XeSetCombinerC();
     
  glBegin(GL_TRIANGLE_STRIP);
   SETPCOL(vertex1);
@@ -749,7 +749,7 @@ __inline void PRIMdrawFlatLine(OGLVertex* vertex1, OGLVertex* vertex2,OGLVertex*
 
 __inline void PRIMdrawGouraudLine(OGLVertex* vertex1, OGLVertex* vertex2,OGLVertex* vertex3, OGLVertex* vertex4)
 {
-    XeSetCombinerG();
+    XeSetCombinerC();
     
  glBegin(GL_QUADS);
 
@@ -2331,9 +2331,9 @@ void primBlkFill(unsigned char * baseAddr) {
             //Xe_SetClearColor(xe,color&0xFF000000);
             XeColor clearcolor;
             clearcolor.color = 0;
-            clearcolor.r = RED(gpuData[0]);
-            clearcolor.g = GREEN(gpuData[0]);
-            clearcolor.b = BLUE(gpuData[0]);
+            clearcolor.r = RED(GETLE32(&gpuData[0]));
+            clearcolor.g = GREEN(GETLE32(&gpuData[0]));
+            clearcolor.b = BLUE(GETLE32(&gpuData[0]));
             clearcolor.a = 0xFF;
 
             Xe_SetClearColor(xe,clearcolor.color);
@@ -3553,6 +3553,7 @@ BOOL bDrawOffscreenFrontFF9G4(void) {
  * endian
  */
 BOOL bCheckFF9G4(unsigned char * baseAddr) {
+#if 0
     static unsigned char pFF9G4Cache[32];
     static int iFF9Fix = 0;
 
@@ -3582,7 +3583,7 @@ BOOL bCheckFF9G4(unsigned char * baseAddr) {
         GlobalTextABR = labr;
     }
     iFF9Fix = 0;
-
+#endif
     return FALSE;
 }
 

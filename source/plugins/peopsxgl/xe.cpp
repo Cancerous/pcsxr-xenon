@@ -1,5 +1,6 @@
 #include <xenos/xe.h>
 #include <xenos/xenos.h>
+#include <stdio.h>
 //#define printf
 #define TR {printf("[Trace] in function %s, line %d, file %s\n",__FUNCTION__,__LINE__,__FILE__);}
 struct XenosDevice *xe = NULL;

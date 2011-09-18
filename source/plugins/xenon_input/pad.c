@@ -21,6 +21,7 @@
 
 #define STICK_THRESHOLD 12000
 
+
 long PadFlags = 0;
 static void (*gpuVisualVibration)(unsigned long, unsigned long) = NULL;
 

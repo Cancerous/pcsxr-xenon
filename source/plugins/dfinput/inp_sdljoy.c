@@ -191,11 +191,11 @@ int SDL_JoystickGetButton(struct controller_data_s *joystick, int button) {
 
 signed short SDL_JoystickGetAxis(struct controller_data_s *joystick, int axis) {
     /*
-        g.cfg.PadDef[0].KeyDef[DKEY_UP].J.Axis = -2;
-        g.cfg.PadDef[0].KeyDef[DKEY_RIGHT].J.Axis = 1;
-        g.cfg.PadDef[0].KeyDef[DKEY_DOWN].J.Axis = 2;
-        g.cfg.PadDef[0].KeyDef[DKEY_LEFT].J.Axis = -1;
-        n = abs(g.cfg.PadDef[i].KeyDef[j].J.Axis) - 1;
+        g.cfg.PadDef[0].KeyDef[DKEY_UP].J.Axis = -2;    -> 1
+        g.cfg.PadDef[0].KeyDef[DKEY_RIGHT].J.Axis = 1;  -> 0
+        g.cfg.PadDef[0].KeyDef[DKEY_DOWN].J.Axis = 2;   -> 1
+        g.cfg.PadDef[0].KeyDef[DKEY_LEFT].J.Axis = -1;  -> 0
+        n = abs(g.cfg.PadDef[i].KeyDef[j].J.Axis) - 1;  -> 1
      */
     switch (axis) {
         case 0:
@@ -249,19 +249,6 @@ void CheckJoy() {
                         }
                     }
                     break;
-
-
-                    /*
-                                    case HAT:
-                                        n = (g.cfg.PadDef[i].KeyDef[j].J.Hat >> 8);
-
-                                        if (SDL_JoystickGetHat(g.PadState[i].JoyDev, n) & (g.cfg.PadDef[i].KeyDef[j].J.Hat & 0xFF)) {
-                                            bdown(i, j);
-                                        } else {
-                                            bup(i, j);
-                                        }
-                                        break;
-                     */
 
                 case BUTTON:
                     if (SDL_JoystickGetButton(g.PadState[i].JoyDev, g.cfg.PadDef[i].KeyDef[j].J.Button)) {

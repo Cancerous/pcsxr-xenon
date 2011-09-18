@@ -27,6 +27,12 @@ typedef unsigned int DWORD;
 
 #define MAX_VERTEX_COUNT 16384
 
+#ifdef LZX_GUI 
+extern "C"{
+    struct XenosDevice * getLzxVideoDevice();
+}
+#endif
+
 //#include "externals.h"
 extern struct XenosDevice *xe;
 static struct XenosShader * g_pVertexShader = NULL;
@@ -101,11 +107,14 @@ void iXeDrawQuad(PsxVerticeFormats * psxvertices) {
 
 unsigned long ulInitDisplay() {
     TR
+    
+#ifndef LZX_GUI    
     xe = &_xe;
-
     Xe_Init(xe);
-    fb = Xe_GetFramebufferSurface(xe);
-    Xe_SetRenderTarget(xe, fb);
+#else
+    xe = getLzxVideoDevice();
+#endif
+    Xe_SetRenderTarget(xe, Xe_GetFramebufferSurface(xe));
 
     static const struct XenosVBFFormat vbf = {
         3,

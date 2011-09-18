@@ -34,7 +34,7 @@ static struct XenosIndexBuffer *ib_tri = NULL;
 static struct XenosIndexBuffer *ib_quads = NULL;
 
 static uint16_t prim_tri_strip[] = {0, 1, 2, 2, 1, 3}; // GL_TRIANGLE_STRIP
-static uint16_t prim_quads[] = {1, 0, 2, 2, 0, 3}; // GL_QUADS
+static uint16_t prim_quads[] = {0, 1, 2, 3, 0, 3}; // GL_QUADS
 
 int indiceCount=0;
 int vertexCount=0;
@@ -122,7 +122,6 @@ void glEnd() {
         case GL_TRIANGLE_STRIP:
         {
             Xe_SetIndices(xe,ib_tri);
-            //Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLESTRIP, 0, 2);
             Xe_DrawIndexedPrimitive(xe, XE_PRIMTYPE_TRIANGLELIST, 0, 0, 6, 0, 2);
 
             break;
@@ -135,10 +134,8 @@ void glEnd() {
         }
         case GL_QUADS:
         {
-
-            Xe_SetIndices(xe,ib_quads);
-            Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLEFAN, 0, 2);
-            Xe_DrawIndexedPrimitive(xe, XE_PRIMTYPE_TRIANGLELIST, 0, 0, 6, 0, 2);
+            Xe_SetIndices(xe,NULL);
+            Xe_DrawPrimitive(xe, XE_PRIMTYPE_QUADLIST, 0, 1);
 
             break;
         }
@@ -150,7 +147,7 @@ void glEnd() {
     //glUnlockIb();
     
     // Reset color
-   // gl_color = 0;
+    // gl_color = 0;
 }
 
 void glTexCoord2fv(float * st) {

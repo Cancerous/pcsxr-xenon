@@ -31,13 +31,14 @@ static void SetDefaultConfig() {
     g.cfg.PadDef[0].DevNum = 0;
     g.cfg.PadDef[1].DevNum = 1;
 
+/*
         g.cfg.PadDef[0].Type = PSE_PAD_TYPE_STANDARD;
         g.cfg.PadDef[1].Type = PSE_PAD_TYPE_STANDARD;
+*/
 
-/*
     g.cfg.PadDef[0].Type = PSE_PAD_TYPE_ANALOGPAD;
     g.cfg.PadDef[1].Type = PSE_PAD_TYPE_ANALOGPAD;
-*/
+
     // Pad1 keyboard
     /*
         g.cfg.PadDef[0].KeyDef[DKEY_SELECT].Key = XK_c;

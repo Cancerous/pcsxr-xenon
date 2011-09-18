@@ -100,40 +100,6 @@ void CheckAnalog() {
                         }
                         break;
 
-                        /*
-                                            case HAT:
-                                                n = (g.cfg.PadDef[i].AnalogDef[j][k].J.Hat >> 8);
-
-                                                g.PadState[i].AnalogStatus[j][0] = 0;
-
-                                                if (SDL_JoystickGetHat(g.PadState[i].JoyDev, n) & (g.cfg.PadDef[i].AnalogDef[j][k].J.Hat & 0xFF)) {
-                                                    switch (k) {
-                                                        case ANALOG_XP: g.PadState[i].AnalogStatus[j][0] = 255;
-                                                            k++;
-                                                            break;
-                                                        case ANALOG_XM: g.PadState[i].AnalogStatus[j][0] = 0;
-                                                            break;
-                                                        case ANALOG_YP: g.PadState[i].AnalogStatus[j][1] = 255;
-                                                            k++;
-                                                            break;
-                                                        case ANALOG_YM: g.PadState[i].AnalogStatus[j][1] = 0;
-                                                            break;
-                                                    }
-                                                } else {
-                                                    switch (k) {
-                                                        case ANALOG_XP: g.PadState[i].AnalogStatus[j][0] = 127;
-                                                            break;
-                                                        case ANALOG_XM: g.PadState[i].AnalogStatus[j][0] = 127;
-                                                            break;
-                                                        case ANALOG_YP: g.PadState[i].AnalogStatus[j][1] = 127;
-                                                            break;
-                                                        case ANALOG_YM: g.PadState[i].AnalogStatus[j][1] = 127;
-                                                            break;
-                                                    }
-                                                }
-                                                break;
-                         */
-
                     case BUTTON:
                         if (SDL_JoystickGetButton(g.PadState[i].JoyDev, g.cfg.PadDef[i].AnalogDef[j][k].J.Button)) {
                             switch (k) {

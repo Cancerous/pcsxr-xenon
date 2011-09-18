@@ -27,6 +27,7 @@
 #include "texture.h"
 #include "menu.h"
 #include "xe.h"
+#include "gte_accuracy.h"
 ////////////////////////////////////////////////////////////////////////////////////
 // defines
 
@@ -146,7 +147,7 @@ void GetExtInfos(void) {
     iUsePalTextures = 0;
     bPacked = FALSE;
 
-    iClampType = XE_TEXADDR_MIRROR;
+    iClampType = XE_TEXADDR_CLAMP;
 #if 0
     if (strstr((char *) glGetString(GL_EXTENSIONS), // packed pixels available?
             "GL_EXT_packed_pixels"))
@@ -200,7 +201,7 @@ void GetExtInfos(void) {
 // Setup some stuff depending on user settings or in-game toggle
 ////////////////////////////////////////////////////////////////////////
 #define LoadPackedSubTexturePageSort NULL
-void SetExtGLFuncs(void) {
+void Gl_SetExtGLFuncs(void) {
     //----------------------------------------------------//
 
     SetFixes(); // update fix infos
@@ -372,7 +373,7 @@ void SetExtGLFuncs(void) {
     SetScanTrans(); // init scan lines (if wanted)
 }
 
-void _SetExtGLFuncs(void) {
+void SetExtGLFuncs(void) {
     //----------------------------------------------------//
 
     SetFixes(); // update fix infos

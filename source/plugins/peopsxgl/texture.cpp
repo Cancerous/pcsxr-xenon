@@ -559,7 +559,7 @@ void CheckTextureMemory(void) {
 
     free(p);
 
-    bDetail = malloc(MAXSORTTEX * sizeof (GLboolean));
+    bDetail = (GLboolean*)malloc(MAXSORTTEX * sizeof (GLboolean));
     memset(bDetail, 0, MAXSORTTEX * sizeof (GLboolean));
     /*
      b=glAreTexturesResident(MAXSORTTEX,uiStexturePage,bDetail);
@@ -2709,7 +2709,7 @@ struct XenosSurface * Fake15BitTexture(void) {
 
 // for faster BSWAP test
 uint32_t ptr32(void * addr){
-    return GETLE32(addr);
+    return GETLE32((uint32_t *)addr);
 }
 
 void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
@@ -2780,7 +2780,8 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
                         n_xi = ((TXU >> 2) & ~0x3c) + ((TXV << 2) & 0x3c);
                         n_yi = (TXV & ~0xf) + ((TXU >> 4) & 0xf);
 
-                        *ta++ = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x03) << 2)) & 0x0f));
+                        //*ta++ = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x03) << 2)) & 0x0f));
+                        *ta++ = *(pa + ((ptr32(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x03) << 2)) & 0x0f));
                     }
                     ta += xalign;
                 }
@@ -2817,7 +2818,8 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
             for (column = y1; column <= y2; column++) {
                 cSRCPtr = psxVub + start + (column << 11) + sxh;
 
-                if (sxm) *ta++ = *(pa + ((*cSRCPtr++ >> 4) & 0xF));
+                if (sxm) 
+                    *ta++ = *(pa + ((*cSRCPtr++ >> 4) & 0xF));
 
                 for (row = j; row < x2a; row += 2) {
                     *ta = *(pa + (*cSRCPtr & 0xF));
@@ -2829,7 +2831,8 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
                 if (row <= x2) {
                     *ta++ = *(pa + (*cSRCPtr & 0xF));
                     row++;
-                    if (row <= x2) *ta++ = *(pa + ((*cSRCPtr >> 4) & 0xF));
+                    if (row <= x2) 
+                        *ta++ = *(pa + ((*cSRCPtr >> 4) & 0xF));
                 }
 
                 ta += xalign;
@@ -2866,7 +2869,8 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
                         n_xi = ((TXU >> 1) & ~0x78) + ((TXU << 2) & 0x40) + ((TXV << 3) & 0x38);
                         n_yi = (TXV & ~0x7) + ((TXU >> 5) & 0x7);
 
-                        *ta++ = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x01) << 3)) & 0xff));
+                        // *ta++ = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x01) << 3)) & 0xff));
+                        *ta++ = *(pa + ((ptr32(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x01) << 3)) & 0xff));
                     }
                     ta += xalign;
                 }
@@ -2918,7 +2922,8 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
                 do {
                     row = dx;
                     do {
-                        *ta++ = LTCOL(*(wSRCPtr + *cSRCPtr++));
+                        *ta++ = LTCOL(ptr32(wSRCPtr + *cSRCPtr++));
+                        //*ta++ = LTCOL(*(wSRCPtr + *cSRCPtr++));
                         row--;
                     } while (row);
                     ta += xalign;

@@ -10,6 +10,7 @@ static int snd_base = 0xea001600, wptr, buffer_len;
 static void *buffer;
 
 void xenon_sound_init(void) {
+    printf("Init sound\r\n");
     // reset DAC (init from scratch)
     xenon_gpio_control(5, 0x1000, 0x1000);
     xenon_gpio_control(0, 0x1000, 0x1000);

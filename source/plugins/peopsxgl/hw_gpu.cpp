@@ -38,7 +38,10 @@
 #include "menu.h"
 #include "fps.h"
 #include "key.h"
+#include "gte_accuracy.h"
 #include "xe.h"
+
+
 #ifdef _WINDOWS
 #include "resource.h"
 #include "ssave.h"
@@ -58,6 +61,8 @@ static char * pCaptionText = NULL;
 #define Xe_Resolve
 #define Xe_SetScissor
 #define Xe_Clear
+
+
 
 ////////////////////////////////////////////////////////////////////////
 // PPDK developer must change libraryName field and can change revision and build
@@ -152,21 +157,21 @@ uint32_t vBlank = 0;
 char * pConfigFile = NULL;
 unsigned short usCursorActive = 0;
 GLuint         gTexPicName;
-PSXPoint_t     ptCursorPoint[];
+PSXPoint_t ptCursorPoint[8];
 
 ////////////////////////////////////////////////////////////////////////
 // stuff to make this a true PDK module
 ////////////////////////////////////////////////////////////////////////
 
-char * CALLBACK PSEgetLibName(void) {
+EXTERN char * CALLBACK PSEgetLibName(void) {
     return libraryName;
 }
 
-unsigned long CALLBACK PSEgetLibType(void) {
+EXTERN unsigned long CALLBACK PSEgetLibType(void) {
     return PSE_LT_GPU;
 }
 
-unsigned long CALLBACK PSEgetLibVersion(void) {
+EXTERN unsigned long CALLBACK PSEgetLibVersion(void) {
     return version << 16 | revision << 8 | build;
 }
 
@@ -198,7 +203,7 @@ void DoSnapShot(void) {
 
 }
 
-void CALLBACK GPUmakeSnapshot(void) {
+EXTERN void CALLBACK GPUmakeSnapshot(void) {
     bSnapShot = TRUE;
 }
 
@@ -206,7 +211,7 @@ void CALLBACK GPUmakeSnapshot(void) {
 // GPU INIT... here starts it all (first func called by emu)
 ////////////////////////////////////////////////////////////////////////
 
-long CALLBACK GPUinit() {
+EXTERN long CALLBACK GPUinit() {
     memset(ulStatusControl, 0, 256 * sizeof (uint32_t));
 
     // different ways of accessing PSX VRAM
@@ -285,7 +290,7 @@ long CALLBACK GPUinit() {
 
 ////////////////////////////////////////////////////////////////////////
 
-long GPUopen(unsigned long * disp, char * CapText, char * CfgFile) {
+EXTERN long GPUopen(unsigned long * disp, char * CapText, char * CfgFile) {
     pCaptionText = CapText;
     pConfigFile = CfgFile;
 
@@ -316,7 +321,7 @@ long GPUopen(unsigned long * disp, char * CapText, char * CfgFile) {
 // close
 ////////////////////////////////////////////////////////////////////////
 
-long GPUclose() // LINUX CLOSE
+EXTERN long GPUclose() // LINUX CLOSE
 {
     GLcleanup(); // close OGL
 
@@ -333,7 +338,7 @@ long GPUclose() // LINUX CLOSE
 // I shot the sheriff... last function called from emu
 ////////////////////////////////////////////////////////////////////////
 
-long CALLBACK GPUshutdown() {
+EXTERN long CALLBACK GPUshutdown() {
     if (psxVSecure)
         free(psxVSecure); // kill emulated vram memory
     psxVSecure = 0;
@@ -909,7 +914,7 @@ BOOL bSwapCheck(void) {
 // gun cursor func: player=0-7, x=0-511, y=0-255
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK GPUcursor(int iPlayer, int x, int y) {
+EXTERN void CALLBACK GPUcursor(int iPlayer, int x, int y) {
     if (iPlayer < 0) return;
     if (iPlayer > 7) return;
 
@@ -946,7 +951,7 @@ static void ShowFPS() {
     }
 }
 
-void CALLBACK GPUupdateLace(void) {
+EXTERN void CALLBACK GPUupdateLace(void) {
     //if(!(dwActFixes&0x1000))
     // STATUSREG^=0x80000000;                               // interlaced bit toggle, if the CC game fix is not active (see gpuReadStatus)
 
@@ -979,7 +984,7 @@ void CALLBACK GPUupdateLace(void) {
 // process read request from GPU status register
 ////////////////////////////////////////////////////////////////////////
 
-uint32_t CALLBACK GPUreadStatus(void) {
+EXTERN uint32_t CALLBACK GPUreadStatus(void) {
     if (dwActFixes & 0x1000) // CC game fix
     {
         static int iNumRead = 0;
@@ -1012,7 +1017,7 @@ uint32_t CALLBACK GPUreadStatus(void) {
 // these are always single packet commands.
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK GPUwriteStatus(uint32_t gdata) {
+EXTERN void CALLBACK GPUwriteStatus(uint32_t gdata) {
     uint32_t lCommand = (gdata >> 24)&0xff;
 
     ulStatusControl[lCommand] = gdata;
@@ -1616,7 +1621,7 @@ void CheckVRamRead(int x, int y, int dx, int dy, BOOL bFront) {
 // core read from vram
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK GPUreadDataMem(uint32_t *pMem, int iSize) {
+EXTERN void CALLBACK GPUreadDataMem(uint32_t *pMem, int iSize) {
     int i;
 
     if (iDataReadMode != DR_VRAMTRANSFER) return;
@@ -1690,7 +1695,7 @@ ENDREAD:
     GPUIsIdle;
 }
 
-uint32_t CALLBACK GPUreadData(void) {
+EXTERN uint32_t CALLBACK GPUreadData(void) {
     uint32_t l;
     GPUreadDataMem(&l, 1);
     return GPUdataRet;
@@ -1773,7 +1778,7 @@ const unsigned char primTableCX[256] = {
 // processes data send to GPU data register
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK GPUwriteDataMem(uint32_t *pMem, int iSize) {
+EXTERN void CALLBACK GPUwriteDataMem(uint32_t *pMem, int iSize) {
     unsigned char command;
     uint32_t gdata = 0;
     int i = 0;
@@ -1884,7 +1889,7 @@ ENDVRAM:
 
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK GPUwriteData(uint32_t gdata) {
+EXTERN void CALLBACK GPUwriteData(uint32_t gdata) {
     PUTLE32(&gdata, gdata);
     GPUwriteDataMem(&gdata, 1);
 }
@@ -1927,7 +1932,7 @@ __inline BOOL CheckForEndlessLoop(uint32_t laddr) {
 // core gives a dma chain to gpu: same as the gpuwrite interface funcs
 ////////////////////////////////////////////////////////////////////////
 
-long CALLBACK GPUdmaChain(uint32_t *baseAddrL, uint32_t addr) {
+EXTERN long CALLBACK GPUdmaChain(uint32_t *baseAddrL, uint32_t addr) {
     uint32_t dmaMem;
     unsigned char * baseAddrB;
     short count;
@@ -1990,7 +1995,7 @@ typedef struct GPUFREEZETAG {
 
 ////////////////////////////////////////////////////////////////////////
 
-long CALLBACK GPUfreeze(uint32_t ulGetFreezeData, GPUFreeze_t * pF) {
+EXTERN long CALLBACK GPUfreeze(uint32_t ulGetFreezeData, GPUFreeze_t * pF) {
     if (ulGetFreezeData == 2) {
         int lSlotNum = *((int *) pF);
         if (lSlotNum < 0) return 0;
@@ -2033,12 +2038,12 @@ long CALLBACK GPUfreeze(uint32_t ulGetFreezeData, GPUFreeze_t * pF) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK GPUgetScreenPic(unsigned char * pMem) {
+EXTERN void CALLBACK GPUgetScreenPic(unsigned char * pMem) {
 
 }
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK GPUshowScreenPic(unsigned char * pMem) {
+EXTERN void CALLBACK GPUshowScreenPic(unsigned char * pMem) {
     DestroyPic();
     if (pMem == 0) return;
     CreatePic(pMem);
@@ -2046,13 +2051,13 @@ void CALLBACK GPUshowScreenPic(unsigned char * pMem) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK GPUsetfix(uint32_t dwFixBits) {
+EXTERN void CALLBACK GPUsetfix(uint32_t dwFixBits) {
     dwEmuFixes = dwFixBits;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK GPUvisualVibration(uint32_t iSmall, uint32_t iBig) {
+EXTERN void CALLBACK GPUvisualVibration(uint32_t iSmall, uint32_t iBig) {
     int iVibVal;
 
     if (PSXDisplay.DisplayModeNew.x) // calc min "shake pixel" from screen width
@@ -2071,14 +2076,14 @@ void CALLBACK GPUvisualVibration(uint32_t iSmall, uint32_t iBig) {
 // main emu can set display infos (A/M/G/D)
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK GPUdisplayFlags(uint32_t dwFlags) {
+EXTERN void CALLBACK GPUdisplayFlags(uint32_t dwFlags) {
     dwCoreFlags = dwFlags;
 }
 
-void CALLBACK GPUvBlank(int val) {
+EXTERN void CALLBACK GPUvBlank(int val) {
     vBlank = val;
 }
-void HW_GPUdisplayText(char * pText) // some debug func
+EXTERN void CALLBACK GPUdisplayText(char * pText) // some debug func
 {
     printf(pText);
 }

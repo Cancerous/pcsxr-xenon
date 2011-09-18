@@ -22,8 +22,6 @@
 #define cdfile "uda:/psxisos/Street Fighter Alpha - Warriors' Dreams (USA)/Street Fighter Alpha - Warriors' Dreams (USA) (Track 01).bin"
 // #define cdfile "uda:/psxisos/Street Fighter Alpha 2 (USA)/Street Fighter Alpha 2 (USA) (Track 1).bin"
 #define cdfile "uda:/psxisos/odd.iso"
-
-
 #define cdfile "uda:/psxisos/MEGAMAN8.BIN"
 #define cdfile "uda:/psxisos/PSX_Tekken_3_(NTSC).Iso"
 

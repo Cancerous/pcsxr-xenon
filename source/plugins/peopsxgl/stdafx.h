@@ -27,6 +27,8 @@
 
 #define CALLBACK /* */
 
+#define EXTERN extern "C"
+
 
 //#include "gl_ext.h"
 #include <xenos/xe.h>
