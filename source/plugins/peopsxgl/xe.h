@@ -21,9 +21,11 @@ void XeDisableTexture();
 void XeEnableTexture();
 
 // blend
+
 void XeEnableBlend();
 void XeDisableBlend();
 void XeAlphaFunc(int func, float ref);
+void XeBlendOp(int op);
 void XeBlendFunc(int src, int dst);
 
 // texture 

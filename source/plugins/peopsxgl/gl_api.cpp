@@ -1,5 +1,3 @@
-#if 1
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -110,7 +108,19 @@ int glGetModelSize() {
     }
 }
 
-void glBegin(int mode) {
+static int texture_combiner_enabled = 0;
+static int color_combiner_enabled = 0;
+
+void XeEnableTexture() {
+    texture_combiner_enabled = 1;
+}
+
+void XeDisableTexture() {
+   texture_combiner_enabled = 0;
+   Xe_SetTexture(xe, 0, NULL);
+}
+
+void glBegin(int mode) {    
     XeGlPrepare(glGetModelSize());
     gl_mode = mode;
     off_v = 0;
@@ -118,12 +128,26 @@ void glBegin(int mode) {
 
 void glEnd() {
     glUnlockVb();
+    
+    // Select shader
+    if(texture_combiner_enabled){
+//        if(color_combiner_enabled){
+//            XeSetCombinerG();
+//        }
+//        else{
+//            XeSetCombinerF();
+//        }
+        XeSetCombinerG();
+    }
+    else{
+        XeSetCombinerC();
+    }
+    
     switch (gl_mode) {
         case GL_TRIANGLE_STRIP:
         {
             Xe_SetIndices(xe,ib_tri);
             Xe_DrawIndexedPrimitive(xe, XE_PRIMTYPE_TRIANGLELIST, 0, 0, 6, 0, 2);
-
             break;
         }
         case GL_TRIANGLES:
@@ -148,6 +172,7 @@ void glEnd() {
     
     // Reset color
     // gl_color = 0;
+    color_combiner_enabled = 0;
 }
 
 void glTexCoord2fv(float * st) {
@@ -173,5 +198,5 @@ void glVertex3fv(float * v) {
 void glColor4ubv(u8 *v) {
     uint32_t c = *(uint32_t*) v;
     gl_color = c;
+    color_combiner_enabled = 1;
 }
-#endif

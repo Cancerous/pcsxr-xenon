@@ -104,14 +104,6 @@ void XeViewport(int left, int top, int right, int bottom) {
 
 }
 
-void XeEnableTexture() {
-
-}
-
-void XeDisableTexture() {
-    Xe_SetTexture(xe, 0, NULL);
-}
-
 void XeEnableScissor() {
     // xe->scissor_enable = 1;
 }
@@ -120,21 +112,37 @@ void XeDisableScissor() {
     //xe->scissor_enable = 0;
 }
 
+static int blend_src=XE_BLEND_ONE;
+static int blend_dst=XE_BLEND_ZERO;
+static int blend_op=XE_BLENDOP_ADD;
+
+void XeBlendFunc(int src, int dst){
+    blend_src=src;
+    blend_dst=dst;
+    
+    //Xe_SetBlendOp(xe, XE_BLENDOP_ADD);
+    Xe_SetSrcBlend(xe, blend_src);
+    Xe_SetDestBlend(xe, blend_dst);
+}
+
+void XeBlendOp(int op){
+    blend_op = op;
+    Xe_SetBlendOp(xe,op);
+    Xe_SetBlendOpAlpha(xe,op);
+}
+
 void XeAlphaFunc(int func, float ref) {
     // Xe_SetAlphaTestEnable(xe, 1);
     Xe_SetAlphaFunc(xe, func);
     Xe_SetAlphaRef(xe, ref);
 }
 
-static int blend_src=XE_BLEND_ONE;
-static int blend_dst=XE_BLEND_ZERO;
-
-void XeBlendFunc(int src, int dst){
-    blend_src=src;
-    blend_dst=dst;
+void XeEnableAlphaTest(){
+    Xe_SetAlphaTestEnable(xe, 1);
 }
-
-
+void XeDisableAlphaTest(){
+    Xe_SetAlphaTestEnable(xe, 0);
+}
 
 void XeDisableBlend() {
 /*
@@ -156,7 +164,7 @@ void XeEnableBlend() {
     Xe_SetBlendOp(xe, XE_BLENDOP_ADD);
     Xe_SetBlendOpAlpha(xe, XE_BLENDOP_ADD);
 */
-    Xe_SetBlendControl(xe,blend_src,XE_BLENDOP_ADD,blend_dst,blend_src,XE_BLENDOP_ADD,blend_dst);
+    Xe_SetBlendControl(xe,blend_src,blend_op,blend_dst,blend_src,blend_op,blend_dst);
 }
 
 #if 0

@@ -200,8 +200,8 @@ void GetExtInfos(void) {
 ////////////////////////////////////////////////////////////////////////
 // Setup some stuff depending on user settings or in-game toggle
 ////////////////////////////////////////////////////////////////////////
-#define LoadPackedSubTexturePageSort NULL
-void Gl_SetExtGLFuncs(void) {
+
+void SetExtGLFuncs(void) {
     //----------------------------------------------------//
 
     SetFixes(); // update fix infos
@@ -373,7 +373,7 @@ void Gl_SetExtGLFuncs(void) {
     SetScanTrans(); // init scan lines (if wanted)
 }
 
-void SetExtGLFuncs(void) {
+void XeSetExtGLFuncs(void) {
     //----------------------------------------------------//
 
     SetFixes(); // update fix infos
@@ -413,6 +413,8 @@ void SetExtGLFuncs(void) {
 #endif
 
         XeAlphaFunc(XE_CMP_GREATER, 0.49f);
+        
+        TR;
     } else // no opaque mode?
     {
         TR;
@@ -424,6 +426,8 @@ void SetExtGLFuncs(void) {
         PalTexturedColourFn = P8RGBA; // -> init col func
 #endif
         XeAlphaFunc(XE_CMP_NOTEQUAL, 0); // --> set alpha func
+        
+        TR;
     }
 
     //----------------------------------------------------//

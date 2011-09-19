@@ -38,7 +38,7 @@
 #define DEFOPAQUEON  { \
         XeAlphaFunc(XE_CMP_EQUAL, 0); \
         bBlendEnable=FALSE; \
-        /*XeDisableBlend();*/ \
+        XeDisableBlend(); \
 }
 #define DEFOPAQUEOFF { \
         XeAlphaFunc(XE_CMP_GREATER, 0.49f); \
@@ -573,9 +573,7 @@ gl_color = 0;
 __inline void PRIMdrawTexturedQuad(OGLVertex* vertex1, OGLVertex* vertex2,
                                    OGLVertex* vertex3, OGLVertex* vertex4)
 {
-    
-    XeSetCombinerF();
-    
+
  glBegin(GL_TRIANGLE_STRIP);
   glTexCoord2fv(&vertex1->sow);
   glVertex3fv(&vertex1->x);
@@ -596,8 +594,7 @@ __inline void PRIMdrawTexturedQuad(OGLVertex* vertex1, OGLVertex* vertex2,
 __inline void PRIMdrawTexturedTri(OGLVertex* vertex1, OGLVertex* vertex2,
                                   OGLVertex* vertex3)
 {
-    XeSetCombinerF();
-    
+
  glBegin(GL_TRIANGLES);
   glTexCoord2fv(&vertex1->sow);
   glVertex3fv(&vertex1->x);
@@ -615,8 +612,7 @@ __inline void PRIMdrawTexturedTri(OGLVertex* vertex1, OGLVertex* vertex2,
 __inline void PRIMdrawTexGouraudTriColor(OGLVertex* vertex1, OGLVertex* vertex2,
                                          OGLVertex* vertex3)
 {
-    XeSetCombinerG();
-    
+
  glBegin(GL_TRIANGLES);
 
   SETPCOL(vertex1);
@@ -638,8 +634,6 @@ __inline void PRIMdrawTexGouraudTriColor(OGLVertex* vertex1, OGLVertex* vertex2,
 __inline void PRIMdrawTexGouraudTriColorQuad(OGLVertex* vertex1, OGLVertex* vertex2,
                                              OGLVertex* vertex3, OGLVertex* vertex4)
 {
-    
-    XeSetCombinerG();
  glBegin(GL_TRIANGLE_STRIP);
   SETPCOL(vertex1);
   glTexCoord2fv(&vertex1->sow);
@@ -663,8 +657,6 @@ __inline void PRIMdrawTexGouraudTriColorQuad(OGLVertex* vertex1, OGLVertex* vert
 
 __inline void PRIMdrawTri(OGLVertex* vertex1, OGLVertex* vertex2, OGLVertex* vertex3)
 {
-    XeSetCombinerF();
-    
  glBegin(GL_TRIANGLES);
   glVertex3fv(&vertex1->x);
   glVertex3fv(&vertex2->x);
@@ -677,8 +669,6 @@ __inline void PRIMdrawTri(OGLVertex* vertex1, OGLVertex* vertex2, OGLVertex* ver
 __inline void PRIMdrawTri2(OGLVertex* vertex1, OGLVertex* vertex2,
                            OGLVertex* vertex3, OGLVertex* vertex4)
 {
-    XeSetCombinerF();
-    
  glBegin(GL_TRIANGLE_STRIP);
   glVertex3fv(&vertex1->x);
   glVertex3fv(&vertex3->x);
@@ -692,8 +682,7 @@ __inline void PRIMdrawTri2(OGLVertex* vertex1, OGLVertex* vertex2,
 __inline void PRIMdrawGouraudTriColor(OGLVertex* vertex1, OGLVertex* vertex2,
                                       OGLVertex* vertex3)
 {
-    XeSetCombinerC();
-    
+ 
  glBegin(GL_TRIANGLES);
   SETPCOL(vertex1);
   glVertex3fv(&vertex1->x);
@@ -710,9 +699,7 @@ __inline void PRIMdrawGouraudTriColor(OGLVertex* vertex1, OGLVertex* vertex2,
 
 __inline void PRIMdrawGouraudTri2Color(OGLVertex* vertex1, OGLVertex* vertex2,
                                        OGLVertex* vertex3, OGLVertex* vertex4)
-{
-    XeSetCombinerC();
-    
+{ 
  glBegin(GL_TRIANGLE_STRIP);
   SETPCOL(vertex1);
   glVertex3fv(&vertex1->x);
@@ -731,9 +718,7 @@ __inline void PRIMdrawGouraudTri2Color(OGLVertex* vertex1, OGLVertex* vertex2,
 /////////////////////////////////////////////////////////
 
 __inline void PRIMdrawFlatLine(OGLVertex* vertex1, OGLVertex* vertex2,OGLVertex* vertex3, OGLVertex* vertex4)
-{
-    XeSetCombinerF();
-    
+{   
  glBegin(GL_QUADS);
 
   SETPCOL(vertex1);
@@ -749,9 +734,7 @@ __inline void PRIMdrawFlatLine(OGLVertex* vertex1, OGLVertex* vertex2,OGLVertex*
 
 __inline void PRIMdrawGouraudLine(OGLVertex* vertex1, OGLVertex* vertex2,OGLVertex* vertex3, OGLVertex* vertex4)
 {
-    XeSetCombinerC();
-    
- glBegin(GL_QUADS);
+glBegin(GL_QUADS);
 
   SETPCOL(vertex1);
   glVertex3fv(&vertex1->x);
@@ -772,8 +755,6 @@ __inline void PRIMdrawGouraudLine(OGLVertex* vertex1, OGLVertex* vertex2,OGLVert
 __inline void PRIMdrawQuad(OGLVertex* vertex1, OGLVertex* vertex2,
                            OGLVertex* vertex3, OGLVertex* vertex4)
 {
-    XeSetCombinerC();
-    
  glBegin(GL_QUADS);
   glVertex3fv(&vertex1->x);
   glVertex3fv(&vertex2->x);
@@ -792,19 +773,50 @@ static int obm2 = XE_BLEND_ZERO;
 typedef struct SEMITRANSTAG {
     int srcFac;
     int dstFac;
+    int op;
     unsigned char alpha;
 } SemiTransParams;
 
-SemiTransParams TransSets[4] = {
-    {XE_BLEND_SRCALPHA, XE_BLEND_SRCALPHA, 127},
-    {XE_BLEND_ONE, XE_BLEND_ONE, 255},
-    {XE_BLEND_ZERO, XE_BLEND_INVSRCCOLOR, 255},
-    {XE_BLEND_INVSRCALPHA, XE_BLEND_ONE, 192}
-};
-
+//    SemiTransParams TransSets[4] = { 
+//         {XE_BLEND_SRCALPHA,        XE_BLEND_SRCALPHA,      127},
+//         {XE_BLEND_ONE,             XE_BLEND_ONE,           255},
+//         {XE_BLEND_ZERO,            XE_BLEND_INVSRCCOLOR,   255},
+//         {XE_BLEND_INVSRCALPHA,     XE_BLEND_ONE,           192}
+//    };
+    SemiTransParams TransSets[4] = { 
+        {XE_BLEND_SRCALPHA,        XE_BLEND_INVSRCALPHA,   XE_BLENDOP_ADD,127},
+        {XE_BLEND_ONE,             XE_BLEND_ONE,           XE_BLENDOP_ADD,255}, // OK
+        {XE_BLEND_ZERO,            XE_BLEND_INVSRCCOLOR,   XE_BLENDOP_ADD,255},
+        {XE_BLEND_ONE,             XE_BLEND_ONE,           XE_BLENDOP_REVSUBTRACT,192}
+    };
 ////////////////////////////////////////////////////////////////////////
 
 void SetSemiTrans(void) {
+//Xe_SetBlendOp(xe, XE_BLENDOP_ADD);
+//Xe_SetSrcBlend(xe, XE_BLEND_SRCALPHA);
+//Xe_SetDestBlend(xe, XE_BLEND_INVSRCALPHA);
+    
+    if (!DrawSemiTrans) // no semi trans at all?
+    {
+        if (bBlendEnable) {
+            XeDisableBlend();
+            bBlendEnable = FALSE;
+        } // -> don't wanna blend
+        ubGloAlpha = ubGloColAlpha = 255; // -> full alpha
+        return; // -> and bye
+    }
+    
+    if (!bBlendEnable) {
+        XeEnableBlend();
+        bBlendEnable = TRUE;
+    } // wanna blend
+    XeEnableBlend();
+    ubGloAlpha = ubGloColAlpha = TransSets[GlobalTextABR].alpha;
+    obm1 = TransSets[GlobalTextABR].srcFac;
+    obm2 = TransSets[GlobalTextABR].dstFac;
+    XeBlendOp(TransSets[GlobalTextABR].op);
+    XeBlendFunc(obm1,obm2);
+#if 0
     /*
      * 0.5 x B + 0.5 x F
      * 1.0 x B + 1.0 x F
@@ -829,32 +841,53 @@ void SetSemiTrans(void) {
         bBlendEnable = TRUE;
     } // wanna blend
 
-    if (
-            TransSets[GlobalTextABR].srcFac != obm1 ||
-            TransSets[GlobalTextABR].dstFac != obm2
-    ) 
+//    if (
+//            TransSets[GlobalTextABR].srcFac != obm1 ||
+//            TransSets[GlobalTextABR].dstFac != obm2
+//    ) 
     {
-        obm1 = TransSets[GlobalTextABR].srcFac;
-        obm2 = TransSets[GlobalTextABR].dstFac;
-
-        XeBlendFunc(obm1,obm2);
+        if(0){
+            obm1 = TransSets[GlobalTextABR].srcFac;
+            obm2 = TransSets[GlobalTextABR].dstFac;
+            XeBlendFunc(obm1,obm2);
+        }
+        else{
+            if(TransSets[GlobalTextABR].dstFac !=XE_BLEND_INVSRCCOLOR) {
+                if (obm2 == XE_BLEND_INVSRCCOLOR)
+                    XeBlendOp(XE_BLENDOP_ADD);
+                obm1 = TransSets[GlobalTextABR].srcFac;
+                obm2 = TransSets[GlobalTextABR].dstFac;
+                XeBlendFunc(obm1, obm2); // set blend func
+            } else {
+                XeBlendOp(XE_BLENDOP_REVSUBTRACT);
+                obm1 = TransSets[GlobalTextABR].srcFac;
+                obm2 = TransSets[GlobalTextABR].dstFac;
+                XeBlendFunc(XE_BLEND_ONE, XE_BLEND_ONE); // set blend func
+            }
+        }
     }
+#endif
 }
 
 void SetScanTrans(void) // blending for scan lines
 {
+
+    #if 1
     obm1 = TransSets[0].srcFac;
     obm2 = TransSets[0].dstFac;
 
     XeBlendFunc(obm1,obm2);
+    #endif
 }
 
 void SetScanTexTrans(void) // blending for scan mask texture
 {
+#if 1
     obm1 = TransSets[2].srcFac;
     obm2 = TransSets[2].dstFac;
 
     XeBlendFunc(obm1,obm2);
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -892,6 +925,10 @@ SemiTransParams MultiColTransSets[4] = {
 ////////////////////////////////////////////////////////////////////////
 
 void SetSemiTransMulti(int Pass) {
+    Xe_SetBlendOp(xe, XE_BLENDOP_ADD);
+    Xe_SetSrcBlend(xe, XE_BLEND_SRCALPHA);
+    Xe_SetDestBlend(xe, XE_BLEND_INVSRCALPHA);
+#if 0
     static int bm1 = XE_BLEND_ZERO;
     static int bm2 = XE_BLEND_ONE;
 
@@ -935,6 +972,7 @@ void SetSemiTransMulti(int Pass) {
         obm1 = bm1;
         obm2 = bm2;
     }
+    #endif
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1059,6 +1097,7 @@ void SetRenderMode(uint32_t DrawAttributes, BOOL bSCol) {
 
         if (!bTexEnabled) // -> turn texturing on
         {
+            XeEnableTexture();
             bTexEnabled = TRUE;
         }
         if (currTex)
