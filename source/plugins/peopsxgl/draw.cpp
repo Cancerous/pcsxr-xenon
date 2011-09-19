@@ -497,6 +497,7 @@ int GLinitialize() {
         uiBufferBits = XE_CLEAR_COLOR | XE_CLEAR_DS;
         //    glEnable(GL_DEPTH_TEST);
         //    glDepthFunc(GL_ALWAYS);
+        Xe_SetZWrite(xe, 1);
         Xe_SetZEnable(xe, 1);
         Xe_SetZFunc(xe, XE_CMP_ALWAYS);
         iDepthFunc = 1;

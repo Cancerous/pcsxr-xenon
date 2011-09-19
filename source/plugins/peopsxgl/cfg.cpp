@@ -49,7 +49,7 @@ void ReadConfig(void) // read config (linux file)
     bUseAntiAlias = FALSE;
     iTexQuality = 4; // 4 - B8 G8 R8 A8 - Slightly faster with some cards | 3 - R8 G8 B8 A8 - Best colors, more ram needed
     iUseMask = 0;
-    iZBufferDepth = 0;
+    iZBufferDepth = 16;
     bUseFastMdec = TRUE;
     dwCfgFixes = 0;
     bUseFixes = FALSE;

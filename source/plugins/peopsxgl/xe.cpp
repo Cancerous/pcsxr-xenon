@@ -123,12 +123,17 @@ void XeBlendFunc(int src, int dst){
     //Xe_SetBlendOp(xe, XE_BLENDOP_ADD);
     Xe_SetSrcBlend(xe, blend_src);
     Xe_SetDestBlend(xe, blend_dst);
+//    Xe_SetSrcBlendAlpha(xe, XE_BLEND_ONE);
+//    Xe_SetDestBlendAlpha(xe, XE_BLEND_ZERO);
+    
+    Xe_SetSrcBlendAlpha(xe, blend_src);
+    Xe_SetDestBlendAlpha(xe, blend_dst);
 }
 
 void XeBlendOp(int op){
     blend_op = op;
     Xe_SetBlendOp(xe,op);
-    Xe_SetBlendOpAlpha(xe,op);
+    Xe_SetBlendOpAlpha(xe,XE_BLENDOP_ADD);
 }
 
 void XeAlphaFunc(int func, float ref) {
@@ -156,6 +161,17 @@ void XeDisableBlend() {
 */
     Xe_SetBlendControl(xe,XE_BLEND_ONE,XE_BLENDOP_ADD,XE_BLEND_ZERO,XE_BLEND_ONE,XE_BLENDOP_ADD,XE_BLEND_ZERO);
 
+//    Xe_SetBlendOp(xe, XE_BLENDOP_ADD);
+//    Xe_SetBlendOpAlpha(xe,XE_BLENDOP_ADD);
+//    
+//    Xe_SetSrcBlend(xe, XE_BLEND_SRCALPHA);
+//    Xe_SetSrcBlendAlpha(xe, XE_BLEND_SRCALPHA);
+//    
+//    Xe_SetDestBlend(xe, XE_BLEND_INVSRCALPHA);
+//    Xe_SetDestBlendAlpha(xe, XE_BLEND_INVSRCALPHA);
+    
+    //Xe_SetAlphaTestEnable(xe, 0);
+
 }
 
 void XeEnableBlend() {
@@ -164,7 +180,21 @@ void XeEnableBlend() {
     Xe_SetBlendOp(xe, XE_BLENDOP_ADD);
     Xe_SetBlendOpAlpha(xe, XE_BLENDOP_ADD);
 */
+    //Xe_SetAlphaTestEnable(xe, 1);
+    //Xe_SetBlendControl(xe,blend_src,blend_op,blend_dst,XE_BLEND_ONE,XE_BLENDOP_ADD,XE_BLEND_ZERO);
     Xe_SetBlendControl(xe,blend_src,blend_op,blend_dst,blend_src,blend_op,blend_dst);
+}
+
+void XeClear(uint32_t flags){
+    
+}
+
+void XeDepthFunc(int func){
+    
+}
+
+void XeClearColor(float r,float g,float b, float a){
+    
 }
 
 #if 0

@@ -33,6 +33,11 @@ void XeTexWrap(int uwrap, int vwrap);
 void XeTexUseFiltering(int enabled);
 
 
+void XeDepthFunc(int func);
+
+void XeClearColor(float r,float g,float b, float a);
+void XeClear(uint32_t flags);
+
 void XeClear();
 
 struct XenosVertexBuffer *XeGetVb();
