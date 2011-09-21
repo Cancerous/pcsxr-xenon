@@ -28,7 +28,7 @@
 #include "ppc.h"
 #include "reguse.h"
 #include "pR3000A.h"
-#include "r3000A.h"
+#include "r3000a.h"
 #include "psxhle.h"
 
 void DCFlushRange(void* startaddr, unsigned int len) {

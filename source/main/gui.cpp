@@ -6,9 +6,9 @@ extern "C" {
     int pcsxmain(const char * cdfile);
 }
 
-#include <lzx/Console.h>
-#include <lzx/Draw.h>
-#include <lzx/Bgshader.h>
+#include <zlx/Console.h>
+#include <zlx/Draw.h>
+#include <zlx/Bgshader.h>
 
 #include <debug.h>
 #include <xenos/xenos.h>

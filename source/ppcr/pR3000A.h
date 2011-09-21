@@ -30,7 +30,7 @@
 #include "psxcommon.h"
 #include "ppc.h"
 #include "reguse.h"
-#include "r3000A.h"
+#include "r3000a.h"
 #include "psxhle.h"
 
 /* defines */
