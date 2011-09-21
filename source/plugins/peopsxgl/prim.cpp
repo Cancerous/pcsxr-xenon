@@ -630,6 +630,8 @@ __inline void SetRenderState(uint32_t DrawAttributes)
 {
  bDrawNonShaded = (SHADETEXBIT(DrawAttributes)) ? TRUE : FALSE;
  DrawSemiTrans = (SEMITRANSBIT(DrawAttributes)) ? TRUE : FALSE;
+// printf("SetRenderState - bDrawNonShaded : %2x\r\n",bDrawNonShaded);
+// printf("SetRenderState - DrawSemiTrans : %2x\r\n",DrawSemiTrans);
 }                         
 
 ////////////////////////////////////////////////////////////////////////                                          
@@ -1433,7 +1435,7 @@ void cmdSTP(unsigned char * baseAddr)
 void cmdTexturePage(unsigned char * baseAddr)
 {
  uint32_t gdata = GETLE32(&((uint32_t*) baseAddr)[0]);
- UpdateGlobalTP((unsigned short)gdata);
+ UpdateGlobalTP(gdata);
  GlobalTextREST = (gdata&0x00ffffff)>>9;
 }
 
@@ -3454,7 +3456,7 @@ void primPolyFT3(unsigned char * baseAddr)
  gl_vy[2]=baseAddr[25];//(gpuData[6]>>8)&0xff;
 
  UpdateGlobalTP(GETLE32(&gpuData[4])>>16);
- ulClutID=GETLE32(&gpuData[4])>>16;
+ ulClutID=GETLE32(&gpuData[2])>>16;
 
  bDrawTextured = TRUE;
  bDrawSmoothShaded = FALSE;
@@ -4279,8 +4281,8 @@ void primLineGSkip(unsigned char *baseAddr)
  int iMax=255;
  int i=2;
 
- lx1 = sgpuData[2];
- ly1 = sgpuData[3];
+ lx1 = GETLEs16(&sgpuData[2]);
+ ly1 = GETLEs16(&sgpuData[3]);
 
  while(!(((GETLE32(&gpuData[i]) & 0xF000F000) == 0x50005000) && i>=4))
   {

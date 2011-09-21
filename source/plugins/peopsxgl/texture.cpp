@@ -182,6 +182,11 @@ unsigned short (*PTCF[2]) (unsigned short);
 #pragma pack(1)
 #endif
 
+// for faster BSWAP test
+uint32_t ptr32(void * addr){
+    return GETLE32((uint32_t *)addr);
+}
+
 // "texture window" cache entry
 
 typedef struct textureWndCacheEntryTag {
@@ -1245,10 +1250,14 @@ void LoadStretchWndTexturePage(int pageid, int mode, short cx, short cy) {
 
                 row = 4;
                 do {
-                    *px = LTCOL(*wSRCPtr);
-                    *(px + 1) = LTCOL(*(wSRCPtr + 1));
-                    *(px + 2) = LTCOL(*(wSRCPtr + 2));
-                    *(px + 3) = LTCOL(*(wSRCPtr + 3));
+//                    *px = LTCOL(*wSRCPtr);
+//                    *(px + 1) = LTCOL(*(wSRCPtr + 1));
+//                    *(px + 2) = LTCOL(*(wSRCPtr + 2));
+//                    *(px + 3) = LTCOL(*(wSRCPtr + 3));
+                    *px = LTCOL(ptr32(wSRCPtr));
+                    *(px + 1) = LTCOL(ptr32(wSRCPtr + 1));
+                    *(px + 2) = LTCOL(ptr32(wSRCPtr + 2));
+                    *(px + 3) = LTCOL(ptr32(wSRCPtr + 3));
                     row--;
                     px += 4;
                     wSRCPtr += 4;
@@ -1261,7 +1270,8 @@ void LoadStretchWndTexturePage(int pageid, int mode, short cx, short cy) {
                         n_xi = ((TXU >> 2) & ~0x3c) + ((TXV << 2) & 0x3c);
                         n_yi = (TXV & ~0xf) + ((TXU >> 4) & 0xf);
 
-                        s = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x03) << 2)) & 0x0f));
+//                        s = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x03) << 2)) & 0x0f));
+                        s = *(pa + ((ptr32(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x03) << 2)) & 0x0f));
                         *ta++ = s;
 
                         if (ldx) {
@@ -1289,7 +1299,8 @@ void LoadStretchWndTexturePage(int pageid, int mode, short cx, short cy) {
 
             wSRCPtr = psxVuw + palstart;
             for (row = 0; row < 16; row++)
-                *px++ = LTCOL(*wSRCPtr++);
+//                *px++ = LTCOL(*wSRCPtr++);
+                *px++ = LTCOL(ptr32(wSRCPtr++));
 
             sxm = g_x1 & 1;
             sxh = g_x1 >> 1;
@@ -1338,10 +1349,14 @@ void LoadStretchWndTexturePage(int pageid, int mode, short cx, short cy) {
 
                 row = 64;
                 do {
-                    *px = LTCOL(*wSRCPtr);
-                    *(px + 1) = LTCOL(*(wSRCPtr + 1));
-                    *(px + 2) = LTCOL(*(wSRCPtr + 2));
-                    *(px + 3) = LTCOL(*(wSRCPtr + 3));
+//                    *px = LTCOL(*wSRCPtr);
+//                    *(px + 1) = LTCOL(*(wSRCPtr + 1));
+//                    *(px + 2) = LTCOL(*(wSRCPtr + 2));
+//                    *(px + 3) = LTCOL(*(wSRCPtr + 3));
+                    *px = (LTCOL(ptr32(wSRCPtr)));
+                    *(px + 1) = (LTCOL(ptr32(wSRCPtr + 1)));
+                    *(px + 2) = (LTCOL(ptr32(wSRCPtr + 2)));
+                    *(px + 3) = (LTCOL(ptr32(wSRCPtr + 3)));
                     row--;
                     px += 4;
                     wSRCPtr += 4;
@@ -1354,7 +1369,8 @@ void LoadStretchWndTexturePage(int pageid, int mode, short cx, short cy) {
                         n_xi = ((TXU >> 1) & ~0x78) + ((TXU << 2) & 0x40) + ((TXV << 3) & 0x38);
                         n_yi = (TXV & ~0x7) + ((TXU >> 5) & 0x7);
 
-                        s = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x01) << 3)) & 0xff));
+//                        s = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x01) << 3)) & 0xff));
+                        s = *(pa + ((ptr32(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x01) << 3)) & 0xff));
                         *ta++ = s;
                         if (ldx) {
                             *ta++ = s;
@@ -1386,7 +1402,8 @@ void LoadStretchWndTexturePage(int pageid, int mode, short cx, short cy) {
                 cOSRCPtr = cSRCPtr;
                 ldx = ldxo;
                 for (row = g_x1; row <= g_x2 - ldxo; row++) {
-                    s = LTCOL(psxVuw[palstart + *cSRCPtr++]);
+//                    s = LTCOL(psxVuw[palstart + *cSRCPtr++]);
+                    s = LTCOL(ptr32(&psxVuw[palstart + *cSRCPtr++]));
                     *ta++ = s;
                     if (ldx) {
                         *ta++ = s;
@@ -1413,7 +1430,8 @@ void LoadStretchWndTexturePage(int pageid, int mode, short cx, short cy) {
                 wOSRCPtr = wSRCPtr;
                 ldx = ldxo;
                 for (row = g_x1; row <= g_x2 - ldxo; row++) {
-                    s = LTCOL(*wSRCPtr++);
+//                    s = LTCOL(*wSRCPtr++);
+                    s = LTCOL(ptr32(wSRCPtr++));
                     *ta++ = s;
                     if (ldx) {
                         *ta++ = s;
@@ -1599,10 +1617,14 @@ void LoadWndTexturePage(int pageid, int mode, short cx, short cy) {
 
                 row = 4;
                 do {
-                    *px = LTCOL(*wSRCPtr);
-                    *(px + 1) = LTCOL(*(wSRCPtr + 1));
-                    *(px + 2) = LTCOL(*(wSRCPtr + 2));
-                    *(px + 3) = LTCOL(*(wSRCPtr + 3));
+//                    *px = LTCOL(*wSRCPtr);
+//                    *(px + 1) = LTCOL(*(wSRCPtr + 1));
+//                    *(px + 2) = LTCOL(*(wSRCPtr + 2));
+//                    *(px + 3) = LTCOL(*(wSRCPtr + 3));
+                    *px = LTCOL(ptr32(wSRCPtr));
+                    *(px + 1) = LTCOL(ptr32(wSRCPtr + 1));
+                    *(px + 2) = LTCOL(ptr32(wSRCPtr + 2));
+                    *(px + 3) = LTCOL(ptr32(wSRCPtr + 3));
                     row--;
                     px += 4;
                     wSRCPtr += 4;
@@ -1613,7 +1635,8 @@ void LoadWndTexturePage(int pageid, int mode, short cx, short cy) {
                         n_xi = ((TXU >> 2) & ~0x3c) + ((TXV << 2) & 0x3c);
                         n_yi = (TXV & ~0xf) + ((TXU >> 4) & 0xf);
 
-                        *ta++ = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x03) << 2)) & 0x0f));
+//                        *ta++ = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x03) << 2)) & 0x0f));
+                        *ta++ = *(pa + ((ptr32(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x03) << 2)) & 0x0f));
                     }
                 }
 
@@ -1628,7 +1651,8 @@ void LoadWndTexturePage(int pageid, int mode, short cx, short cy) {
 
             wSRCPtr = psxVuw + palstart;
             for (row = 0; row < 16; row++)
-                *px++ = LTCOL(*wSRCPtr++);
+//                *px++ = LTCOL(*wSRCPtr++);
+                *px++ = LTCOL(ptr32(wSRCPtr++));
 
             sxm = g_x1 & 1;
             sxh = g_x1 >> 1;
@@ -1660,10 +1684,14 @@ void LoadWndTexturePage(int pageid, int mode, short cx, short cy) {
 
                 row = 64;
                 do {
-                    *px = LTCOL(*wSRCPtr);
-                    *(px + 1) = LTCOL(*(wSRCPtr + 1));
-                    *(px + 2) = LTCOL(*(wSRCPtr + 2));
-                    *(px + 3) = LTCOL(*(wSRCPtr + 3));
+//                    *px = LTCOL(*wSRCPtr);
+//                    *(px + 1) = LTCOL(*(wSRCPtr + 1));
+//                    *(px + 2) = LTCOL(*(wSRCPtr + 2));
+//                    *(px + 3) = LTCOL(*(wSRCPtr + 3));
+                    *px = LTCOL(ptr32(wSRCPtr));
+                    *(px + 1) = LTCOL(ptr32(wSRCPtr + 1));
+                    *(px + 2) = LTCOL(ptr32(wSRCPtr + 2));
+                    *(px + 3) = LTCOL(ptr32(wSRCPtr + 3));
                     row--;
                     px += 4;
                     wSRCPtr += 4;
@@ -1674,7 +1702,8 @@ void LoadWndTexturePage(int pageid, int mode, short cx, short cy) {
                         n_xi = ((TXU >> 1) & ~0x78) + ((TXU << 2) & 0x40) + ((TXV << 3) & 0x38);
                         n_yi = (TXV & ~0x7) + ((TXU >> 5) & 0x7);
 
-                        *ta++ = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x01) << 3)) & 0xff));
+                        //*ta++ = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x01) << 3)) & 0xff));
+                        *ta++ = *(pa + ((ptr32(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x01) << 3)) & 0xff));
                     }
                 }
 
@@ -1691,7 +1720,8 @@ void LoadWndTexturePage(int pageid, int mode, short cx, short cy) {
 
             for (column = g_y1; column <= g_y2; column++) {
                 for (row = g_x1; row <= g_x2; row++)
-                    *ta++ = LTCOL(psxVuw[palstart + *cSRCPtr++]);
+                    //*ta++ = LTCOL(psxVuw[palstart + *cSRCPtr++]);
+                    *ta++ = LTCOL(ptr32(&psxVuw[palstart + *cSRCPtr++]));
                 cSRCPtr += LineOffset;
             }
 
@@ -1707,7 +1737,8 @@ void LoadWndTexturePage(int pageid, int mode, short cx, short cy) {
 
             for (column = g_y1; column <= g_y2; column++) {
                 for (row = g_x1; row <= g_x2; row++)
-                    *ta++ = LTCOL(*wSRCPtr++);
+                    //*ta++ = LTCOL(*wSRCPtr++);
+                    *ta++ = LTCOL(ptr32(wSRCPtr++));
                 wSRCPtr += LineOffset;
             }
 
@@ -1958,8 +1989,10 @@ struct XenosSurface * LoadTextureWnd(int pageid, int TextureMode, uint32_t Given
         {
             uint32_t l = 0, row;
             uint32_t *lSRCPtr = (uint32_t *) (psxVuw + cx + (cy * 1024));
-            if (TextureMode == 1) for (row = 1; row < 129; row++) l += ((*lSRCPtr++) - 1) * row;
-            else for (row = 1; row < 9; row++) l += ((*lSRCPtr++) - 1) << row;
+//            if (TextureMode == 1) for (row = 1; row < 129; row++) l += ((*lSRCPtr++) - 1) * row;
+//            else for (row = 1; row < 9; row++) l += ((*lSRCPtr++) - 1) << row;
+            if (TextureMode == 1) for (row = 1; row < 129; row++) l += (GETLE32(lSRCPtr++) - 1) * row;
+            else for (row = 1; row < 9; row++) l += (GETLE32(lSRCPtr++) - 1) << row;
             l = (l + HIWORD(l))&0x3fffL;
             GivenClutId |= (l << 16);
         }
@@ -2707,11 +2740,6 @@ struct XenosSurface * Fake15BitTexture(void) {
 /////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
 
-// for faster BSWAP test
-uint32_t ptr32(void * addr){
-    return GETLE32((uint32_t *)addr);
-}
-
 void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
     uint32_t start, row, column, j, sxh, sxm;
     unsigned int palstart;
@@ -2869,8 +2897,8 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
                         n_xi = ((TXU >> 1) & ~0x78) + ((TXU << 2) & 0x40) + ((TXV << 3) & 0x38);
                         n_yi = (TXV & ~0x7) + ((TXU >> 5) & 0x7);
 
-                        // *ta++ = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x01) << 3)) & 0xff));
-                        *ta++ = *(pa + ((ptr32(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x01) << 3)) & 0xff));
+                         *ta++ = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x01) << 3)) & 0xff));
+                        //*ta++ = *(pa + ((ptr32(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x01) << 3)) & 0xff));
                     }
                     ta += xalign;
                 }
@@ -3023,7 +3051,7 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
     ta = (uint32_t *) texturepart;
     x1 = dx - 1;
     y1 = dy - 1;
-
+#if 1
     if (bOpaquePass) {
         if (bSmallAlpha) {
             for (column = 0; column < dy; column++) {
@@ -3087,7 +3115,8 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
                             b /= cnt;
                             g /= cnt;
 
-                            *ta = (r << 16) | (g << 8) | b;
+                            //*ta =  SWAP32( (r << 16) | (g << 8) | b );
+                            *ta =  ( (r << 16) | (g << 8) | b );
                             if (a) *ta |= 0x50000000;
                             else *ta |= 0x01000000;
                         }
@@ -3115,13 +3144,14 @@ void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
                         r /= cnt;
                         b /= cnt;
                         g /= cnt;
-                        *ta = (r << 16) | (g << 8) | b;
+                        //*ta = SWAP32( (r << 16) | (g << 8) | b);
+                        *ta = ( (r << 16) | (g << 8) | b);
                     }
                 }
                 ta++;
             }
         }
-
+#endif
     DefineSubTextureSort();
 }
 
@@ -4831,8 +4861,8 @@ void CompressTextureSpace(void) {
                                 // palette check sum
                                 l = 0;
                                 lSRCPtr = (uint32_t *) (psxVuw + cx + (cy * 1024));
-                                if (j == 1) for (row = 1; row < 129; row++) l += ((*lSRCPtr++) - 1) * row;
-                                else for (row = 1; row < 9; row++) l += ((*lSRCPtr++) - 1) << row;
+                                if (j == 1) for (row = 1; row < 129; row++) l += (GETLE32(lSRCPtr++) - 1) * row;
+                                else for (row = 1; row < 9; row++) l += (GETLE32(lSRCPtr++) - 1) << row;
                                 l = ((l + HIWORD(l))&0x3fffL) << 16;
                                 if (l != (tsx->ClutID & (0x00003fff << 16))) {
                                     tsx->ClutID = 0;

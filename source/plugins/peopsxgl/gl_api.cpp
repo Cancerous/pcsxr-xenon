@@ -47,6 +47,8 @@ typedef struct __attribute__((__packed__)) glVerticeFormats {
 glVerticeFormats * currentVertex = NULL;
 
 
+int glGetModelSize() ;
+
 static void glLockVb(int size) {
     // se deplace dans le vb
     Xe_SetStreamSource(xe, 0, vb, vertexCount, 4);
@@ -58,12 +60,15 @@ static void glUnlockVb() {
     if (vb->lock.start)
         Xe_VB_Unlock(xe, vb);
     else
-        printf("glUnlockVb\r\n");
+        printf("glUnlockVb - vb not locked\r\n");
 }
 
 
 static void XeGlPrepare(int size) {
     glLockVb(size);
+       
+    // Zero it
+    memset(currentVertex,0,glGetModelSize() * sizeof(glVerticeFormats));
 }
 
 // appeler apres chaques frames
@@ -106,6 +111,8 @@ int glGetModelSize() {
             return 4;
         }
     }
+    printf("Unknow primitive\r\n");
+    return 0;
 }
 
 static int texture_combiner_enabled = 0;
@@ -122,6 +129,7 @@ void XeDisableTexture() {
 
 void glBegin(int mode) {    
     XeGlPrepare(glGetModelSize());
+   
     gl_mode = mode;
     off_v = 0;
 }
