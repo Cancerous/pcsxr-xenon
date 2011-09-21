@@ -91,6 +91,28 @@ int GetSlowbootGui();
 int GetCpuGui();
 #endif
 
+
+void SetIso(const char * fname){
+    FILE *fd = fopen(fname,"rb");
+    if(fd==NULL){
+        printf("Error loading %s\r\n",fname);
+        return;
+    }
+    uint8_t header[2];
+    fread(header,2,1,fd);
+    
+    if(header[0]==0x78 && header[1]==0xDA){
+        printf("Use CDRCIMG for  %s\r\n",fname);
+        strcpy(Config.Cdr, "CDRCIMG");
+        cdrcimg_set_fname(fname);
+    }
+    else{
+        SetIsoFile(fname);
+    }
+    
+    fclose(fd);
+}
+
 #ifndef LZX_GUI
 int main() {
     xenon_make_it_faster(XENON_SPEED_FULL);
@@ -130,7 +152,7 @@ int pcsxmain(const char * cdfile) {
     Config.SpuIrq = 0; // Spu Irq Always Enabled
     //Config.HLE = 0; 
     Config.Xa = 0; // Disable Xa Decoding
-    Config.Cdda = 1; // Disable Cd audio
+    Config.Cdda = 0; // Disable Cd audio
     Config.PsxAuto = 1; // Autodetect
 #else
     Config.SpuIrq = GetSpuIrqGui(); // Spu Irq Always Enabled
@@ -150,11 +172,14 @@ int pcsxmain(const char * cdfile) {
 
     //SysPrintf("Init ...");
 #ifndef PCSXDF
+/*
     SetIsoFile(cdfile);// disable use of cdrplugins...
     strcpy(Config.Cdr, "CDRCIMG");
     //cdrcimg_set_fname("uda:/psxisos/Street Fighter Alpha 2 (USA)/Street Fighter Alpha 2 (USA) (Track 1).bin.z");
     cdrcimg_set_fname("uda:/psxisos/Tekken 3 (USA)/Tekken 3 (USA) (Track 1).bin.z");
+*/
 #endif
+    SetIso(cdfile);
     if (LoadPlugins() == 0) {
         if (OpenPlugins() == 0) {
             if (SysInit() == -1) {

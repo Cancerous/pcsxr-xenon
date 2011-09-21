@@ -97,22 +97,23 @@ void glInit() {
 }
 
 int glGetModelSize() {
-    switch (gl_mode) {
-        case GL_TRIANGLE_STRIP:
-        {
-            return 4;
-        }
-        case GL_TRIANGLES:
-        {
-            return 3;
-        }
-        case GL_QUADS:
-        {
-            return 4;
-        }
-    }
-    printf("Unknow primitive\r\n");
-    return 0;
+//    switch (gl_mode) {
+//        case GL_TRIANGLE_STRIP:
+//        {
+//            return 4;
+//        }
+//        case GL_TRIANGLES:
+//        {
+//            return 3;
+//        }
+//        case GL_QUADS:
+//        {
+//            return 4;
+//        }
+//    }
+//    printf("Unknow primitive\r\n");
+//    return 0;
+    return 16;
 }
 
 static int texture_combiner_enabled = 0;
@@ -135,8 +136,8 @@ void glBegin(int mode) {
 }
 
 void glEnd() {
-    glUnlockVb();
     
+    glUnlockVb();
     // Select shader
     if(texture_combiner_enabled){
 //        if(color_combiner_enabled){
@@ -161,7 +162,7 @@ void glEnd() {
         case GL_TRIANGLES:
         {
             Xe_SetIndices(xe,NULL);
-            Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLEFAN, 0, 1);
+            Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLELIST, 0, 1);
             break;
         }
         case GL_QUADS:
@@ -174,7 +175,9 @@ void glEnd() {
     }
     
     // +++
-    vertexCount += off_v * sizeof (glVerticeFormats);
+    //vertexCount += glGetModelSize() * ( sizeof (glVerticeFormats) + 4 );
+    // todo: better alignement fixe
+    vertexCount += glGetModelSize() * ( 8 * sizeof(float) );
     
     //glUnlockIb();
     
@@ -195,7 +198,7 @@ void glVertex3fv(float * v) {
     currentVertex[off_v].x = ((v[0] / screen[0])*2.f) - 1.0f;
     currentVertex[off_v].y = ((v[1] / screen[1])*2.f) - 1.0f;
 
-    currentVertex[off_v].z = -v[2];
+    currentVertex[off_v].z = v[2];
     currentVertex[off_v].w = 1.f;
     currentVertex[off_v].u = gl_u;
     currentVertex[off_v].v = gl_v;

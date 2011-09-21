@@ -441,6 +441,9 @@ void MyConsole::ScanDir() {
                     else if(stricmp(ext,".nrg")==0){
                         
                     }
+                    else if(stricmp(ext,".Z")==0){
+                        
+                    }
                     else{
                         continue;
                     }
