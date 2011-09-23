@@ -729,6 +729,65 @@ void MyConsole::Init() {
     LoadTextureFromFile(g_pVideoDevice, "uda:/pcsxr/bg.png", &bg);
 };
 
+
+enum SMC_COMMAND {
+    //GET INFO
+    SMC_COMMAND_POWER_ON_TYPE = 0x01,
+    SMC_COMMAND_REAL_TIME_CLOCK = 0x04,
+    SMC_COMMAND_REQUEST_TEMPERATURE = 0x07,
+    SMC_COMMAND_REQUEST_TRAY_STATE = 0x0a,
+    SMC_COMMAND_REQUEST_AV_PACK = 0x0f,
+    SMC_COMMAND_REQUEST_ANA = 0x11,
+    SMC_COMMAND_REQUEST_SMC_VERSION = 0x12,
+    SMC_COMMAND_QUERY_IR_ACCESS = 0x16,
+    SMC_COMMAND_REQUEST_TILT = 0x17,
+    //SET
+    SMC_COMMAND_SET_POWER = 0x82,
+    SMC_COMMAND_SET_REAL_TIME_CLOCK = 0x85,
+    SMC_COMMAND_SET_CD_TRAY = 0x8b,
+    SMC_COMMAND_SET_POWER_LED = 0x8c,
+    //EVENT
+    SMC_COMMAND_EVENT = 0x83
+};
+
+enum SMC_POWER_EVENT {
+    SMC_POWER_EVENT_POWER_BUTTON = 0x11,
+    SMC_POWER_EVENT_EJECT_BUTTON = 0x12,
+    SMC_POWER_EVENT_RTC_WAKEUP = 0x15,
+    SMC_POWER_EVENT_POWER_IR = 0x20,
+    SMC_POWER_EVENT_EJECT_IR = 0x21,
+    SMC_POWER_EVENT_XENON_IR = 0x22,
+    SMC_POWER_EVENT_MCE_IR = 0x24,
+    SMC_POWER_EVENT_POWER_CYCLE = 0x30,
+    SMC_POWER_EVENT_RESET_CYCLE = 0x31,
+    SMC_POWER_EVENT_UNK = 0x41,
+    SMC_POWER_EVENT_KIOSK = 0x51,
+    SMC_POWER_EVENT_ARGON = 0x55,
+    SMC_POWER_EVENT_GAMEPORT_1 = 0x56,
+    SMC_POWER_EVENT_GAMEPORT_2 = 0x57,
+    SMC_POWER_EVENT_EXPANSION = 0x5a,
+};
+
+enum SMC_TRAY {
+    SMC_TRAY_OPEN = 0x60,
+    SMC_TRAY_OPENING = 0x61,
+    SMC_TRAY_CLOSE = 0x62,
+};
+
+
+//--------------------------------------------------------------------------
+//  Cd tray
+//--------------------------------------------------------------------------
+void openTray(){
+unsigned char msg[16] = {SMC_COMMAND_SET_CD_TRAY, SMC_TRAY_OPEN};
+xenon_smc_send_message(msg);
+}
+
+void closeTray(){
+unsigned char msg[16] = {SMC_COMMAND_SET_CD_TRAY, SMC_TRAY_CLOSE};
+xenon_smc_send_message(msg);
+}
+
 int main() {
 
     usb_init();
@@ -738,6 +797,7 @@ int main() {
     xenos_init(VIDEO_MODE_AUTO);
     xenon_smc_start_bootanim();
 
+    closeTray();
 
     cApp.Run();
 

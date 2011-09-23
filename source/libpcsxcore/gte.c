@@ -281,9 +281,10 @@ static inline void MTC2(u32 value, int reg) {
 #if 1
             int a;
             gteLZCS = value;
-
+            
             // non-MAME code
             a = gteLZCS;
+#ifndef LIBXENON
             if (a > 0) {
                 int i;
                 for (i = 31; (a & (1 << i)) == 0 && i >= 0; i--);
@@ -296,6 +297,10 @@ static inline void MTC2(u32 value, int reg) {
             } else {
                 gteLZCR = 32;
             }
+#else
+            __asm__ ("cntlzw %0, %1" : "=r" (a) : "r"(a));
+            gteLZCR = a;
+#endif
 #else
             // MAME
             u32 lzcs = value;

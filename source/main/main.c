@@ -115,6 +115,7 @@ void SetIso(const char * fname){
 
 #ifndef LZX_GUI
 int main() {
+    
     xenon_make_it_faster(XENON_SPEED_FULL);
     xenos_init(VIDEO_MODE_AUTO);
     xenon_sound_init();
@@ -132,6 +133,9 @@ int pcsxmain(const char * cdfile) {
         initialised++;
     }
 #endif
+    
+    
+    
     // uart speed patch 115200
     // *(volatile uint32_t*)(0xea001000+0x1c) = 0xe6010000;
 

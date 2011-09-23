@@ -47,6 +47,7 @@ typedef struct __attribute__((__packed__)) PsxVerticeFormats {
     float x, y, z, w;
     float u, v;
     unsigned int color;
+    unsigned int color_h;
     //float r,g,b,a;
 } PsxVerticeFormats;
 

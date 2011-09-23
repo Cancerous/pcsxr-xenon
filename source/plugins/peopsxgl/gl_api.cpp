@@ -21,7 +21,14 @@ extern struct XenosDevice *xe;
 #define MAX_VERTEX_COUNT 16384
 #define MAX_INDICE_COUNT 65536
 
-uint32_t gl_color = 0;
+
+typedef union 
+{
+    uint32_t u;
+    float f;
+} gl_color_t;
+
+gl_color_t gl_color;
 float gl_u = 0;
 float gl_v = 0;
 int gl_mode = 0;
@@ -37,64 +44,17 @@ static uint16_t prim_quads[] = {0, 1, 2, 3, 0, 3}; // GL_QUADS
 int indiceCount=0;
 int vertexCount=0;
 
-typedef struct __attribute__((__packed__)) glVerticeFormats {
+
+typedef struct glVerticeFormats {
     float x, y, z, w;
     float u, v;
-    unsigned int color;
+    float color;
     //float r,g,b,a;
 } glVerticeFormats;
 
+#define VERTICE_SIZE (8*sizeof(float))
+
 glVerticeFormats * currentVertex = NULL;
-
-
-int glGetModelSize() ;
-
-static void glLockVb(int size) {
-    // se deplace dans le vb
-    Xe_SetStreamSource(xe, 0, vb, vertexCount, 4);
-    currentVertex = (glVerticeFormats *) Xe_VB_Lock(xe, vb, vertexCount, size * sizeof (glVerticeFormats), XE_LOCK_WRITE);
-}
-
-
-static void glUnlockVb() {
-    if (vb->lock.start)
-        Xe_VB_Unlock(xe, vb);
-    else
-        printf("glUnlockVb - vb not locked\r\n");
-}
-
-
-static void XeGlPrepare(int size) {
-    glLockVb(size);
-       
-    // Zero it
-    memset(currentVertex,0,glGetModelSize() * sizeof(glVerticeFormats));
-}
-
-// appeler apres chaques frames
-void glReset(){
-    vertexCount = 0;
-}
-
-
-void glInit() {
-    vb = Xe_CreateVertexBuffer(xe, MAX_VERTEX_COUNT * sizeof (glVerticeFormats));
-    
-    ib_tri = Xe_CreateIndexBuffer(xe, 6 * sizeof (uint16_t), XE_FMT_INDEX16);
-    ib_quads = Xe_CreateIndexBuffer(xe, 6 * sizeof (uint16_t), XE_FMT_INDEX16);
-    
-    // lock
-    void *vt = Xe_IB_Lock(xe,ib_tri,0,6 * sizeof (uint16_t),XE_LOCK_WRITE);
-    void *vq = Xe_IB_Lock(xe,ib_quads,0,6 * sizeof (uint16_t),XE_LOCK_WRITE);
-    
-    memcpy(vt,prim_tri_strip,6 * sizeof (uint16_t));
-    memcpy(vq,prim_quads,6 * sizeof (uint16_t));
-    
-    Xe_IB_Unlock(xe,ib_tri);
-    Xe_IB_Unlock(xe,ib_quads);
-    
-    glReset();
-}
 
 int glGetModelSize() {
 //    switch (gl_mode) {
@@ -112,9 +72,59 @@ int glGetModelSize() {
 //        }
 //    }
 //    printf("Unknow primitive\r\n");
-//    return 0;
-    return 16;
+//    return 4;
+    return 4;
 }
+
+static void glLockVb(int size) {
+    // se deplace dans le vb
+    Xe_SetStreamSource(xe, 0, vb, vertexCount, 4);
+    currentVertex = (glVerticeFormats *) Xe_VB_Lock(xe, vb, vertexCount, size * VERTICE_SIZE, XE_LOCK_WRITE);
+}
+
+
+static void glUnlockVb() {
+    if (vb->lock.start)
+        Xe_VB_Unlock(xe, vb);
+    else
+        printf("glUnlockVb - vb not locked\r\n");
+}
+
+
+static void XeGlPrepare(int size) {
+    glLockVb(size);
+       
+    // Zero it
+    //memset(currentVertex,0,glGetModelSize() * sizeof(glVerticeFormats));
+    memset(currentVertex,0,glGetModelSize() * VERTICE_SIZE);
+}
+
+// appeler apres chaques frames
+void glReset(){
+    vertexCount = 0;
+}
+
+
+void glInit() {
+    vb = Xe_CreateVertexBuffer(xe, MAX_VERTEX_COUNT * VERTICE_SIZE);
+    
+    ib_tri = Xe_CreateIndexBuffer(xe, 6 * sizeof (uint16_t), XE_FMT_INDEX16);
+    ib_quads = Xe_CreateIndexBuffer(xe, 6 * sizeof (uint16_t), XE_FMT_INDEX16);
+    
+    // lock
+    void *vt = Xe_IB_Lock(xe,ib_tri,0,6 * sizeof (uint16_t),XE_LOCK_WRITE);
+    void *vq = Xe_IB_Lock(xe,ib_quads,0,6 * sizeof (uint16_t),XE_LOCK_WRITE);
+    
+    memcpy(vt,prim_tri_strip,6 * sizeof (uint16_t));
+    memcpy(vq,prim_quads,6 * sizeof (uint16_t));
+    
+    Xe_IB_Unlock(xe,ib_tri);
+    Xe_IB_Unlock(xe,ib_quads);
+    
+    glReset();
+}
+
+
 
 static int texture_combiner_enabled = 0;
 static int color_combiner_enabled = 0;
@@ -177,7 +187,8 @@ void glEnd() {
     // +++
     //vertexCount += glGetModelSize() * ( sizeof (glVerticeFormats) + 4 );
     // todo: better alignement fixe
-    vertexCount += glGetModelSize() * ( 8 * sizeof(float) );
+    //vertexCount += glGetModelSize() * ( sizeof (glVerticeFormats) );
+    vertexCount += glGetModelSize() * VERTICE_SIZE;
     
     //glUnlockIb();
     
@@ -202,12 +213,12 @@ void glVertex3fv(float * v) {
     currentVertex[off_v].w = 1.f;
     currentVertex[off_v].u = gl_u;
     currentVertex[off_v].v = gl_v;
-    currentVertex[off_v].color = gl_color;
+    currentVertex[off_v].color = gl_color.f;
     off_v++;
 }
 
 void glColor4ubv(u8 *v) {
     uint32_t c = *(uint32_t*) v;
-    gl_color = c;
+    gl_color.u = c;
     color_combiner_enabled = 1;
 }
