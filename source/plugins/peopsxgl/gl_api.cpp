@@ -21,6 +21,7 @@ extern struct XenosDevice *xe;
 #define MAX_VERTEX_COUNT 65536
 #define MAX_INDICE_COUNT 65536
 
+void glDraw();
 
 typedef union 
 {
@@ -36,15 +37,10 @@ int off_v = 0;
 
 static struct XenosVertexBuffer *vb = NULL;
 
-static struct XenosVertexBuffer *vb_3 = NULL;
-static struct XenosVertexBuffer *vb_4 = NULL;
-static struct XenosVertexBuffer *vb_3s = NULL;
-
-static struct XenosIndexBuffer *ib_tri = NULL;
-static struct XenosIndexBuffer *ib_quads = NULL;
+static struct XenosIndexBuffer *ib = NULL;
 
 static uint16_t prim_tri_strip[] = {0, 1, 2, 2, 1, 3}; // GL_TRIANGLE_STRIP
-static uint16_t prim_quads[] = {0, 1, 2, 3, 0, 3}; // GL_QUADS // not used
+static uint16_t prim_quads[] = {0, 1, 2, 0, 1, 3}; // GL_QUADS // not used
 
 int indiceCount=0;
 //int vertexCount=0;
@@ -52,57 +48,43 @@ int indiceCount=0;
 
 typedef struct __attribute__((__packed__)) glVerticeFormats {
     float x, y, z;
-   // float u, v;
+    float u, v;
     float color;
     //float r,g,b,a;
 } glVerticeFormats;
 
-//glVerticeFormats * currentVertex = NULL;
-float * currentVertex = NULL;
+glVerticeFormats * currentVertex = NULL;
+glVerticeFormats * firstVertex = NULL;
 
+uint16_t * currentIndice = NULL;
+uint16_t * firstIndice = NULL;
+
+int prevInCount = 0;
 
 static int texture_combiner_enabled = 0;
 static int color_combiner_enabled = 0;
 
-
-int vertexCount_3=0;
-int vertexCount_3s=0;
-int vertexCount_4=0;
-
-int vertexCountZero(){
-    vertexCount_3=0;
-    vertexCount_3s=0;
-    vertexCount_4=0;
-}
-
 int vertexCount(){
-    if(vb){
-        if(vb==vb_3)
-            return vertexCount_3;
-        if(vb==vb_3s)
-            return vertexCount_3s;
-        if(vb==vb_4)
-            return vertexCount_4;
-    }
-    return 0;
+    return currentVertex-firstVertex;
 }
 
-void vertexCountAdd(int nb){
-    if(vb){
-        if(vb==vb_3)
-            vertexCount_3+=nb;
-        if(vb==vb_3s)
-            vertexCount_3s+=nb;
-        if(vb==vb_4)
-            vertexCount_4+=nb;
-    }
+int indicesCount(){
+    return currentIndice - firstIndice;
 }
 
 //------------------------------------------------------------------------------
 // Changes gl states
 //------------------------------------------------------------------------------
+void glStatesChanged();
+static XenosSurface * gl_old_s = NULL;
+
 void XeSetTexture(struct XenosSurface * s ){
-    Xe_SetTexture(xe, 0, s);
+    if(gl_old_s !=s)
+    {
+        gl_old_s = s;
+        glStatesChanged();
+        Xe_SetTexture(xe, 0, s);
+    }
 }
 
 void XeEnableTexture() {
@@ -111,34 +93,37 @@ void XeEnableTexture() {
 
 void XeDisableTexture() {
    texture_combiner_enabled = 0;
-   Xe_SetTexture(xe, 0, NULL);
+   XeSetTexture(NULL);
 }
 
+// Draw
+void glStatesChanged(){
+    //glSync();
+    //glReset();
+    glDraw();
+}
 
 //------------------------------------------------------------------------------
 // Lock Unlock Prepare VB
 //------------------------------------------------------------------------------
-static void glLockVb(int count) {
-//    if(vertexCount()>2000)
-//        vertexCountZero();
-    // se deplace dans le vb
-    Xe_SetStreamSource(xe, 0, vb, vertexCount(), 4);
-   // currentVertex = (glVerticeFormats *) Xe_VB_Lock(xe, vb, vertexCount(), count * sizeof(glVerticeFormats), XE_LOCK_WRITE);
-     currentVertex = (float *) Xe_VB_Lock(xe, vb, vertexCount(), count * sizeof(glVerticeFormats), XE_LOCK_WRITE);
+static void glLock() {
+    // VB
+    Xe_SetStreamSource(xe, 0, vb, 0, 4);
+    firstVertex=currentVertex = (glVerticeFormats *) Xe_VB_Lock(xe, vb,0, MAX_VERTEX_COUNT * sizeof(glVerticeFormats), XE_LOCK_WRITE);
+    
+    // IB
+    Xe_SetIndices(xe,ib);
+    firstIndice=currentIndice=(uint16_t *)Xe_IB_Lock(xe,ib,0,MAX_INDICE_COUNT*sizeof(uint16_t),XE_LOCK_WRITE);
 }
 
 
-static void glUnlockVb() {
-    if (vb->lock.start)
-        Xe_VB_Unlock(xe, vb);
-    else
-        printf("glUnlockVb - vb not locked\r\n");
+static void glUnlock() {
+    Xe_VB_Unlock(xe, vb);
+    Xe_IB_Unlock(xe, ib);
 }
 
 
-static void glPrepare(int count) {
-    glLockVb(count);
-       
+static void glPrepare(int count) {     
     // Zero it
     memset(currentVertex,0,count * sizeof(glVerticeFormats));
 }
@@ -147,34 +132,31 @@ static void glPrepare(int count) {
 // Called from xe_display.cpp
 //------------------------------------------------------------------------------
 void glReset(){
-    vertexCountZero();
+    glLock();
+    prevInCount = 0;
+}
+
+void glDraw(){
+    if (indicesCount()>prevInCount){
+        //Xe_DrawIndexedPrimitive(xe,XE_PRIMTYPE_TRIANGLELIST,0,0,vertexCount(),0,indicesCount()/3);
+        Xe_DrawIndexedPrimitive(xe,XE_PRIMTYPE_TRIANGLELIST,0,0,vertexCount(),prevInCount,(indicesCount()-prevInCount)/3);
+
+        prevInCount = indicesCount();
+    }
 }
 
 void glSync(){
     
+    glDraw();
+    
+    glUnlock();
 }
 
 
 void glInit() {
     // Create VB and IB
-    vb_3 = Xe_CreateVertexBuffer(xe, MAX_VERTEX_COUNT * sizeof(glVerticeFormats));
-    vb_4 = Xe_CreateVertexBuffer(xe, MAX_VERTEX_COUNT * sizeof(glVerticeFormats));
-    vb_3s = Xe_CreateVertexBuffer(xe, MAX_VERTEX_COUNT * sizeof(glVerticeFormats));
-    
-    ib_tri = Xe_CreateIndexBuffer(xe, 6 * sizeof (uint16_t), XE_FMT_INDEX16);
-    ib_quads = Xe_CreateIndexBuffer(xe, 6 * sizeof (uint16_t), XE_FMT_INDEX16);
-    
-    // lock
-    void *vt = Xe_IB_Lock(xe,ib_tri,0,6 * sizeof (uint16_t),XE_LOCK_WRITE);
-    void *vq = Xe_IB_Lock(xe,ib_quads,0,6 * sizeof (uint16_t),XE_LOCK_WRITE);
-    
-    // Copy
-    memcpy(vt,prim_tri_strip,6 * sizeof (uint16_t));
-    memcpy(vq,prim_quads,6 * sizeof (uint16_t));
-    
-    // Unlock
-    Xe_IB_Unlock(xe,ib_tri);
-    Xe_IB_Unlock(xe,ib_quads);
+    vb = Xe_CreateVertexBuffer(xe, MAX_VERTEX_COUNT * sizeof(glVerticeFormats));
+    ib = Xe_CreateIndexBuffer(xe, MAX_VERTEX_COUNT * sizeof (uint16_t), XE_FMT_INDEX16);
     
     glReset();
 }
@@ -204,22 +186,7 @@ int glGetModelSize() {
 
 
 void glBegin(int mode) {  
-    switch (gl_mode) {
-        case GL_TRIANGLE_STRIP:
-        {
-            vb = vb_3s;
-        }
-        case GL_TRIANGLES:
-        {
-            vb = vb_3;
-        }
-        case GL_QUADS:
-        {
-            vb = vb_4;
-        }
-    }
-    
-    
+      
     // Lock and zero current vb
     glPrepare(glGetModelSize());
    
@@ -228,8 +195,7 @@ void glBegin(int mode) {
 }
 
 void glEnd() {
-    
-    glUnlockVb();
+   
     // Select shader
     if(texture_combiner_enabled){
 //        if(color_combiner_enabled){
@@ -247,27 +213,30 @@ void glEnd() {
     switch (gl_mode) {
         case GL_TRIANGLE_STRIP:
         {
-            Xe_SetIndices(xe,ib_tri);
-            Xe_DrawIndexedPrimitive(xe, XE_PRIMTYPE_TRIANGLELIST, 0, 0, 6, 0, 2);
+            for(int i =0 ;i<6;i++){
+                currentIndice[0]=vertexCount()+prim_tri_strip[i];
+                currentIndice++;
+            }
             break;
         }
         case GL_TRIANGLES:
         {
-            Xe_SetIndices(xe,NULL);
-            Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLELIST, 0, 1);
+            for(int i =0 ;i<3;i++){
+                currentIndice[0]=vertexCount()+prim_tri_strip[i];
+                currentIndice++;
+            }
             break;
         }
         case GL_QUADS:
         {
-            Xe_SetIndices(xe,NULL);
-            Xe_DrawPrimitive(xe, XE_PRIMTYPE_QUADLIST, 0, 1);
+            for(int i =0 ;i<6;i++){
+                currentIndice[0]=vertexCount()+prim_quads[i];
+                currentIndice++;
+            }
             break;
         }
     }
-    
-    // todo: better alignement fixe
-    //vertexCount += glGetModelSize() * ( sizeof (glVerticeFormats) );
-    vertexCountAdd(glGetModelSize() * ( sizeof (glVerticeFormats) ));
+
 
     // Reset color
     // gl_color = 0;
@@ -283,20 +252,14 @@ void glTexCoord2fv(float * st) {
 }
 
 void glVertex3fv(float * v) {
-//    currentVertex[0].x = v[0];
-//    currentVertex[0].y = v[1];
-//    currentVertex[0].z = v[2];
-//    currentVertex[0].u = gl_u;
-//    currentVertex[0].v = gl_v;
-//    currentVertex[0].color = gl_color.f;
-//    currentVertex++;
-    
-    currentVertex[0] = v[0];
-    currentVertex[1] = v[1];
-    currentVertex[2] = v[2];
-    currentVertex[3] = gl_color.f;
-    
-    currentVertex+=4;
+    currentVertex[0].x = v[0];
+    currentVertex[0].y = v[1];
+    currentVertex[0].z = v[2];
+    currentVertex[0].u = gl_u;
+    currentVertex[0].v = gl_v;
+    currentVertex[0].color = gl_color.f;
+    currentVertex++;
+
 }
 void glColor4ubv(u8 *v) {
 

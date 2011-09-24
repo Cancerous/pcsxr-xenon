@@ -154,7 +154,7 @@ void XeResetStates() {
     Xe_SetVertexShaderConstantF(xe, 1, (float*) screen, 1);
     Xe_SetCullMode(xe, XE_CULL_NONE);
 
-    //Xe_SetFillMode(xe,0x25,0x25);
+   // Xe_SetFillMode(xe,0x25,0x25);
 }
 
 

@@ -114,82 +114,135 @@ static int blend_src = XE_BLEND_ONE;
 static int blend_dst = XE_BLEND_ZERO;
 static int blend_op = XE_BLENDOP_ADD;
 
+void glStatesChanged();
 
-void XeAlphaBlend(){
+void XeAlphaBlend() {
     Xe_SetBlendOpAlpha(xe, XE_BLENDOP_ADD);
     Xe_SetSrcBlendAlpha(xe, XE_BLEND_ONE);
     Xe_SetDestBlendAlpha(xe, XE_BLEND_ZERO);
 }
 
 void XeBlendFunc(int src, int dst) {
-    blend_src = src;
-    blend_dst = dst;
+    if ((src != blend_src) || (dst != blend_dst)) {
+        blend_src = src;
+        blend_dst = dst;
 
-    //Xe_SetBlendOp(xe, XE_BLENDOP_ADD);
-    Xe_SetSrcBlend(xe, blend_src);
-    Xe_SetDestBlend(xe, blend_dst);
-    //    Xe_SetSrcBlendAlpha(xe, XE_BLEND_ONE);
-    //    Xe_SetDestBlendAlpha(xe, XE_BLEND_ZERO);
+        glStatesChanged();
 
-    //    Xe_SetSrcBlendAlpha(xe, blend_src);
-    //    Xe_SetDestBlendAlpha(xe, blend_dst);
-    XeAlphaBlend();
+        //Xe_SetBlendOp(xe, XE_BLENDOP_ADD);
+        Xe_SetSrcBlend(xe, blend_src);
+        Xe_SetDestBlend(xe, blend_dst);
+        //    Xe_SetSrcBlendAlpha(xe, XE_BLEND_ONE);
+        //    Xe_SetDestBlendAlpha(xe, XE_BLEND_ZERO);
+
+        //    Xe_SetSrcBlendAlpha(xe, blend_src);
+        //    Xe_SetDestBlendAlpha(xe, blend_dst);
+        XeAlphaBlend();
+    }
+
 }
 
 void XeBlendOp(int op) {
-    blend_op = op;
-    Xe_SetBlendOp(xe, op);
+    if (op != blend_op) {
+        glStatesChanged();
+
+        blend_op = op;
+        Xe_SetBlendOp(xe, op);
+    }
 }
 
+static int alpha_func = 0;
+static float alpha_ref = 0;
+static int alpha_test_enabled = 0;
+
 void XeAlphaFunc(int func, float ref) {
-    // Xe_SetAlphaTestEnable(xe, 1);
-    Xe_SetAlphaFunc(xe, func);
-    Xe_SetAlphaRef(xe, ref);
+    if ((alpha_func != func) || (alpha_ref != ref)) {
+
+        alpha_func = func;
+        alpha_ref = ref;
+
+        glStatesChanged();
+        // Xe_SetAlphaTestEnable(xe, 1);
+        Xe_SetAlphaFunc(xe, func);
+        Xe_SetAlphaRef(xe, ref);
+    }
 }
 
 void XeEnableAlphaTest() {
-    Xe_SetAlphaTestEnable(xe, 1);
+    if (alpha_test_enabled == 0) {
+        alpha_test_enabled = 1;
+
+        glStatesChanged();
+        Xe_SetAlphaTestEnable(xe, 1);
+    }
+
 }
 
 void XeDisableAlphaTest() {
-    Xe_SetAlphaTestEnable(xe, 0);
+    if (alpha_test_enabled == 1) {
+
+        alpha_test_enabled = 0;
+
+        glStatesChanged();
+        Xe_SetAlphaTestEnable(xe, 0);
+    }
 }
 
+static int blend_enabled = 0;
+
 void XeDisableBlend() {
-    /*
-        Xe_SetAlphaTestEnable(xe, 0);
-        Xe_SetSrcBlend(xe, XE_BLEND_ONE);
-        Xe_SetDestBlend(xe, XE_BLEND_ZERO);
-        Xe_SetBlendOp(xe, XE_BLENDOP_ADD);
-        Xe_SetSrcBlendAlpha(xe, XE_BLEND_ONE);
-        Xe_SetDestBlendAlpha(xe, XE_BLEND_ZERO);
-        Xe_SetBlendOpAlpha(xe, XE_BLENDOP_ADD);
-     */
-    Xe_SetBlendControl(xe,XE_BLEND_ONE,XE_BLENDOP_ADD,XE_BLEND_ZERO,XE_BLEND_ONE,XE_BLENDOP_ADD,XE_BLEND_ZERO);
 
-//    Xe_SetBlendOp(xe, XE_BLENDOP_ADD);
-//    Xe_SetBlendOpAlpha(xe, XE_BLENDOP_ADD);
-//
-//    Xe_SetSrcBlend(xe, XE_BLEND_SRCALPHA);
-//    Xe_SetSrcBlendAlpha(xe, XE_BLEND_SRCALPHA);
-//
-//    Xe_SetDestBlend(xe, XE_BLEND_INVSRCALPHA);
-//    Xe_SetDestBlendAlpha(xe, XE_BLEND_INVSRCALPHA);
+    if (blend_enabled) {
 
-    //Xe_SetAlphaTestEnable(xe, 0);
-    XeAlphaBlend();
+        blend_enabled = 0;
+
+        glStatesChanged();
+        /*
+       Xe_SetAlphaTestEnable(xe, 0);
+       Xe_SetSrcBlend(xe, XE_BLEND_ONE);
+       Xe_SetDestBlend(xe, XE_BLEND_ZERO);
+       Xe_SetBlendOp(xe, XE_BLENDOP_ADD);
+       Xe_SetSrcBlendAlpha(xe, XE_BLEND_ONE);
+       Xe_SetDestBlendAlpha(xe, XE_BLEND_ZERO);
+       Xe_SetBlendOpAlpha(xe, XE_BLENDOP_ADD);
+         */
+        Xe_SetBlendControl(xe, XE_BLEND_ONE, XE_BLENDOP_ADD, XE_BLEND_ZERO, XE_BLEND_ONE, XE_BLENDOP_ADD, XE_BLEND_ZERO);
+
+        //    Xe_SetBlendOp(xe, XE_BLENDOP_ADD);
+        //    Xe_SetBlendOpAlpha(xe, XE_BLENDOP_ADD);
+        //
+        //    Xe_SetSrcBlend(xe, XE_BLEND_SRCALPHA);
+        //    Xe_SetSrcBlendAlpha(xe, XE_BLEND_SRCALPHA);
+        //
+        //    Xe_SetDestBlend(xe, XE_BLEND_INVSRCALPHA);
+        //    Xe_SetDestBlendAlpha(xe, XE_BLEND_INVSRCALPHA);
+
+        //Xe_SetAlphaTestEnable(xe, 0);
+        XeAlphaBlend();
+    }
+
 }
 
 void XeEnableBlend() {
-    /*
+    if (!blend_enabled) {
+
+        blend_enabled = 1;
+
+        glStatesChanged();
+
+
+        /*
         Xe_SetAlphaTestEnable(xe, 1);
         Xe_SetBlendOp(xe, XE_BLENDOP_ADD);
         Xe_SetBlendOpAlpha(xe, XE_BLENDOP_ADD);
-     */
-    //Xe_SetAlphaTestEnable(xe, 1);
-    //Xe_SetBlendControl(xe,blend_src,blend_op,blend_dst,XE_BLEND_ONE,XE_BLENDOP_ADD,XE_BLEND_ZERO);
-    Xe_SetBlendControl(xe, blend_src, blend_op, blend_dst, blend_src, blend_op, blend_dst);
-    XeAlphaBlend();
+         */
+        //Xe_SetAlphaTestEnable(xe, 1);
+        //Xe_SetBlendControl(xe,blend_src,blend_op,blend_dst,XE_BLEND_ONE,XE_BLENDOP_ADD,XE_BLEND_ZERO);
+        Xe_SetBlendControl(xe, blend_src, blend_op, blend_dst, blend_src, blend_op, blend_dst);
+        XeAlphaBlend();
+
+    }
+
 }
 
 void XeClear(uint32_t flags) {
