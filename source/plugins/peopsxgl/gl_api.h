@@ -21,6 +21,8 @@ void glEnd();
 void glInit();
 void glReset();
 
+void glSync();
+
 void glTexCoord2fv(float * st);
 void glVertex3fv(float * v);
 void glColor4ubv (u8 *v);

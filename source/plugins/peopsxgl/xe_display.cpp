@@ -65,7 +65,7 @@ unsigned long ulInitDisplay() {
     static const struct XenosVBFFormat vbf = {
         3,
         {
-            {XE_USAGE_POSITION, 0, XE_TYPE_FLOAT4},
+            {XE_USAGE_POSITION, 0, XE_TYPE_FLOAT3},
             {XE_USAGE_TEXCOORD, 0, XE_TYPE_FLOAT2},
             {XE_USAGE_COLOR, 0, XE_TYPE_UBYTE4},
         }
@@ -122,6 +122,10 @@ extern "C" {
 }
 
 void DoBufferSwap() {
+#ifdef USE_GL_API
+    glSync();
+#endif
+    
     Xe_Resolve(xe);
     //while (!Xe_IsVBlank(xe)); 
     Xe_Sync(xe);

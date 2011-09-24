@@ -10,7 +10,7 @@ struct _IN
 float4 psG(_IN data): COLOR {
     float4 Color;
 
-    Color = tex2D( tex0, data.uv) * data.col;
+    Color = tex2D( tex0, data.uv.xy) * data.col;
 
     return  Color;
 }
@@ -18,7 +18,7 @@ float4 psG(_IN data): COLOR {
 float4 psF(_IN data): COLOR {
     float4 Color;
 
-    Color = tex2D( tex0, data.uv) + data.col;
+    Color = tex2D( tex0, data.uv.xy) + data.col;
 	
     return  Color;
 }

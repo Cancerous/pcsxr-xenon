@@ -18,7 +18,7 @@
 
 extern struct XenosDevice *xe;
 
-#define MAX_VERTEX_COUNT 16384
+#define MAX_VERTEX_COUNT 65536
 #define MAX_INDICE_COUNT 65536
 
 
@@ -35,6 +35,11 @@ int gl_mode = 0;
 int off_v = 0;
 
 static struct XenosVertexBuffer *vb = NULL;
+
+static struct XenosVertexBuffer *vb_3 = NULL;
+static struct XenosVertexBuffer *vb_4 = NULL;
+static struct XenosVertexBuffer *vb_3s = NULL;
+
 static struct XenosIndexBuffer *ib_tri = NULL;
 static struct XenosIndexBuffer *ib_quads = NULL;
 
@@ -42,23 +47,56 @@ static uint16_t prim_tri_strip[] = {0, 1, 2, 2, 1, 3}; // GL_TRIANGLE_STRIP
 static uint16_t prim_quads[] = {0, 1, 2, 3, 0, 3}; // GL_QUADS // not used
 
 int indiceCount=0;
-int vertexCount=0;
+//int vertexCount=0;
 
 
 typedef struct __attribute__((__packed__)) glVerticeFormats {
-    float x, y, z, w;
-    float u, v;
+    float x, y, z;
+   // float u, v;
     float color;
     //float r,g,b,a;
 } glVerticeFormats;
 
-glVerticeFormats * currentVertex = NULL;
-
-
+//glVerticeFormats * currentVertex = NULL;
+float * currentVertex = NULL;
 
 
 static int texture_combiner_enabled = 0;
 static int color_combiner_enabled = 0;
+
+
+int vertexCount_3=0;
+int vertexCount_3s=0;
+int vertexCount_4=0;
+
+int vertexCountZero(){
+    vertexCount_3=0;
+    vertexCount_3s=0;
+    vertexCount_4=0;
+}
+
+int vertexCount(){
+    if(vb){
+        if(vb==vb_3)
+            return vertexCount_3;
+        if(vb==vb_3s)
+            return vertexCount_3s;
+        if(vb==vb_4)
+            return vertexCount_4;
+    }
+    return 0;
+}
+
+void vertexCountAdd(int nb){
+    if(vb){
+        if(vb==vb_3)
+            vertexCount_3+=nb;
+        if(vb==vb_3s)
+            vertexCount_3s+=nb;
+        if(vb==vb_4)
+            vertexCount_4+=nb;
+    }
+}
 
 //------------------------------------------------------------------------------
 // Changes gl states
@@ -81,9 +119,12 @@ void XeDisableTexture() {
 // Lock Unlock Prepare VB
 //------------------------------------------------------------------------------
 static void glLockVb(int count) {
+//    if(vertexCount()>2000)
+//        vertexCountZero();
     // se deplace dans le vb
-    Xe_SetStreamSource(xe, 0, vb, vertexCount, 4);
-    currentVertex = (glVerticeFormats *) Xe_VB_Lock(xe, vb, vertexCount, count * sizeof(glVerticeFormats), XE_LOCK_WRITE);
+    Xe_SetStreamSource(xe, 0, vb, vertexCount(), 4);
+   // currentVertex = (glVerticeFormats *) Xe_VB_Lock(xe, vb, vertexCount(), count * sizeof(glVerticeFormats), XE_LOCK_WRITE);
+     currentVertex = (float *) Xe_VB_Lock(xe, vb, vertexCount(), count * sizeof(glVerticeFormats), XE_LOCK_WRITE);
 }
 
 
@@ -106,13 +147,19 @@ static void glPrepare(int count) {
 // Called from xe_display.cpp
 //------------------------------------------------------------------------------
 void glReset(){
-    vertexCount = 0;
+    vertexCountZero();
+}
+
+void glSync(){
+    
 }
 
 
 void glInit() {
     // Create VB and IB
-    vb = Xe_CreateVertexBuffer(xe, MAX_VERTEX_COUNT * sizeof(glVerticeFormats));
+    vb_3 = Xe_CreateVertexBuffer(xe, MAX_VERTEX_COUNT * sizeof(glVerticeFormats));
+    vb_4 = Xe_CreateVertexBuffer(xe, MAX_VERTEX_COUNT * sizeof(glVerticeFormats));
+    vb_3s = Xe_CreateVertexBuffer(xe, MAX_VERTEX_COUNT * sizeof(glVerticeFormats));
     
     ib_tri = Xe_CreateIndexBuffer(xe, 6 * sizeof (uint16_t), XE_FMT_INDEX16);
     ib_quads = Xe_CreateIndexBuffer(xe, 6 * sizeof (uint16_t), XE_FMT_INDEX16);
@@ -157,6 +204,22 @@ int glGetModelSize() {
 
 
 void glBegin(int mode) {  
+    switch (gl_mode) {
+        case GL_TRIANGLE_STRIP:
+        {
+            vb = vb_3s;
+        }
+        case GL_TRIANGLES:
+        {
+            vb = vb_3;
+        }
+        case GL_QUADS:
+        {
+            vb = vb_4;
+        }
+    }
+    
+    
     // Lock and zero current vb
     glPrepare(glGetModelSize());
    
@@ -198,12 +261,13 @@ void glEnd() {
         {
             Xe_SetIndices(xe,NULL);
             Xe_DrawPrimitive(xe, XE_PRIMTYPE_QUADLIST, 0, 1);
-
             break;
         }
     }
+    
     // todo: better alignement fixe
-    vertexCount += glGetModelSize() * ( sizeof (glVerticeFormats) );
+    //vertexCount += glGetModelSize() * ( sizeof (glVerticeFormats) );
+    vertexCountAdd(glGetModelSize() * ( sizeof (glVerticeFormats) ));
 
     // Reset color
     // gl_color = 0;
@@ -219,18 +283,23 @@ void glTexCoord2fv(float * st) {
 }
 
 void glVertex3fv(float * v) {
-    currentVertex[off_v].x = ((v[0] / screen[0])*2.f) - 1.0f;
-    currentVertex[off_v].y = ((v[1] / screen[1])*2.f) - 1.0f;
-
-    currentVertex[off_v].z = v[2];
-    currentVertex[off_v].w = 1.f;
-    currentVertex[off_v].u = gl_u;
-    currentVertex[off_v].v = gl_v;
-    currentVertex[off_v].color = gl_color.f;
-    off_v++;
+//    currentVertex[0].x = v[0];
+//    currentVertex[0].y = v[1];
+//    currentVertex[0].z = v[2];
+//    currentVertex[0].u = gl_u;
+//    currentVertex[0].v = gl_v;
+//    currentVertex[0].color = gl_color.f;
+//    currentVertex++;
+    
+    currentVertex[0] = v[0];
+    currentVertex[1] = v[1];
+    currentVertex[2] = v[2];
+    currentVertex[3] = gl_color.f;
+    
+    currentVertex+=4;
 }
-
 void glColor4ubv(u8 *v) {
+
     uint32_t c = *(uint32_t*) v;
     gl_color.u = c;
     color_combiner_enabled = 1;
