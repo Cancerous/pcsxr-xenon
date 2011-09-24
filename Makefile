@@ -39,7 +39,7 @@ LDFLAGS	=	-g $(MACHDEP) -Wl,--gc-sections -Wl,-Map,$(notdir $@).map
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
 #---------------------------------------------------------------------------------
-LIBS	:=	-lxenon -lm -lzlx -lz -lpng -lbz2 
+LIBS	:=	-lzlx  -lpng -lbz2  -lxenon -lm -lz
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing

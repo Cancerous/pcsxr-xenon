@@ -132,6 +132,7 @@ int pcsxmain(const char * cdfile) {
         xenon_sound_init();
         initialised++;
     }
+    Xe_SetClearColor(getLzxVideoDevice(),0xff000000);
 #endif
     
     
