@@ -19,7 +19,7 @@ void XeEnableScissor();
 // texture
 void XeDisableTexture();
 void XeEnableTexture();
-
+void XeSetTexture(struct XenosSurface * s );
 // blend
 
 void XeEnableBlend();

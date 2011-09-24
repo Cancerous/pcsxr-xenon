@@ -42,68 +42,14 @@ static struct XenosShader * g_pPixelShaderC = NULL;
 static struct XenosShader * g_pPixelShaderF = NULL;
 static struct XenosShader * g_pPixelShaderG = NULL;
 
+#ifndef LZX_GUI  
 static struct XenosSurface * fb = NULL;
 static struct XenosVertexBuffer *vb = NULL;
 static struct XenosDevice _xe;
+#endif
 
-static int vertexCount = 0;
 float screen[2] = {0, 0};
 
-PsxVerticeFormats * PsxVertex = NULL;
-
-void SaveFbToPng(const char *filename);
-
-void ResetVb() {
-
-}
-
-void CreateVb() {
-    vb = Xe_CreateVertexBuffer(xe, MAX_VERTEX_COUNT * sizeof (PsxVerticeFormats));
-}
-
-void fpoint(PsxVerticeFormats * psxvertices) {
-    psxvertices[0].w = psxvertices[1].w = psxvertices[2].w = psxvertices[3].w = 1;
-    int i = 0;
-    for (i = 0; i < 4; i++) {
-
-        // psxvertices[i].x = psxvertices[i].x / 640.f;
-        // psxvertices[i].y = psxvertices[i].y / 480.f;
-        psxvertices[i].x = ((psxvertices[i].x / screen[0])*2.f) - 1.0f;
-        psxvertices[i].y = ((psxvertices[i].y / screen[1])*2.f) - 1.0f;
-        psxvertices[i].z = -psxvertices[i].z;
-    }
-}
-
-void LockVb() {
-    Xe_SetStreamSource(xe, 0, vb, vertexCount, 4);
-    PsxVertex = (PsxVerticeFormats *) Xe_VB_Lock(xe, vb, vertexCount, 4 * sizeof (PsxVerticeFormats), XE_LOCK_WRITE);
-}
-
-void UnlockVb() {
-    //Xe_VB_Unlock(xe, vb);
-}
-
-void iXeDrawTri(PsxVerticeFormats * psxvertices) {
-    fpoint(psxvertices);
-    Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLELIST, 0, 1);
-    Xe_VB_Unlock(xe, vb);
-    vertexCount += 3 * sizeof (PsxVerticeFormats);
-}
-
-void iXeDrawTri2(PsxVerticeFormats * psxvertices) {
-    fpoint(psxvertices);
-    Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLESTRIP, 0, 2);
-    Xe_VB_Unlock(xe, vb);
-    vertexCount += 4 * sizeof (PsxVerticeFormats);
-}
-
-void iXeDrawQuad(PsxVerticeFormats * psxvertices) {
-    fpoint(psxvertices);
-    //Xe_DrawPrimitive(xe, XE_PRIMTYPE_QUADLIST, 0, 1);
-    Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLESTRIP, 0, 2);
-    Xe_VB_Unlock(xe, vb);
-    vertexCount += 4 * sizeof (PsxVerticeFormats);
-}
 
 unsigned long ulInitDisplay() {
     TR
@@ -147,8 +93,6 @@ unsigned long ulInitDisplay() {
 
     Xe_ShaderApplyVFetchPatches(xe, g_pVertexShader, 0, &vbf);
 
-    CreateVb();
-
     Xe_InvalidateState(xe);
 
     Xe_SetBlendOp(xe, XE_BLENDOP_ADD);
@@ -157,6 +101,7 @@ unsigned long ulInitDisplay() {
 
 
     InitGlSurface();
+    
 #ifdef USE_GL_API
     glInit();
 #endif
@@ -172,12 +117,16 @@ void CloseDisplay() {
 
 }
 
+extern "C" {
+    void doScreenCapture();
+}
+
 void DoBufferSwap() {
     Xe_Resolve(xe);
+    //while (!Xe_IsVBlank(xe)); 
     Xe_Sync(xe);
-    //TR
-    //printf("draw %d vertices\r\n",vertexCount);
-    vertexCount = 0;
+    
+    doScreenCapture();
     
 #ifdef USE_GL_API
     glReset();

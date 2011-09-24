@@ -351,9 +351,16 @@ typedef struct SEMITRANSTAG
  uint32_t alpha;
 } SemiTransParams;
 
+//SemiTransParams TransSets[4]=
+//{
+// {XE_BLEND_SRCALPHA,    XE_BLEND_SRCALPHA,          127},
+// {XE_BLEND_ONE,         XE_BLEND_ONE,                255},
+// {XE_BLEND_ZERO,        XE_BLEND_INVSRCCOLOR,255},
+// {XE_BLEND_INVSRCALPHA,XE_BLEND_ONE,      192}
+//}; 
 SemiTransParams TransSets[4]=
 {
- {XE_BLEND_SRCALPHA,    XE_BLEND_SRCALPHA,          127},
+ {XE_BLEND_SRCALPHA,    XE_BLEND_INVSRCALPHA,          127},
  {XE_BLEND_ONE,         XE_BLEND_ONE,                255},
  {XE_BLEND_ZERO,        XE_BLEND_INVSRCCOLOR,255},
  {XE_BLEND_INVSRCALPHA,XE_BLEND_ONE,      192}
@@ -671,7 +678,7 @@ void SetRenderMode(uint32_t DrawAttributes, BOOL bSCol)
    if(!bTexEnabled)                                    // -> turn texturing on
     {bTexEnabled=TRUE;XeEnableTexture();}
    if(currTex)
-        Xe_SetTexture(xe,0,currTex);
+        XeSetTexture(currTex);
   }
  else                                                  // no texture ?
  if(bTexEnabled) 

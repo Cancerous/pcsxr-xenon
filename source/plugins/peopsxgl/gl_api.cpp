@@ -39,47 +39,51 @@ static struct XenosIndexBuffer *ib_tri = NULL;
 static struct XenosIndexBuffer *ib_quads = NULL;
 
 static uint16_t prim_tri_strip[] = {0, 1, 2, 2, 1, 3}; // GL_TRIANGLE_STRIP
-static uint16_t prim_quads[] = {0, 1, 2, 3, 0, 3}; // GL_QUADS
+static uint16_t prim_quads[] = {0, 1, 2, 3, 0, 3}; // GL_QUADS // not used
 
 int indiceCount=0;
 int vertexCount=0;
 
 
-typedef struct glVerticeFormats {
+typedef struct __attribute__((__packed__)) glVerticeFormats {
     float x, y, z, w;
     float u, v;
     float color;
     //float r,g,b,a;
 } glVerticeFormats;
 
-#define VERTICE_SIZE (8*sizeof(float))
-
 glVerticeFormats * currentVertex = NULL;
 
-int glGetModelSize() {
-//    switch (gl_mode) {
-//        case GL_TRIANGLE_STRIP:
-//        {
-//            return 4;
-//        }
-//        case GL_TRIANGLES:
-//        {
-//            return 3;
-//        }
-//        case GL_QUADS:
-//        {
-//            return 4;
-//        }
-//    }
-//    printf("Unknow primitive\r\n");
-//    return 4;
-    return 4;
+
+
+
+static int texture_combiner_enabled = 0;
+static int color_combiner_enabled = 0;
+
+//------------------------------------------------------------------------------
+// Changes gl states
+//------------------------------------------------------------------------------
+void XeSetTexture(struct XenosSurface * s ){
+    Xe_SetTexture(xe, 0, s);
 }
 
-static void glLockVb(int size) {
+void XeEnableTexture() {
+    texture_combiner_enabled = 1;
+}
+
+void XeDisableTexture() {
+   texture_combiner_enabled = 0;
+   Xe_SetTexture(xe, 0, NULL);
+}
+
+
+//------------------------------------------------------------------------------
+// Lock Unlock Prepare VB
+//------------------------------------------------------------------------------
+static void glLockVb(int count) {
     // se deplace dans le vb
     Xe_SetStreamSource(xe, 0, vb, vertexCount, 4);
-    currentVertex = (glVerticeFormats *) Xe_VB_Lock(xe, vb, vertexCount, size * VERTICE_SIZE, XE_LOCK_WRITE);
+    currentVertex = (glVerticeFormats *) Xe_VB_Lock(xe, vb, vertexCount, count * sizeof(glVerticeFormats), XE_LOCK_WRITE);
 }
 
 
@@ -91,22 +95,24 @@ static void glUnlockVb() {
 }
 
 
-static void XeGlPrepare(int size) {
-    glLockVb(size);
+static void glPrepare(int count) {
+    glLockVb(count);
        
     // Zero it
-    //memset(currentVertex,0,glGetModelSize() * sizeof(glVerticeFormats));
-    memset(currentVertex,0,glGetModelSize() * VERTICE_SIZE);
+    memset(currentVertex,0,count * sizeof(glVerticeFormats));
 }
 
-// appeler apres chaques frames
+//------------------------------------------------------------------------------
+// Called from xe_display.cpp
+//------------------------------------------------------------------------------
 void glReset(){
     vertexCount = 0;
 }
 
 
 void glInit() {
-    vb = Xe_CreateVertexBuffer(xe, MAX_VERTEX_COUNT * VERTICE_SIZE);
+    // Create VB and IB
+    vb = Xe_CreateVertexBuffer(xe, MAX_VERTEX_COUNT * sizeof(glVerticeFormats));
     
     ib_tri = Xe_CreateIndexBuffer(xe, 6 * sizeof (uint16_t), XE_FMT_INDEX16);
     ib_quads = Xe_CreateIndexBuffer(xe, 6 * sizeof (uint16_t), XE_FMT_INDEX16);
@@ -115,9 +121,11 @@ void glInit() {
     void *vt = Xe_IB_Lock(xe,ib_tri,0,6 * sizeof (uint16_t),XE_LOCK_WRITE);
     void *vq = Xe_IB_Lock(xe,ib_quads,0,6 * sizeof (uint16_t),XE_LOCK_WRITE);
     
+    // Copy
     memcpy(vt,prim_tri_strip,6 * sizeof (uint16_t));
     memcpy(vq,prim_quads,6 * sizeof (uint16_t));
     
+    // Unlock
     Xe_IB_Unlock(xe,ib_tri);
     Xe_IB_Unlock(xe,ib_quads);
     
@@ -125,21 +133,32 @@ void glInit() {
 }
 
 
-
-static int texture_combiner_enabled = 0;
-static int color_combiner_enabled = 0;
-
-void XeEnableTexture() {
-    texture_combiner_enabled = 1;
+//------------------------------------------------------------------------------
+// Gl Draw
+//------------------------------------------------------------------------------
+int glGetModelSize() {
+    switch (gl_mode) {
+        case GL_TRIANGLE_STRIP:
+        {
+            return 4;
+        }
+        case GL_TRIANGLES:
+        {
+            return 3;
+        }
+        case GL_QUADS:
+        {
+            return 4;
+        }
+    }
+    printf("Unknow primitive\r\n");
+    return 0;
 }
 
-void XeDisableTexture() {
-   texture_combiner_enabled = 0;
-   Xe_SetTexture(xe, 0, NULL);
-}
 
-void glBegin(int mode) {    
-    XeGlPrepare(glGetModelSize());
+void glBegin(int mode) {  
+    // Lock and zero current vb
+    glPrepare(glGetModelSize());
    
     gl_mode = mode;
     off_v = 0;
@@ -183,27 +202,21 @@ void glEnd() {
             break;
         }
     }
-    
-    // +++
-    //vertexCount += glGetModelSize() * ( sizeof (glVerticeFormats) + 4 );
     // todo: better alignement fixe
-    //vertexCount += glGetModelSize() * ( sizeof (glVerticeFormats) );
-    vertexCount += glGetModelSize() * VERTICE_SIZE;
-    
-    //glUnlockIb();
-    
+    vertexCount += glGetModelSize() * ( sizeof (glVerticeFormats) );
+
     // Reset color
     // gl_color = 0;
     color_combiner_enabled = 0;
 }
 
+//xe_display.c
+extern float screen[2];
+
 void glTexCoord2fv(float * st) {
     gl_u = st[0];
     gl_v = st[1];
 }
-
-//xe_display.c
-extern float screen[2];
 
 void glVertex3fv(float * v) {
     currentVertex[off_v].x = ((v[0] / screen[0])*2.f) - 1.0f;

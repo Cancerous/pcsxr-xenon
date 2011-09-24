@@ -17,7 +17,7 @@
  */
 #include "config.h"
 #include "pad.h"
-
+//#include "screencapture.h"
 
 #define STICK_THRESHOLD 12000
 
@@ -47,20 +47,21 @@ void PSxInputReadPort(PadDataS* pad, int port) {
        
     }
 
-/*
+
     if (g.PadState[port].JoyDev.logo) {
        // exit(0);
         if(old[port].logo){
             reset_time++;
             if(reset_time>50){
-                exit(0);//return to xell
+                //exit(0);//return to xell
+                enableCapture();
             }
         }
         else{
             reset_time = 0;
         }
     }
-*/
+
     if (g.PadState[port].JoyDev.rb && g.PadState[port].JoyDev.lb){
 //        PEOPS_SPUclose();
         //xenon_sleep_thread(2);
