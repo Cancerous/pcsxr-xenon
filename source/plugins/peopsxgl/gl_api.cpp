@@ -65,8 +65,21 @@ int prevInCount = 0;
 static int texture_combiner_enabled = 0;
 static int color_combiner_enabled = 0;
 
-int vertexCount(){
+int pVertexCount(){
     return currentVertex-firstVertex;
+}
+
+int vertexCount(){
+    int count = pVertexCount();
+
+    if((count % 0x1000)>0x870)
+    {
+        currentVertex+=10; // a l'arrache
+        count = pVertexCount();
+    }
+    
+    //align
+    return count;
 }
 
 int indicesCount(){
@@ -138,12 +151,7 @@ void glReset(){
 }
 
 void glDraw(){
-//    if (indicesCount()>prevInCount){
-//        //Xe_DrawIndexedPrimitive(xe,XE_PRIMTYPE_TRIANGLELIST,0,0,vertexCount(),0,indicesCount()/3);
-//        Xe_DrawIndexedPrimitive(xe,XE_PRIMTYPE_TRIANGLELIST,0,0,vertexCount(),prevInCount,(indicesCount()-prevInCount)/3);
-//
-//        prevInCount = indicesCount();
-//    }
+
 }
 
 void glSync(){
@@ -190,13 +198,15 @@ uint32_t vertexOffset = 0;
 
 void glBegin(int mode) {  
       
+    // alignement ...    
+    vertexOffset = vertexCount();
+    
     // Lock and zero current vb
     glPrepare(glGetModelSize());
    
     gl_mode = mode;
     off_v = 0;
-    
-    vertexOffset = vertexCount();
+
 }
 
 void glEnd() {

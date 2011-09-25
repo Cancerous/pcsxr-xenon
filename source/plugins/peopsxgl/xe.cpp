@@ -117,9 +117,9 @@ static int blend_op = XE_BLENDOP_ADD;
 void glStatesChanged();
 
 void XeAlphaBlend() {
-//    Xe_SetBlendOpAlpha(xe, XE_BLENDOP_ADD);
-//    Xe_SetSrcBlendAlpha(xe, XE_BLEND_ONE);
-//    Xe_SetDestBlendAlpha(xe, XE_BLEND_ZERO);
+    Xe_SetBlendOpAlpha(xe, XE_BLENDOP_ADD);
+    Xe_SetSrcBlendAlpha(xe, XE_BLEND_SRCALPHA);
+    Xe_SetDestBlendAlpha(xe, XE_BLEND_INVSRCALPHA);
 }
 
 void XeBlendFunc(int src, int dst) {
@@ -137,7 +137,7 @@ void XeBlendFunc(int src, int dst) {
 
         //    Xe_SetSrcBlendAlpha(xe, blend_src);
         //    Xe_SetDestBlendAlpha(xe, blend_dst);
-        XeAlphaBlend();
+        //XeAlphaBlend();
     }
 
 }
@@ -239,14 +239,15 @@ void XeEnableBlend() {
         //Xe_SetAlphaTestEnable(xe, 1);
         //Xe_SetBlendControl(xe,blend_src,blend_op,blend_dst,XE_BLEND_ONE,XE_BLENDOP_ADD,XE_BLEND_ZERO);
         Xe_SetBlendControl(xe, blend_src, blend_op, blend_dst, blend_src, blend_op, blend_dst);
-        XeAlphaBlend();
+        //XeAlphaBlend();
 
     }
 
 }
 
 void XeClear(uint32_t flags) {
-
+    Xe_Clear(xe,~0);
+    Xe_Resolve(xe);
 }
 
 void XeDepthFunc(int func) {
@@ -254,7 +255,7 @@ void XeDepthFunc(int func) {
 }
 
 void XeClearColor(float r, float g, float b, float a) {
-
+    //Xe_SetClearColor(xe, color);
 }
 
 #if 0
