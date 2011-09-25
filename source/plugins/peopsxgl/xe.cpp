@@ -117,9 +117,9 @@ static int blend_op = XE_BLENDOP_ADD;
 void glStatesChanged();
 
 void XeAlphaBlend() {
-    Xe_SetBlendOpAlpha(xe, XE_BLENDOP_ADD);
-    Xe_SetSrcBlendAlpha(xe, XE_BLEND_ONE);
-    Xe_SetDestBlendAlpha(xe, XE_BLEND_ZERO);
+//    Xe_SetBlendOpAlpha(xe, XE_BLENDOP_ADD);
+//    Xe_SetSrcBlendAlpha(xe, XE_BLEND_ONE);
+//    Xe_SetDestBlendAlpha(xe, XE_BLEND_ZERO);
 }
 
 void XeBlendFunc(int src, int dst) {
@@ -169,7 +169,7 @@ void XeAlphaFunc(int func, float ref) {
 }
 
 void XeEnableAlphaTest() {
-    if (alpha_test_enabled == 0) {
+    if (!alpha_test_enabled) {
         alpha_test_enabled = 1;
 
         glStatesChanged();
@@ -179,7 +179,7 @@ void XeEnableAlphaTest() {
 }
 
 void XeDisableAlphaTest() {
-    if (alpha_test_enabled == 1) {
+    if (alpha_test_enabled) {
 
         alpha_test_enabled = 0;
 

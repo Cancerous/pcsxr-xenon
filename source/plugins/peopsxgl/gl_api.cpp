@@ -49,7 +49,8 @@ int indiceCount=0;
 typedef struct __attribute__((__packed__)) glVerticeFormats {
     float x, y, z;
     float u, v;
-    float color;
+    //float color;
+    uint32_t color;
     //float r,g,b,a;
 } glVerticeFormats;
 
@@ -137,12 +138,12 @@ void glReset(){
 }
 
 void glDraw(){
-    if (indicesCount()>prevInCount){
-        //Xe_DrawIndexedPrimitive(xe,XE_PRIMTYPE_TRIANGLELIST,0,0,vertexCount(),0,indicesCount()/3);
-        Xe_DrawIndexedPrimitive(xe,XE_PRIMTYPE_TRIANGLELIST,0,0,vertexCount(),prevInCount,(indicesCount()-prevInCount)/3);
-
-        prevInCount = indicesCount();
-    }
+//    if (indicesCount()>prevInCount){
+//        //Xe_DrawIndexedPrimitive(xe,XE_PRIMTYPE_TRIANGLELIST,0,0,vertexCount(),0,indicesCount()/3);
+//        Xe_DrawIndexedPrimitive(xe,XE_PRIMTYPE_TRIANGLELIST,0,0,vertexCount(),prevInCount,(indicesCount()-prevInCount)/3);
+//
+//        prevInCount = indicesCount();
+//    }
 }
 
 void glSync(){
@@ -185,6 +186,8 @@ int glGetModelSize() {
 }
 
 
+uint32_t vertexOffset = 0;
+
 void glBegin(int mode) {  
       
     // Lock and zero current vb
@@ -192,6 +195,8 @@ void glBegin(int mode) {
    
     gl_mode = mode;
     off_v = 0;
+    
+    vertexOffset = vertexCount();
 }
 
 void glEnd() {
@@ -213,30 +218,20 @@ void glEnd() {
     switch (gl_mode) {
         case GL_TRIANGLE_STRIP:
         {
-            for(int i =0 ;i<6;i++){
-                currentIndice[0]=vertexCount()+prim_tri_strip[i];
-                currentIndice++;
-            }
+            Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLESTRIP, vertexOffset, 2);
             break;
         }
         case GL_TRIANGLES:
         {
-            for(int i =0 ;i<3;i++){
-                currentIndice[0]=vertexCount()+prim_tri_strip[i];
-                currentIndice++;
-            }
+            Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLELIST, vertexOffset, 1);
             break;
         }
         case GL_QUADS:
         {
-            for(int i =0 ;i<6;i++){
-                currentIndice[0]=vertexCount()+prim_quads[i];
-                currentIndice++;
-            }
+            Xe_DrawPrimitive(xe, XE_PRIMTYPE_QUADLIST, vertexOffset, 1);
             break;
         }
     }
-
 
     // Reset color
     // gl_color = 0;
@@ -257,7 +252,7 @@ void glVertex3fv(float * v) {
     currentVertex[0].z = v[2];
     currentVertex[0].u = gl_u;
     currentVertex[0].v = gl_v;
-    currentVertex[0].color = gl_color.f;
+    currentVertex[0].color = gl_color.u;
     currentVertex++;
 
 }
