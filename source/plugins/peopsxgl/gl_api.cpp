@@ -21,6 +21,9 @@ extern struct XenosDevice *xe;
 #define MAX_VERTEX_COUNT 65536
 #define MAX_INDICE_COUNT 65536
 
+
+struct XenosSurface * renderSurface = NULL;
+
 void glDraw();
 
 typedef union 
@@ -54,16 +57,16 @@ typedef struct __attribute__((__packed__)) glVerticeFormats {
     //float r,g,b,a;
 } glVerticeFormats;
 
-glVerticeFormats * currentVertex = NULL;
-glVerticeFormats * firstVertex = NULL;
+static glVerticeFormats * currentVertex = NULL;
+static glVerticeFormats * firstVertex = NULL;
 
 uint16_t * currentIndice = NULL;
 uint16_t * firstIndice = NULL;
 
-int prevInCount = 0;
+static int prevInCount = 0;
 
-static int texture_combiner_enabled = 0;
-static int color_combiner_enabled = 0;
+int texture_combiner_enabled = 0;
+int color_combiner_enabled = 0;
 
 int pVertexCount(){
     return currentVertex-firstVertex;
@@ -72,12 +75,15 @@ int pVertexCount(){
 int vertexCount(){
     int count = pVertexCount();
 
-    if((count % 0x1000)>0x870)
-    {
-        currentVertex+=10; // a l'arrache
-        count = pVertexCount();
-    }
-    
+//    int offset = count * sizeof(glVerticeFormats);
+//    
+//    if((offset & 0xFFF)>0xE80)
+//    {
+//        currentVertex+=0x40; // a l'arrache
+//        count = pVertexCount();
+//        //printf("Jump a round\r\n");
+//    }
+//    
     //align
     return count;
 }
@@ -90,25 +96,7 @@ int indicesCount(){
 // Changes gl states
 //------------------------------------------------------------------------------
 void glStatesChanged();
-static XenosSurface * gl_old_s = NULL;
 
-void XeSetTexture(struct XenosSurface * s ){
-    if(gl_old_s !=s)
-    {
-        gl_old_s = s;
-        glStatesChanged();
-        Xe_SetTexture(xe, 0, s);
-    }
-}
-
-void XeEnableTexture() {
-    texture_combiner_enabled = 1;
-}
-
-void XeDisableTexture() {
-   texture_combiner_enabled = 0;
-   XeSetTexture(NULL);
-}
 
 // Draw
 void glStatesChanged(){
@@ -167,9 +155,21 @@ void glInit() {
     vb = Xe_CreateVertexBuffer(xe, MAX_VERTEX_COUNT * sizeof(glVerticeFormats));
     ib = Xe_CreateIndexBuffer(xe, MAX_VERTEX_COUNT * sizeof (uint16_t), XE_FMT_INDEX16);
     
+    // Create the render surface
+//    XenosSurface * fb = Xe_GetFramebufferSurface(xe);
+//    renderSurface = Xe_CreateTexture(fb->width, fb->height,1,XE_FMT_8888|XE_FMT_ARGB,0);
+    
     glReset();
 }
 
+void XeResolve(){
+//    Xe_ResolveInto(xe, renderSurface, XE_SOURCE_COLOR, XE_CLEAR_COLOR|XE_CLEAR_DS);
+}
+
+
+void XeDisplay(){
+    
+}
 
 //------------------------------------------------------------------------------
 // Gl Draw

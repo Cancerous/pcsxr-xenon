@@ -444,7 +444,7 @@ void updateDisplay(void) // UPDATE DISPLAY
         
         XeDisableScissor();
         Xe_SetClearColor(xe, xeclearcolor.color);
-        XeClear();
+        XeClear(uiBufferBits);
         XeEnableScissor();
 
         gl_z = 0.0f;
@@ -543,7 +543,7 @@ glEnable(GL_SCISSOR_TEST);
         
         XeDisableScissor();
         Xe_SetClearColor(xe, xeclearcolor.color);
-        XeClear();
+        XeClear(uiBufferBits);
         XeEnableScissor();
 
         lClearOnSwap = 0; // -> done
@@ -557,7 +557,7 @@ glEnable(GL_SCISSOR_TEST);
             // glClear(GL_DEPTH_BUFFER_BIT);
             // glEnable(GL_SCISSOR_TEST);
             XeDisableScissor();
-            XeClear();
+            XeClear(uiBufferBits);
             XeEnableScissor();
         }
     }
@@ -763,11 +763,11 @@ void SetAspectRatio(void) {
             rC.bottom = iResY;
             //glScissor(rC.left, rC.top, rC.right, rC.bottom);
             Xe_SetScissor(xe,1,rC.left, rC.top, rC.right, rC.bottom);
-            XeClear();
+            XeClear(uiBufferBits);
             rC.left = iResX - rC.right;
             //glScissor(rC.left, rC.top, rC.right, rC.bottom);
             Xe_SetScissor(xe,1,rC.left, rC.top, rC.right, rC.bottom);
-            XeClear();
+            XeClear(uiBufferBits);
         }
 
         if (r.bottom < rRatioRect.bottom) {
@@ -777,11 +777,11 @@ void SetAspectRatio(void) {
             rC.bottom = r.top;
             //glScissor(rC.left, rC.top, rC.right, rC.bottom);
             Xe_SetScissor(xe,1,rC.left, rC.top, rC.right, rC.bottom);
-            XeClear();
+            XeClear(uiBufferBits);
             rC.top = iResY - rC.bottom;
             //glScissor(rC.left, rC.top, rC.right, rC.bottom);
             Xe_SetScissor(xe,1,rC.left, rC.top, rC.right, rC.bottom);
-            XeClear();
+            XeClear(uiBufferBits);
         }
 
         bSetClip = TRUE;

@@ -21,7 +21,7 @@ void XeDisableTexture();
 void XeEnableTexture();
 void XeSetTexture(struct XenosSurface * s );
 // blend
-
+void XeAlphaBlend();
 void XeEnableBlend();
 void XeDisableBlend();
 void XeAlphaFunc(int func, float ref);
@@ -39,6 +39,8 @@ void XeClearColor(float r,float g,float b, float a);
 void XeClear(uint32_t flags);
 
 void XeClear();
+
+void XeResetStates();
 
 struct XenosVertexBuffer *XeGetVb();
 

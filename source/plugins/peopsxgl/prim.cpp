@@ -1462,7 +1462,6 @@ void UploadScreenEx(int Position)
 
 void UploadScreen(int Position)
 {
-#if 0
  short x, y, YStep, XStep, U, s, UStep,ux[4],vy[4];
  short xa,xb,ya,yb;
 
@@ -1555,7 +1554,6 @@ void UploadScreen(int Position)
 
  bUsingMovie=FALSE;                                    // done...
  bDisplayNotSet = TRUE;
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////

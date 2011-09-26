@@ -237,3 +237,4 @@ int pcsxmain(const char * cdfile) {
 void cpuReset() {
     EmuReset();
 }
+
