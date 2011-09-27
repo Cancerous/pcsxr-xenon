@@ -86,10 +86,11 @@ unsigned long ulInitDisplay() {
     Xe_SetRenderTarget(xe, Xe_GetFramebufferSurface(xe));
 
     static const struct XenosVBFFormat vbf = {
-        3,
+        4,
         {
             {XE_USAGE_POSITION, 0, XE_TYPE_FLOAT3},
             {XE_USAGE_TEXCOORD, 0, XE_TYPE_FLOAT2},
+            {XE_USAGE_TEXCOORD, 1, XE_TYPE_FLOAT2},
             {XE_USAGE_COLOR, 0, XE_TYPE_UBYTE4},
         }
     };

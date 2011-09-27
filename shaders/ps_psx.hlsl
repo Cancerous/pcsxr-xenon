@@ -3,6 +3,7 @@ sampler tex0;
 struct _IN
 {
     float2 uv: TEXCOORD0;
+    float2 uv1: TEXCOORD1;
     float4 col : COLOR0;
 };
 

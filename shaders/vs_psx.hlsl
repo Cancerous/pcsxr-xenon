@@ -1,15 +1,17 @@
 struct _IN
 {
     float3 pos: POSITION;
-    float2 uv: TEXCOORD0;
+    float2 uv0: TEXCOORD0;
+    float2 uv1: TEXCOORD1;
     float4 col: COLOR0;
 };
 
 struct _OUT
 {
-    float4 pos: POSITION;
-    float2 uv: TEXCOORD0;
-    float4 col: COLOR0;
+  float4 pos: POSITION;
+  float2 uv0: TEXCOORD0;
+  float2 uv1: TEXCOORD1;
+  float4 col: COLOR;
 };
 
 float2 screenSize : register(c1);
@@ -27,7 +29,8 @@ _OUT main(_IN In )
     Out.pos.z = In.pos.z;
     Out.pos.w = 1.0f;
     Out.col = In.col;
-    Out.uv = In.uv;
+    Out.uv0 = In.uv0;
+    Out.uv1 = In.uv1;
     return Out;
 }
 

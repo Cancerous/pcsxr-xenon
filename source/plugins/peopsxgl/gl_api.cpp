@@ -48,11 +48,11 @@ static uint16_t prim_quads[] = {0, 1, 2, 0, 1, 3}; // GL_QUADS // not used
 int indiceCount=0;
 //int vertexCount=0;
 
-
+// 32 bit aligned
 typedef struct __attribute__((__packed__)) glVerticeFormats {
     float x, y, z;
     float u, v;
-    //float color;
+    float u2, v2;
     uint32_t color;
     //float r,g,b,a;
 } glVerticeFormats;

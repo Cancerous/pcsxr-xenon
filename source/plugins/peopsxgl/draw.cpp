@@ -371,6 +371,9 @@ void SetExtGLFuncs(void) {
     XeDisableBlend();
 
     SetScanTrans(); // init scan lines (if wanted)
+    
+    
+    bSmallAlpha = FALSE;
 }
 
 void XeSetExtGLFuncs(void) {
