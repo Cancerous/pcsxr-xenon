@@ -474,7 +474,7 @@ int iFTexA = 512;
 int iFTexB = 512;
 
 void CheckTextureMemory(void) {
-#if 0
+#if 1
     GLboolean b;
     GLboolean * bDetail;
     int i, iCnt, iRam = iVRamSize * 1024 * 1024;
@@ -2170,6 +2170,7 @@ void DefineTextureMovie(void) {
 ////////////////////////////////////////////////////////////////////////
 
 unsigned char * LoadDirectMovieFast(void) {
+    TR;
     int row, column;
     unsigned int startxy;
 
@@ -2269,7 +2270,12 @@ struct XenosSurface * LoadTextureMovieFast(void) {
                 //startxy=((1024)*column)+xrMovieArea.x0;
                 pD = (unsigned char *) &psxVuw[startxy];
                 for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++) {
-                    *ta++ = *((uint32_t *) pD) | 0xff000000;
+                    //*ta++ = *((uint32_t *) pD) | 0xff000000;
+                    
+                    uint32_t lu = *((uint32_t *) pD);
+                    *ta++ = 0xff000000 | (RED(lu) << 16) | (BLUE(lu) << 8) | (GREEN(lu));
+                    
+                    //*ta++ = GETLE32((uint32_t *) pD) | 0xff;
                     pD += 3;
                 }
             }
