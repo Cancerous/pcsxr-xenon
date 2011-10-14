@@ -34,7 +34,6 @@ void ReadConfig(void) // read config (linux file)
 {
     iResX = 1280;
     iResY = 720;
-    iUseScanLines = 0;
     bGteAccuracy = FALSE;
     bFullVRam = FALSE;
     iFilterType = 5; //0: None , 5: Standard + smoothed Sprites, 6: Extended + smoothed Sprites
@@ -48,7 +47,7 @@ void ReadConfig(void) // read config (linux file)
     bOpaquePass = FALSE;//TRUE
     bUseAntiAlias = FALSE;
     iTexQuality = 4; // 4 - B8 G8 R8 A8 - Slightly faster with some cards | 3 - R8 G8 B8 A8 - Best colors, more ram needed
-    iUseMask = 0;
+    iUseMask = 1;
     iZBufferDepth = 16;
     bUseFastMdec = TRUE;
     dwCfgFixes = 0;
@@ -62,7 +61,7 @@ void ReadConfig(void) // read config (linux file)
     iVRamSize = 128;
     iTexGarbageCollection = 1;
     iBlurBuffer = 0;
-    iHiResTextures = 1; //0: None (standard) ,1: 2xSaI (much vram needed) ,2: Stretched (filtering needed)
+    iHiResTextures = 0; //0: None (standard) ,1: 2xSaI (much vram needed) ,2: Stretched (filtering needed)
     
     if (iUseMask) iZBufferDepth = 16; // set zbuffer depth
     else iZBufferDepth = 0;

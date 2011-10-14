@@ -12,47 +12,6 @@ void usleep(int s) {
     udelay(s);
 }
 
-int stat(const char * __restrict path, struct stat * __restrict buf) {
-    int fd = -1;
-    fd = open(path, O_RDONLY);
-
-    if (fd) {
-        return fstat(fd, buf);
-    }
-    return ENOENT; // file doesn't exist
-}
-#if 1
-// 22 nov 2005 
-#define	RTC_BASE	1132614024UL//1005782400UL
-
-int gettimeofday(struct timeval * tp, void * tzp) {
-    unsigned char msg[16] = {0x04};
-    unsigned long msec;
-    unsigned long sec;
-
-    xenon_smc_send_message(msg);
-    xenon_smc_receive_message(msg);
-
-    msec = msg[1] | (msg[2] << 8) | (msg[3] << 16) | (msg[4] << 24) | ((unsigned long) msg[5] << 32);
-
-    //      printf("smc ret : %d\r\n", msec);
-
-    sec = msec / 1000;
-
-    tp->tv_sec = sec + RTC_BASE;
-
-    msec -= sec * 1000;
-
-    tp->tv_usec = msec * 1000;
-
-    //printf("s:%d - %ms:%d\r\n", tp->tv_sec, tp->tv_usec);
-
-    //printf("%s\r\n",ctime(&tp->tv_sec));
-    
-    return 0;
-}
-#endif
-
 #if 0
 #include <altivec.h>
 #define vector_s16_t vector signed short

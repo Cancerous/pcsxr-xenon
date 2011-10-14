@@ -158,7 +158,8 @@ int pcsxmain(const char * cdfile) {
     //Config.HLE = 0; 
     Config.Xa = 0; // Disable Xa Decoding
     Config.Cdda = 0; // Disable Cd audio
-    Config.PsxAuto = 1; // Autodetect
+    Config.PsxAuto = 0; // autodetect system (pal or ntsc)
+    Config.PsxType = PSX_TYPE_NTSC;
 #else
     Config.SpuIrq = GetSpuIrqGui(); // Spu Irq Always Enabled
     Config.Xa = GetXaGui(); // Disable Xa Decoding

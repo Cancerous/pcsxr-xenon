@@ -28,8 +28,8 @@ extern struct XenosDevice *xe;
 
 #define CLUTUSED     0x80000000
 
-#define SETCOL(x)  if(x.c.lcol!=ulOLDCOL) {ulOLDCOL=x.c.lcol;glColor4ubv(x.c.col);} 
-#define SETPCOL(x)  if(x->c.lcol!=ulOLDCOL) {ulOLDCOL=x->c.lcol;glColor4ubv(x->c.col);}
+#define SETCOL(x)  if(x.c.lcol!=ulOLDCOL) {ulOLDCOL=x.c.lcol;gpuRenderer.primColor(x.c.col);} 
+#define SETPCOL(x)  if(x->c.lcol!=ulOLDCOL) {ulOLDCOL=x->c.lcol;gpuRenderer.primColor(x->c.col);}
 //#define SETCOL(x)  if(x.c.lcol!=ulOLDCOL) {ulOLDCOL=x.c.lcol;vertex[0].c.lcol = ulOLDCOL;vertex[1].c.lcol = ulOLDCOL;vertex[2].c.lcol = ulOLDCOL;vertex[3].c.lcol = ulOLDCOL;} 
 //#define SETPCOL(x)  if(x->c.lcol!=ulOLDCOL) {ulOLDCOL=x->c.lcol;vertex[0].c.lcol = ulOLDCOL;vertex[1].c.lcol = ulOLDCOL;vertex[2].c.lcol = ulOLDCOL;vertex[3].c.lcol = ulOLDCOL;}
 
@@ -398,8 +398,6 @@ extern signed int     *psxVsl;
 extern GLfloat        gl_z;
 extern BOOL           bNeedRGB24Update;
 extern BOOL           bChangeWinMode;
-extern GLuint         uiScanLine;
-extern int            iUseScanLines;
 extern float        iScanlineColor[]; /* 4 element array of RGBA float */
 extern int            lSelectedSlot;
 extern int            iScanBlend;

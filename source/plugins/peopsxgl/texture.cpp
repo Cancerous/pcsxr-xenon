@@ -65,7 +65,7 @@
 #include "texture.h"
 #include "gpu.h"
 #include "prim.h"
-#include "xe.h"
+#include "GpuRenderer.h"
 
 /*
 #define HOST2LE32(x) (x)
@@ -89,7 +89,6 @@
 #define CLUTSHIFT 17
 
 // crappy
-#define glTexImage2D
 #define glColorTableEXTEx 0
 
 int glGetError() {
@@ -665,20 +664,20 @@ void CleanupTextureStore() {
     tsx = wcWndtexStore; // loop tex window cache
     for (i = 0; i < MAXWNDTEXCACHE; i++, tsx++) {
         if (tsx->texname) // -> some tex?
-            Xe_DestroyTexture(xe, tsx->texname); // --> delete it
+            gpuRenderer.DestroyTexture(tsx->texname); // --> delete it
     }
     iMaxTexWnds = 0; // no more tex wnds
     //----------------------------------------------------//
     if (gTexMovieName != 0) // some movie tex?
-        Xe_DestroyTexture(xe, gTexMovieName); // -> delete it
+        gpuRenderer.DestroyTexture( gTexMovieName); // -> delete it
     gTexMovieName = 0; // no more movie tex
     //----------------------------------------------------//
     if (gTexFrameName != 0) // some 15bit framebuffer tex?
-        Xe_DestroyTexture(xe, gTexFrameName); // -> delete it
+        gpuRenderer.DestroyTexture( gTexFrameName); // -> delete it
     gTexFrameName = 0; // no more movie tex
     //----------------------------------------------------//
     if (gTexBlurName != 0) // some 15bit framebuffer tex?
-        Xe_DestroyTexture(xe, gTexBlurName); // -> delete it
+        gpuRenderer.DestroyTexture( gTexBlurName); // -> delete it
     gTexBlurName = 0; // no more movie tex
     //----------------------------------------------------//
     for (i = 0; i < 3; i++) // -> loop
@@ -689,7 +688,7 @@ void CleanupTextureStore() {
     for (i = 0; i < MAXSORTTEX; i++) {
         if (uiStexturePage[i]) // --> tex used ?
         {
-            Xe_DestroyTexture(xe, uiStexturePage[i]);
+            gpuRenderer.DestroyTexture( uiStexturePage[i]);
             uiStexturePage[i] = 0; // --> delete it
         }
         free(pxSsubtexLeft[i]); // -> clean mem
@@ -713,7 +712,7 @@ void ResetTextureArea(BOOL bDelTex) {
     //----------------------------------------------------//
     if (bDelTex) {
         //glBindTexture(GL_TEXTURE_2D,0);gTexName=0;
-        XeDisableTexture();
+        gpuRenderer.DisableTexture();
         gTexName = 0;
 
     }
@@ -722,7 +721,7 @@ void ResetTextureArea(BOOL bDelTex) {
     for (i = 0; i < MAXWNDTEXCACHE; i++, tsx++) {
         tsx->used = 0;
         if (bDelTex && tsx->texname) {
-            Xe_DestroyTexture(xe, tsx->texname);
+            gpuRenderer.DestroyTexture( tsx->texname);
             tsx->texname = 0;
         }
     }
@@ -742,7 +741,7 @@ void ResetTextureArea(BOOL bDelTex) {
         lu = pxSsubtexLeft[i];
         lu->l = 0;
         if (bDelTex && uiStexturePage[i]) {
-            Xe_DestroyTexture(xe, uiStexturePage[i]);
+            gpuRenderer.DestroyTexture( uiStexturePage[i]);
             uiStexturePage[i] = 0;
         }
     }
@@ -1002,7 +1001,7 @@ void InvalidateTextureArea(int X, int Y, int W, int H) {
 
 void DefineTextureWnd(void) {
     if (gTexName == 0)
-        gTexName = Xe_CreateTexture(xe, TWin.Position.x1, TWin.Position.y1, 1, XE_FMT_8888 | XE_FMT_ARGB, 0);
+        gTexName = gpuRenderer.CreateTexture( TWin.Position.x1, TWin.Position.y1, XE_FMT_8888 | XE_FMT_ARGB);
 
     gTexName->u_addressing = XE_TEXADDR_WRAP;
     gTexName->v_addressing = XE_TEXADDR_WRAP;
@@ -2133,7 +2132,7 @@ void DefineTextureMovie(void) {
 
     if (gTexMovieName == 0) {
 
-        gTexMovieName = Xe_CreateTexture(xe, 256, 256, 1, XE_FMT_8888 | XE_FMT_ARGB, 0);
+        gTexMovieName =gpuRenderer.CreateTexture(256, 256, XE_FMT_8888 | XE_FMT_ARGB);
 
         xeGfx_setTextureData(gTexMovieName, texturepart);
 
@@ -3600,7 +3599,7 @@ void DefineSubTextureSortHiRes(void) {
 
     if (!gTexName) {
 
-        gTexName = Xe_CreateTexture(xe, 512, 512, 1, XE_FMT_8888 | XE_FMT_ARGB, 0);
+        gTexName = gpuRenderer.CreateTexture(512, 512, XE_FMT_8888 | XE_FMT_ARGB);
         xeGfx_setTextureData(gTexName, texturepart);
 
         gTexName->u_addressing = iClampType;
@@ -3676,7 +3675,7 @@ void DefineSubTextureSort(void) {
 
     if (!gTexName) {
 
-        gTexName = Xe_CreateTexture(xe, 256, 256, 1, XE_FMT_8888 | XE_FMT_ARGB, 0);
+        gTexName = gpuRenderer.CreateTexture(256, 256, XE_FMT_8888 | XE_FMT_ARGB);
         xeGfx_setTextureData(gTexName, texturepart);
 
         gTexName->u_addressing = iClampType;
@@ -3750,6 +3749,7 @@ void DoTexGarbageCollection(void) {
 /////////////////////////////////////////////////////////////////////////////
 
 unsigned char * CheckTextureInSubSCache(int TextureMode, uint32_t GivenClutId, unsigned short * pCache) {
+    //TR;
     textureSubCacheEntryS * tsx, * tsb, *tsg; //, *tse=NULL;
     int i, iMax;
     EXLong npos;
@@ -3846,6 +3846,7 @@ unsigned char * CheckTextureInSubSCache(int TextureMode, uint32_t GivenClutId, u
                 if (tsx) // 3. if one or more found, create a new rect with bigger size
                 {
                     *((uint32_t *) & gl_ux[4]) = npos.l = rfree.l;
+                    
                     rx = (int) rfree.c[2]-(int) rfree.c[3];
                     ry = (int) rfree.c[0]-(int) rfree.c[1];
                     DoTexGarbageCollection();
@@ -4193,6 +4194,7 @@ TENDLOOP:
 /////////////////////////////////////////////////////////////////////////////
 
 void CompressTextureSpace(void) {
+    TR; // texture crah when using this ?
     textureSubCacheEntryS * tsx, * tsg, * tsb;
     int i, j, k, m, n, iMax;
     EXLong * ul, r, opos;
@@ -4406,6 +4408,12 @@ struct XenosSurface * SelectSubTextureS(int TextureMode, uint32_t GivenClutId) {
     if (iCache == 0xffff) {
         CompressTextureSpace();
         OPtr = CheckTextureInSubSCache(TextureMode, GivenClutId, &iCache);
+        printf("OPtr %p\r\n",OPtr);
+        // dump gl_uv
+        for(int ii = 0;ii<8;ii++){
+            printf("gl_ux[%d] = %02x\r\n",ii,gl_ux[ii]);
+        }
+        
     }
 
     // found? fine

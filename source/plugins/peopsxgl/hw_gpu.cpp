@@ -39,7 +39,7 @@
 #include "fps.h"
 #include "key.h"
 #include "gte_accuracy.h"
-#include "xe.h"
+#include "GpuRenderer.h"
 
 
 #ifdef _WINDOWS
@@ -138,8 +138,7 @@ TWin_t TWin;
 short imageX0, imageX1;
 short imageY0, imageY1;
 BOOL bDisplayNotSet = TRUE;
-GLuint uiScanLine = 0;
-int iUseScanLines = 0;
+
 float iScanlineColor[] = {0, 0, 0, 0.3}; // easy on the eyes.
 int lSelectedSlot = 0;
 unsigned char * pGfxCardScreen = 0;
@@ -300,7 +299,8 @@ EXTERN long GPUopen(unsigned long * disp, char * CapText, char * CfgFile) {
 
     bIsFirstFrame = TRUE; // we have to init later (well, no really... in Linux we do all in GPUopen)
 
-    unsigned long display = ulInitDisplay();
+    unsigned long display = 1;
+    gpuRenderer.Init();
 
     InitializeTextureStore(); // init texture mem
 
@@ -329,7 +329,7 @@ EXTERN long GPUclose() // LINUX CLOSE
         free(pGfxCardScreen); // free helper memory
     pGfxCardScreen = 0;
 
-    CloseDisplay();
+    gpuRenderer.Close();
 
     return 0;
 }
@@ -438,14 +438,10 @@ void updateDisplay(void) // UPDATE DISPLAY
                 glClear(uiBufferBits);
                 glEnable(GL_SCISSOR_TEST);
          */
-        XeColor xeclearcolor;
-        xeclearcolor.color=0;
-        xeclearcolor.a = 128;
-        
-        XeDisableScissor();
-        Xe_SetClearColor(xe, xeclearcolor.color);
-        XeClear(uiBufferBits);
-        XeEnableScissor();
+        gpuRenderer.DisableScissor();
+        gpuRenderer.ClearColor(0,0,0,128);
+        gpuRenderer.Clear(uiBufferBits);
+        gpuRenderer.EnableScissor();
 
         gl_z = 0.0f;
         bDisplayNotSet = TRUE;
@@ -463,9 +459,6 @@ void updateDisplay(void) // UPDATE DISPLAY
         bBlur = TRUE;
     } // -> blur it
 
-/*
-    if (iUseScanLines) SetScanLines(); // "scan lines" activated? do it
-*/
 
     if (usCursorActive) ShowGunCursor(); // "gun cursor" wanted? show 'em
 
@@ -541,10 +534,10 @@ glEnable(GL_SCISSOR_TEST);
         xeclearcolor.g = BLUE(lClearOnSwapColor);
         xeclearcolor.b = GREEN(lClearOnSwapColor);
         
-        XeDisableScissor();
-        Xe_SetClearColor(xe, xeclearcolor.color);
-        XeClear(uiBufferBits);
-        XeEnableScissor();
+        gpuRenderer.DisableScissor();
+        gpuRenderer.ClearColor(xeclearcolor.r,xeclearcolor.g,xeclearcolor.b,xeclearcolor.a);
+        gpuRenderer.Clear(uiBufferBits);
+        gpuRenderer.EnableScissor();
 
         lClearOnSwap = 0; // -> done
     } else {
@@ -556,9 +549,9 @@ glEnable(GL_SCISSOR_TEST);
             // glDisable(GL_SCISSOR_TEST);
             // glClear(GL_DEPTH_BUFFER_BIT);
             // glEnable(GL_SCISSOR_TEST);
-            XeDisableScissor();
-            XeClear(uiBufferBits);
-            XeEnableScissor();
+            gpuRenderer.DisableScissor();
+            gpuRenderer.Clear(uiBufferBits);
+            gpuRenderer.EnableScissor();
         }
     }
     gl_z = 0.0f;
@@ -622,11 +615,6 @@ void updateFrontDisplay(void) {
 
     if (iBlurBuffer)
         BlurBackBuffer();
-
-/*
-    if (iUseScanLines)
-        SetScanLines();
-*/
 
     if (usCursorActive)
         ShowGunCursor();
@@ -754,7 +742,8 @@ void SetAspectRatio(void) {
         XeColor xeclearcolor;
         xeclearcolor.color=0;
         xeclearcolor.a = 128;
-        Xe_SetClearColor(xe,xeclearcolor.color);
+        //Xe_SetClearColor(xe,xeclearcolor.color);
+        gpuRenderer.ClearColor(xeclearcolor.r,xeclearcolor.g,xeclearcolor.b,xeclearcolor.a);
 
         if (r.right < rRatioRect.right) {
             rC.left = 0;
@@ -763,11 +752,11 @@ void SetAspectRatio(void) {
             rC.bottom = iResY;
             //glScissor(rC.left, rC.top, rC.right, rC.bottom);
             Xe_SetScissor(xe,1,rC.left, rC.top, rC.right, rC.bottom);
-            XeClear(uiBufferBits);
+            gpuRenderer.Clear(uiBufferBits);
             rC.left = iResX - rC.right;
             //glScissor(rC.left, rC.top, rC.right, rC.bottom);
             Xe_SetScissor(xe,1,rC.left, rC.top, rC.right, rC.bottom);
-            XeClear(uiBufferBits);
+            gpuRenderer.Clear(uiBufferBits);
         }
 
         if (r.bottom < rRatioRect.bottom) {
@@ -777,11 +766,11 @@ void SetAspectRatio(void) {
             rC.bottom = r.top;
             //glScissor(rC.left, rC.top, rC.right, rC.bottom);
             Xe_SetScissor(xe,1,rC.left, rC.top, rC.right, rC.bottom);
-            XeClear(uiBufferBits);
+            gpuRenderer.Clear(uiBufferBits);
             rC.top = iResY - rC.bottom;
             //glScissor(rC.left, rC.top, rC.right, rC.bottom);
             Xe_SetScissor(xe,1,rC.left, rC.top, rC.right, rC.bottom);
-            XeClear(uiBufferBits);
+            gpuRenderer.Clear(uiBufferBits);
         }
 
         bSetClip = TRUE;
@@ -791,7 +780,7 @@ void SetAspectRatio(void) {
     rRatioRect = r;
 
     TR
-    XeViewport(
+    gpuRenderer.SetViewPort(
         rRatioRect.left,
         iResY - (rRatioRect.top + rRatioRect.bottom),
         rRatioRect.right,
@@ -819,7 +808,7 @@ void updateDisplayIfChanged(void) {
         glOrtho(0, PSXDisplay.DisplayModeNew.x, // -> new psx resolution
                 PSXDisplay.DisplayModeNew.y, 0, -1, 1);
 */
-        XeOrtho(0, PSXDisplay.DisplayModeNew.x, // -> new psx resolution
+        gpuRenderer.SetOrtho(0, PSXDisplay.DisplayModeNew.x, // -> new psx resolution
                 PSXDisplay.DisplayModeNew.y, 0, -1, 1);
         if (bKeepRatio) SetAspectRatio();
     }

@@ -21,34 +21,42 @@
 #include "externals.h"
 
 extern int bGteAccuracy;
+float ***gteCoords = NULL;
+
 // TODO: use malloc and pointer to the array's center.
+// 08000000
 
-EXTERN void CALLBACK GPUaddVertex(short sx, short sy, long long fx, long long fy, long long fz)
-{
-    if(bGteAccuracy)
-    {
-        if(sx >= -0x800 && sx <= 0x7ff &&
-           sy >= -0x800 && sy <= 0x7ff)
-        {
-
+EXTERN void CALLBACK GPUaddVertex(short sx, short sy, long long fx, long long fy, long long fz) {
+    if (bGteAccuracy) {
+        if (sx >= -0x800 && sx <= 0x7ff &&
+                sy >= -0x800 && sy <= 0x7ff) {
+            gteCoords[sy + 0x800][sx + 0x800][0] = fx / 65536.0f;
+            gteCoords[sy + 0x800][sx + 0x800][1] = fy / 65536.0f;
         }
     }
 }
 
-void resetGteVertices()
-{
-    if(bGteAccuracy)
-    {
+void resetGteVertices() {
+    if (bGteAccuracy) {
 
+        gteCoords = (float***) malloc(0x8000000);
+        memset(gteCoords, 0x00, 0x8000000);
     }
 }
 
-int getGteVertex(short sx, short sy, float *fx, float *fy)
-{
-    if(bGteAccuracy)
-    {
+int getGteVertex(short sx, short sy, float *fx, float *fy) {
+    if (bGteAccuracy) {
+        if (sx >= -0x800 && sx <= 0x7ff &&
+                sy >= -0x800 && sy <= 0x7ff) {
+            if (((int) gteCoords[sy + 0x800][sx + 0x800][0]) == sx &&
+                    ((int) gteCoords[sy + 0x800][sx + 0x800][1]) == sy) {
+                *fx = gteCoords[sy + 0x800][sx + 0x800][0];
+                *fy = gteCoords[sy + 0x800][sx + 0x800][1];
 
+                return 1;
+            }
+        }
     }
-    
+
     return 0;
 }

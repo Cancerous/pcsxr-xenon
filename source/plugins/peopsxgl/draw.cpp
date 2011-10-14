@@ -26,7 +26,7 @@
 #include "prim.h"
 #include "texture.h"
 #include "menu.h"
-#include "xe.h"
+#include "GpuRenderer.h"
 #include "gte_accuracy.h"
 ////////////////////////////////////////////////////////////////////////////////////
 // defines
@@ -111,6 +111,7 @@ int iUsePalTextures = 1;
 BOOL bSnapShot = FALSE;
 BOOL bSmallAlpha = FALSE;
 int iShowFPS = 0;
+BOOL bAdvancedBlend;
 
 // OGL extension support
 
@@ -207,15 +208,36 @@ void SetExtGLFuncs(void) {
     SetFixes(); // update fix infos
 
     //----------------------------------------------------//
+    gpuRenderer.SetBlendOp(XE_BLENDOP_ADD);
 
-    //----------------------------------------------------//
-    int bAdvancedBlend = FALSE;
-    if (bAdvancedBlend) 
-        bUseMultiPass = TRUE; // -> pseudo-advanced with 2 passes
-    else 
-        bUseMultiPass = FALSE; // -> or simple 'bright color' mode
+    iUseExts = bAdvancedBlend = 1;
     
-    bGLBlend = FALSE; // -> no ext blending!
+    //----------------------------------------------------//
+    if (iUseExts && bAdvancedBlend ) { // advanced blending wanted ?
+        bUseMultiPass = FALSE;
+        bGLBlend = TRUE; // -> no need for 2 passes, perfect
+
+        printf("bGLBlend = TRUE; bUseMultiPass = FALSE;\r\n");
+        
+//        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, COMBINE_EXT);
+//        glTexEnvf(GL_TEXTURE_ENV, COMBINE_RGB_EXT, GL_MODULATE);
+//        glTexEnvf(GL_TEXTURE_ENV, COMBINE_ALPHA_EXT, GL_MODULATE);
+//        glTexEnvf(GL_TEXTURE_ENV, RGB_SCALE_EXT, 2.0f);
+        //gpuRenderer.TextEnv(TEXTURE_ENV_MODE, COMBINE_EXT);
+        //gpuRenderer.TextEnv(COMBINE_RGB_EXT, MODULATE);
+        //gpuRenderer.TextEnv(COMBINE_ALPHA_EXT, MODULATE);
+        //gpuRenderer.TextEnv(RGB_SCALE_EXT, 2.0f);
+        
+    } else // no advanced blending wanted/available:
+    {
+        if (bAdvancedBlend) bUseMultiPass = TRUE; // -> pseudo-advanced with 2 passes
+        else bUseMultiPass = FALSE; // -> or simple 'bright color' mode
+        bGLBlend = FALSE; // -> no ext blending!
+
+        //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        //gpuRenderer.TextEnv(TEXTURE_ENV_MODE, MODULATE);
+    }
+
 
 
     //----------------------------------------------------//
@@ -236,12 +258,12 @@ void SetExtGLFuncs(void) {
         }
 
         TCF[1] = XP8RGBA_1;
-       XeAlphaFunc(XE_CMP_GREATER, 0.49f);
+       gpuRenderer.SetAlphaFunc(XE_CMP_GREATER, 0.49f);
     } else // no opaque mode?
     {
         TCF[0] = TCF[1] = P8RGBA;
         PalTexturedColourFn = P8RGBA; // -> init col func
-        XeAlphaFunc(XE_CMP_NOTEQUAL, 0); // --> set alpha func
+        gpuRenderer.SetAlphaFunc(XE_CMP_NOTEQUAL, 0); // --> set alpha func
     }
 
     //----------------------------------------------------//
@@ -368,11 +390,11 @@ void SetExtGLFuncs(void) {
     }
 
     bBlendEnable = FALSE; // init blending: off
-    XeDisableBlend();
+    gpuRenderer.DisableBlend();
 
     SetScanTrans(); // init scan lines (if wanted)
-    
-    
+
+
     bSmallAlpha = FALSE;
 }
 
@@ -415,8 +437,8 @@ void XeSetExtGLFuncs(void) {
         TCF[1] = XP8BGRA_1;
 #endif
 
-        XeAlphaFunc(XE_CMP_GREATER, 0.49f);
-        
+        gpuRenderer.SetAlphaFunc(XE_CMP_GREATER, 0.49f);
+
         TR;
     } else // no opaque mode?
     {
@@ -428,8 +450,9 @@ void XeSetExtGLFuncs(void) {
         TCF[0] = TCF[1] = P8RGBA;
         PalTexturedColourFn = P8RGBA; // -> init col func
 #endif
-        XeAlphaFunc(XE_CMP_NOTEQUAL, 0); // --> set alpha func
+        gpuRenderer.SetAlphaFunc(XE_CMP_NOTEQUAL, 0); // --> set alpha func
         
+
         TR;
     }
 
@@ -440,7 +463,7 @@ void XeSetExtGLFuncs(void) {
     giWantedFMT = XE_FMT_BGRA; // init ogl tex format
 
     bBlendEnable = FALSE; // init blending: off
-    XeDisableBlend();
+    gpuRenderer.DisableBlend();
 
     SetScanTrans(); // init scan lines (if wanted)
 }
@@ -473,7 +496,7 @@ void CreateScanLines(void) {
 ////////////////////////////////////////////////////////////////////////
 
 int GLinitialize() {
-    XeViewport(rRatioRect.left, // init viewport by ratio rect
+    gpuRenderer.SetViewPort(rRatioRect.left, // init viewport by ratio rect
             iResY - (rRatioRect.top + rRatioRect.bottom),
             rRatioRect.right,
             rRatioRect.bottom);
@@ -492,7 +515,7 @@ int GLinitialize() {
     TR
     //glMatrixMode(GL_PROJECTION); // init projection with psx resolution
     //glLoadIdentity();
-    XeOrtho(0, PSXDisplay.DisplayMode.x,
+    gpuRenderer.SetOrtho(0, PSXDisplay.DisplayMode.x,
             PSXDisplay.DisplayMode.y, 0, -1, 1);
 
     if (iZBufferDepth) // zbuffer?
@@ -500,21 +523,22 @@ int GLinitialize() {
         uiBufferBits = XE_CLEAR_COLOR | XE_CLEAR_DS;
         //    glEnable(GL_DEPTH_TEST);
         //    glDepthFunc(GL_ALWAYS);
-        Xe_SetZWrite(xe, 1);
-        Xe_SetZEnable(xe, 1);
-        Xe_SetZFunc(xe, XE_CMP_ALWAYS);
+
+        gpuRenderer.EnableDepthTest();
+        gpuRenderer.DepthFunc(XE_CMP_ALWAYS);
+        //gpuRenderer.DepthFunc(XE_CMP_NEVER);
         iDepthFunc = 1;
     } else // no zbuffer?
     {
         uiBufferBits = XE_CLEAR_COLOR;
         //    glDisable(GL_DEPTH_TEST);
-        Xe_SetZEnable(xe, 0);
+        gpuRenderer.DisableDepthTest();
     }
 
     //glClearColor(0.0f, 0.0f, 0.0f, 0.0f); // first buffer clear
     //glClear(uiBufferBits);
-    Xe_SetClearColor(xe, 0);
-    Xe_Clear(xe, uiBufferBits);
+    gpuRenderer.ClearColor(0.0f, 0.0f, 0.0f, 0.0f); // first buffer clear
+    gpuRenderer.Clear(uiBufferBits);
 
     if (bUseLines) // funny lines
     {
@@ -531,7 +555,7 @@ int GLinitialize() {
     SetExtGLFuncs(); // init all kind of stuff (tex function pointers)
 
     // glEnable(GL_ALPHA_TEST); // wanna alpha test
-    Xe_SetAlphaTestEnable(xe, 1);
+    gpuRenderer.EnableAlphaTest();
 
     if (!bUseAntiAlias) // no anti-alias (default)
     {
@@ -1273,7 +1297,7 @@ void assignTexture3(void) {
                                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
                  */
-                gTexName->use_filtering = XE_TEXF_POINT;
+                gTexName->use_filtering = XE_TEXF_LINEAR;
                 gLastTex = gTexName;
                 gLastFMode = 1;
 
@@ -1341,7 +1365,7 @@ void assignTexture4(void) {
                                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
                  */
-                gTexName->use_filtering = XE_TEXF_POINT;
+                gTexName->use_filtering = XE_TEXF_LINEAR;
                 gLastTex = gTexName;
                 gLastFMode = 1;
             }
