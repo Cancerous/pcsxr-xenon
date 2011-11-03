@@ -57,7 +57,7 @@
 //#define cdfile "uda:/psxisos/Resident Evil - Director's Cut - Dual Shock Ver. (USA)/Resident Evil - Director's Cut - Dual Shock Ver. (USA) (Track 1).bin"
 //#define cdfile "uda:/psxiso.iso"
 //#define cdfile "uda:/psxisos/Gran Turismo 2 (USA) (v1.0) (Simulation Mode)/Gran Turismo 2 (USA) (v1.0) (Simulation Mode).bin"
-//#define cdfile "uda:/psxisos/Street Fighter Alpha - Warriors' Dreams (USA)/Street Fighter Alpha - Warriors' Dreams (USA) (Track 01).bin"
+
 #define cdfile "uda:/psxisos/Street Fighter Alpha 2 (USA)/Street Fighter Alpha 2 (USA) (Track 1).bin"
 //#define cdfile "uda:/psxiso.iso"
 //#define cdfile "uda:/psxisos/Tekken 3 (USA)/Tekken 3 (USA) (Track 1).bin"
@@ -70,6 +70,9 @@
 //#define cdfile "uda:/psxisos/Rayman (USA)/Rayman (USA) (Track 01).bin"
 //#define cdfile "uda:/psxisos/Darkstalkers 3 (USA)/Darkstalkers 3 (USA).bin"
 //#define cdfile "uda:/psxisos/Gran Turismo 2 (USA) (v1.0) (Simulation Mode)/Gran Turismo 2 (USA) (v1.0) (Simulation Mode).bin"
+
+#define cdfile "uda:/psxisos/Street Fighter Alpha - Warriors' Dreams (USA)/Street Fighter Alpha - Warriors' Dreams (USA) (Track 01).bin"
+
 #endif
 void printConfigInfo() {
 
@@ -113,11 +116,13 @@ void SetIso(const char * fname){
     fclose(fd);
 }
 
+extern void httpd_start(void);
+
 #ifndef LZX_GUI
 int main() {
     
     xenon_make_it_faster(XENON_SPEED_FULL);
-    xenos_init(VIDEO_MODE_AUTO);
+    xenos_init(VIDEO_MODE_YUV_720P);
     xenon_sound_init();
     //xenos_init(VIDEO_MODE_YUV_720P);
     console_init();
@@ -135,8 +140,8 @@ int pcsxmain(const char * cdfile) {
     Xe_SetClearColor(getLzxVideoDevice(),0xff000000);
 #endif
     
-    
-    
+    network_init();
+    httpd_start();
     // uart speed patch 115200
     // *(volatile uint32_t*)(0xea001000+0x1c) = 0xe6010000;
 
@@ -239,3 +244,7 @@ void cpuReset() {
     EmuReset();
 }
 
+
+void systemPoll(){
+    network_poll();
+}

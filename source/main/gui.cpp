@@ -1,5 +1,8 @@
 // lzx.cpp : Defines the entry point for the application.
 //
+
+#ifdef LZX_GUI
+
 extern "C" {
     int pcsxmain(const char * cdfile);
 }
@@ -228,3 +231,4 @@ extern "C" XenosDevice * getLzxVideoDevice() {
     return ZLX::g_pVideoDevice;
 }
 
+#endif

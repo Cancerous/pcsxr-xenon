@@ -4059,6 +4059,12 @@ ENDLOOP:
 /////////////////////////////////////////////////////////////////////////////
 
 BOOL GetCompressTexturePlace(textureSubCacheEntryS * tsx) {
+    
+    TR;
+    printf("tsx->cTexID = %d\r\n",tsx->cTexID);
+    printf("XTexS = %d\r\n",XTexS);
+    printf("YTexS = %d\r\n",YTexS);
+    
     int i, j, k, iMax, iC;
     uint32_t rx, ry, mx, my;
     EXLong * ul = 0, * uls, rfree;
@@ -4179,6 +4185,11 @@ TENDLOOP:
 
     XTexS = rfree.c[3];
     YTexS = rfree.c[1];
+    
+    printf("tsx->cTexID = %d\r\n",tsx->cTexID);
+    
+    printf("XTexS = %d\r\n",XTexS);
+    printf("YTexS = %d\r\n",YTexS);
 
     return TRUE;
 }
@@ -4258,6 +4269,11 @@ void CompressTextureSpace(void) {
                                     tsx->ClutID = 0;
                                     continue;
                                 }
+                                
+                                printf("tsx->ClutID = %d\r\n",tsx->ClutID);
+                                printf("cx = %d\r\n",cx);
+                                printf("cy = %d\r\n",cy);
+                                printf("l = %d\r\n",l);
                             }
 
                             tsx->pos.l = r.l;
@@ -4408,14 +4424,10 @@ struct XenosSurface * SelectSubTextureS(int TextureMode, uint32_t GivenClutId) {
     if (iCache == 0xffff) {
         CompressTextureSpace();
         OPtr = CheckTextureInSubSCache(TextureMode, GivenClutId, &iCache);
-        printf("OPtr %p\r\n",OPtr);
-        // dump gl_uv
-        for(int ii = 0;ii<8;ii++){
-            printf("gl_ux[%d] = %02x\r\n",ii,gl_ux[ii]);
-        }
-        
     }
 
+    //printf("OPtr %p\r\n",OPtr);
+    
     // found? fine
     usLRUTexPage = iCache;
     if (!OPtr) return uiStexturePage[iCache];

@@ -36,6 +36,7 @@ typedef unsigned int DWORD;
 //#define BUFF_VB 
 
 static XenosDevice *xe;
+static XenosDevice _xe;
 
 static int16_t indices_strip[] = {0, 1, 2, 2, 1, 3};
 static int16_t indices_quad[] = {0, 1, 2, 0, 1, 3};
@@ -51,6 +52,7 @@ extern "C" {
 
 extern "C" {
     void doScreenCapture();
+    void systemPoll(); // main.c
 }
 
 void GpuRenderer::StatesChanged() {
@@ -480,6 +482,9 @@ void GpuRenderer::Render() {
     // Resolve
     Xe_Resolve(xe);
     Xe_Sync(xe); // wait for background render to finish !
+    
+    systemPoll();
+    
     Xe_InvalidateState(xe);
 
     doScreenCapture();

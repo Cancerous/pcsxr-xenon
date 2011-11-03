@@ -81,6 +81,25 @@ BOOL          bUseFixes;
 int           drawX,drawY,drawW,drawH;                 // offscreen drawing checkers
 short         sxmin,sxmax,symin,symax;
 
+void __dump(){
+    // textures gl_uv
+    int i;
+    for(i = 0;i<8;i++){
+        printf("gl_ux[%d] = %02x\r\n",i,gl_ux[i]);
+    }
+    printf("iSpriteTex = %d\r\n",iSpriteTex);
+    printf("sSprite_ux2 = %02x\r\n",sSprite_ux2);
+    printf("sSprite_vy2 = %02x\r\n",sSprite_vy2);
+    
+    // renderstates
+    {
+        printf("bDrawTextured %d\r\n",bDrawTextured);
+        printf("bDrawSmoothShaded %d\r\n",bDrawSmoothShaded);
+        printf("bDrawTextured %d\r\n",bDrawTextured);
+    }
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 // Update global TP infos
 ////////////////////////////////////////////////////////////////////////
@@ -2796,6 +2815,17 @@ void primSprt16(unsigned char * baseAddr)
 
  iSpriteTex=0;
  iDrawnSomething=1;
+ 
+ {
+     printf("primSprt16\r\n");
+     for(int i=0;i<8;i++){
+         printf("gl_ux[%d] = %d\r\n",i,gl_ux[i]);
+     }
+     for(int i=0;i<8;i++){
+         printf("gl_vy[%d] = %d\r\n",i,gl_vy[i]);
+     }
+ }
+ 
 }
 
 ////////////////////////////////////////////////////////////////////////
