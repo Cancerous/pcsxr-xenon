@@ -6,7 +6,16 @@
 #include <time/time.h>
 #include <xenon_smc/xenon_smc.h>
 
+// miss in gligli libxenon
+int stat(const char * __restrict path, struct stat * __restrict buf) {
+    int fd = -1;
+    fd = open(path, O_RDONLY);
 
+    if (fd) {
+        return fstat(fd, buf);
+    }
+    return ENOENT; // file doesn't exist
+}
 
 void usleep(int s) {
     udelay(s);

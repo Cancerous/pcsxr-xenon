@@ -13,10 +13,12 @@
 #define XE_TEXF_POINT 0
 #define XE_TEXF_LINEAR 1
 
-typedef struct XeColor{
+typedef struct XeColor {
+
     union {
         unsigned int color;
-        struct{
+
+        struct {
             uint8_t a;
             uint8_t r;
             uint8_t g;
@@ -26,14 +28,20 @@ typedef struct XeColor{
     };
 } XeColor;
 
-enum GpuPrimTypes{
+enum GpuPrimTypes {
     PRIM_TRIANGLE,
     PRIM_TRIANGLE_STRIP,
     PRIM_QUAD
 };
 
+enum GlExt {
+    RGB_SCALE_EXT = 0,
+
+};
+
 class GpuRenderer {
 private:
+
     /**
      * packed to 32bytes
      */
@@ -109,7 +117,7 @@ private:
 
     RenderStates m_RenderStates;
 
-private:
+public:
     int b_StatesChanged;
 
 
@@ -117,7 +125,7 @@ private:
      * states changed
      */
     void StatesChanged();
-
+private:
     void UpdatesStates();
 
     void SubmitVertices();
@@ -181,7 +189,7 @@ public:
     // scissor
     void DisableScissor();
     void EnableScissor();
-    
+
     /**
      * Init
      */
@@ -200,33 +208,44 @@ public:
     float textcoord_u;
     float textcoord_v;
     uint32_t m_primColor;
-    
+
     void primBegin(int primType);
     void primEnd();
     void primTexCoord(float * st);
     void primVertex(float * v);
     void primColor(u8 *v);
-    
-    void TextEnv(int f,int v){
+
+    void TextEnv(int f, int v) {
         // nothing yet
     }
-    
+
+    void TextEnv(int f, float v) {
+        switch (f) {
+            case RGB_SCALE_EXT:
+                break;
+        }
+    }
+
     int verticesCount();
     int indicesCount();
     int prevIndicesCount;
     int prevVerticesCount;
-    
+
     // viewport
     void SetViewPort(int left, int top, int right, int bottom);
     void SetOrtho(float l, float r, float b, float t, float zn, float zf);
-    
+
     // textures
     void DestroyTexture(XenosSurface *surf);
     XenosSurface * CreateTexture(unsigned int width, unsigned int height, int format);
-    void SetTextureFiltering(int filtering_mode){
-        if(m_RenderStates.surface)
-                m_RenderStates.surface->use_filtering = filtering_mode;
+
+    void SetTextureFiltering(int filtering_mode) {
+        if (m_RenderStates.surface)
+            m_RenderStates.surface->use_filtering = filtering_mode;
     }
+    
+    void NextVertice();
+    void NextIndice();
 };
 
 extern GpuRenderer gpuRenderer;
@@ -235,7 +254,7 @@ extern GpuRenderer gpuRenderer;
 void xeGfx_setTextureData(void * tex, void * buffer);
 void XeTexSubImage(struct XenosSurface * surf, int srcbpp, int dstbpp, int xoffset, int yoffset, int width, int height, const void * buffer);
 
-static inline void DoBufferSwap(){
+static inline void DoBufferSwap() {
     gpuRenderer.Render();
 }
 

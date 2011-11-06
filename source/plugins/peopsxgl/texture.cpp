@@ -241,6 +241,8 @@ unsigned short CLUTMASK = 0x7fff;
 unsigned short CLUTYMASK = 0x1ff;
 unsigned short MAXSORTTEX = 196;
 
+#define printf(...)
+
 ////////////////////////////////////////////////////////////////////////
 // Texture color conversions... all my ASM funcs are removed for easier
 // porting... and honestly: nowadays the speed gain would be pointless

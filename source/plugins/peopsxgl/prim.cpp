@@ -2815,7 +2815,7 @@ void primSprt16(unsigned char * baseAddr)
 
  iSpriteTex=0;
  iDrawnSomething=1;
- 
+ /*
  {
      printf("primSprt16\r\n");
      for(int i=0;i<8;i++){
@@ -2825,7 +2825,7 @@ void primSprt16(unsigned char * baseAddr)
          printf("gl_vy[%d] = %d\r\n",i,gl_vy[i]);
      }
  }
- 
+ */
 }
 
 ////////////////////////////////////////////////////////////////////////

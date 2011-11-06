@@ -122,7 +122,7 @@ extern void httpd_start(void);
 int main() {
     
     xenon_make_it_faster(XENON_SPEED_FULL);
-    xenos_init(VIDEO_MODE_YUV_720P);
+    xenos_init(VIDEO_MODE_AUTO);
     xenon_sound_init();
     //xenos_init(VIDEO_MODE_YUV_720P);
     console_init();
@@ -141,7 +141,8 @@ int pcsxmain(const char * cdfile) {
 #endif
     
     network_init();
-    httpd_start();
+//    telnet_console_init();
+    //httpd_start();
     // uart speed patch 115200
     // *(volatile uint32_t*)(0xea001000+0x1c) = 0xe6010000;
 
@@ -230,7 +231,7 @@ int pcsxmain(const char * cdfile) {
 #endif                  
             }
 #ifndef LZX_GUI
-            console_close();
+            // console_close();
 #endif
             psxCpu->Execute();
         }
@@ -246,5 +247,5 @@ void cpuReset() {
 
 
 void systemPoll(){
-    network_poll();
+    //network_poll();
 }

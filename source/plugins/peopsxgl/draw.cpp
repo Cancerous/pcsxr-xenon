@@ -210,7 +210,7 @@ void SetExtGLFuncs(void) {
     //----------------------------------------------------//
     gpuRenderer.SetBlendOp(XE_BLENDOP_ADD);
 
-    iUseExts = bAdvancedBlend = 1;
+    //iUseExts = bAdvancedBlend = 1;
     
     //----------------------------------------------------//
     if (iUseExts && bAdvancedBlend ) { // advanced blending wanted ?
@@ -226,7 +226,7 @@ void SetExtGLFuncs(void) {
         //gpuRenderer.TextEnv(TEXTURE_ENV_MODE, COMBINE_EXT);
         //gpuRenderer.TextEnv(COMBINE_RGB_EXT, MODULATE);
         //gpuRenderer.TextEnv(COMBINE_ALPHA_EXT, MODULATE);
-        //gpuRenderer.TextEnv(RGB_SCALE_EXT, 2.0f);
+        gpuRenderer.TextEnv(RGB_SCALE_EXT, 2.0f);
         
     } else // no advanced blending wanted/available:
     {
@@ -469,29 +469,6 @@ void XeSetExtGLFuncs(void) {
 }
 
 ////////////////////////////////////////////////////////////////////////
-// setup scan lines
-////////////////////////////////////////////////////////////////////////
-
-#define R_TSP 0x00,0x45,0x00,0xff
-#define G_TSP 0x00,0x00,0x45,0xff
-#define B_TSP 0x45,0x00,0x00,0xff
-#define O_TSP 0x45,0x45,0x45,0xff
-#define N_TSP 0x00,0x00,0x00,0xff
-
-GLuint gTexScanName = 0;
-
-GLubyte texscan[4][16] = {
-    {R_TSP, G_TSP, B_TSP, N_TSP},
-    {O_TSP, N_TSP, O_TSP, N_TSP},
-    {B_TSP, N_TSP, R_TSP, G_TSP},
-    {O_TSP, N_TSP, O_TSP, N_TSP}
-};
-
-void CreateScanLines(void) {
-
-}
-
-////////////////////////////////////////////////////////////////////////
 // Initialize OGL
 ////////////////////////////////////////////////////////////////////////
 
@@ -614,8 +591,6 @@ int GLinitialize() {
         glFlush(); // we are done...
         glFinish();
      */
-
-    CreateScanLines(); // setup scanline stuff (if wanted)
 
     CheckTextureMemory(); // check available tex memory
 

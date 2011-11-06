@@ -33,7 +33,11 @@ typedef unsigned int DWORD;
 #define MAX_VERTEX_COUNT 65536
 #define MAX_INDICE_COUNT 65536
 
-//#define BUFF_VB 
+
+#define BUFF_VB
+
+static int nb_vertices = 0;
+static int nb_indices = 0;
 
 static XenosDevice *xe;
 static XenosDevice _xe;
@@ -92,15 +96,18 @@ int vbBaseVertexIndex = 0;
 void GpuRenderer::SubmitVertices() {
     // do we have some unsubmited vertices ?
     if (b_StatesChanged) {
-        // update render states
-        UpdatesStates();
-        // Draw
-        Xe_DrawIndexedPrimitive(xe, XE_PRIMTYPE_TRIANGLELIST, 0, 0, verticesCount(), 0, (indicesCount() - prevIndicesCount) / 3);
-        prevIndicesCount = indicesCount();
+        if (prevIndicesCount != indicesCount()) {
+            // update render states
+            UpdatesStates();
+            // Draw
+            Xe_DrawIndexedPrimitive(xe, XE_PRIMTYPE_TRIANGLELIST, 0, 0, verticesCount(), prevIndicesCount, (indicesCount() - prevIndicesCount) / 3);
+            
+            prevIndicesCount = indicesCount();
 
-        vbBaseVertexIndex = verticesCount();
+            vbBaseVertexIndex = verticesCount();
 
-        b_StatesChanged = 0;
+            b_StatesChanged = 0;
+        }
     }
 }
 
@@ -218,8 +225,8 @@ void GpuRenderer::SetTexture(struct XenosSurface * s) {
 
 void GpuRenderer::EnableTexture() {
     // restore saved textures
-    Xe_SetTexture(xe, 0, m_RenderStates.surface);
-    StatesChanged();
+//    Xe_SetTexture(xe, 0, m_RenderStates.surface);
+//    StatesChanged();
 }
 
 void GpuRenderer::DisableTexture() {
@@ -396,7 +403,7 @@ void GpuRenderer::Close() {
 // view
 static float screen[2] = {0, 0};
 static float mwp[4][4];
-static float displaySize[2] = {640,480};
+static float displaySize[2] = {640, 480};
 
 void GpuRenderer::SetOrtho(float l, float r, float b, float t, float zn, float zf) {
     /*
@@ -412,41 +419,41 @@ void GpuRenderer::SetOrtho(float l, float r, float b, float t, float zn, float z
     mwp[2][0] = mwp[2][1] = mwp[2][3] =
     mwp[3][0] = mwp[3][1] = mwp[3][2] = 0;
     mwp[0][0] = mwp[1][1] = mwp[2][2] = mwp[3][3] = 1.f;
-*/
-    
-    mwp[0][0] = 2/(r-l);
+     */
+
+    mwp[0][0] = 2 / (r - l);
     mwp[0][1] = 0;
     mwp[0][2] = 0;
     mwp[0][3] = 0;
-    
+
     mwp[1][0] = 0;
-    mwp[1][1] = 2/(t-b);
+    mwp[1][1] = 2 / (t - b);
     mwp[1][2] = 0;
     mwp[1][3] = 0;
-    
+
     mwp[2][0] = 0;
     mwp[2][1] = 0;
-    mwp[2][2] = 1/(zn-zf);
+    mwp[2][2] = 1 / (zn - zf);
     mwp[2][3] = 0;
-    
-    mwp[3][0] = (l+r)/(l-r);
-    mwp[3][1] = (t+b)/(b-t);
-    mwp[3][2] = zn/(zn-zf);
+
+    mwp[3][0] = (l + r) / (l - r);
+    mwp[3][1] = (t + b) / (b - t);
+    mwp[3][2] = zn / (zn - zf);
     mwp[3][3] = 1;
-    
+
     // mul with display size
-    
-    
+
+
     // dump it ...
     printf("Dump ..\r\n");
-    for(int i=0;i<4;i++){
-        printf("[%0.2f][%0.2f][%0.2f][%0.2f]\r\n",mwp[i][0],mwp[i][1],mwp[i][2],mwp[i][3]);
+    for (int i = 0; i < 4; i++) {
+        printf("[%0.2f][%0.2f][%0.2f][%0.2f]\r\n", mwp[i][0], mwp[i][1], mwp[i][2], mwp[i][3]);
     }
-    
+
     screen[0] = r;
     screen[1] = b;
     printf("setOrtho => %f - %f \r\n", r, b);
-        
+
     Xe_SetVertexShaderConstantF(xe, 0, (float*) mwp, 4);
     Xe_SetVertexShaderConstantF(xe, 1, (float*) screen, 1);
 }
@@ -459,10 +466,10 @@ void GpuRenderer::SetViewPort(int left, int top, int right, int bottom) {
     printf("SetViewPort rb=> %f - %f \r\n", right, bottom);
 
     printf("Dump ..\r\n");
-    for(int i=0;i<4;i++){
-        printf("[%0.2f][%0.2f][%0.2f][%0.2f]\r\n",mwp[i][0],mwp[i][1],mwp[i][2],mwp[i][3]);
+    for (int i = 0; i < 4; i++) {
+        printf("[%0.2f][%0.2f][%0.2f][%0.2f]\r\n", mwp[i][0], mwp[i][1], mwp[i][2], mwp[i][3]);
     }
-    
+
     //Xe_SetVertexShaderConstantF(xe, 0, (float*) mwp, 4);
 }
 
@@ -470,70 +477,76 @@ void GpuRenderer::SetViewPort(int left, int top, int right, int bottom) {
  * Render
  */
 void GpuRenderer::Render() {
-
-    // Submit unsubmitted vertices
-
-#ifdef BUFF_VB
+    // Submit last batch of vertices
     SubmitVertices();
-#endif    
+
     Unlock();
 
     // can be done in other way ...
     // Resolve
     Xe_Resolve(xe);
     Xe_Sync(xe); // wait for background render to finish !
-    
+
     systemPoll();
-    
+
     Xe_InvalidateState(xe);
 
     doScreenCapture();
-    
+
     // relock
     Lock();
     Xe_SetCullMode(xe, XE_CULL_NONE);
     Xe_SetVertexShaderConstantF(xe, 0, (float*) mwp, 4);
     Xe_SetVertexShaderConstantF(xe, 1, (float*) screen, 1);
     // Wireframe
-    // Xe_SetFillMode(xe,0x25,0x25);
+    //Xe_SetFillMode(xe,0x25,0x25);
 
     prevIndicesCount = 0;
     vbBaseVertexIndex = 0;
+
+    nb_indices = 0;
+    nb_vertices = 0;
 }
 
 /**
  * Add to Vb
  */
 
+
 int GpuRenderer::verticesCount() {
-    return pCurrentVertex - pFirstVertex;
+    return nb_vertices;
 }
 
 int GpuRenderer::indicesCount() {
-    return pCurrentIndice - pFirstIndice;
+    return nb_indices;
 };
+
+void GpuRenderer::NextVertice() {
+    nb_vertices++;
+    pCurrentVertex++;
+}
+
+void GpuRenderer::NextIndice() {
+    nb_indices++;
+    pCurrentIndice++;
+}
 
 void GpuRenderer::primBegin(int primType) {
     m_PrimType = primType;
     prevVerticesCount = verticesCount();
-    //printf("lastount :%d",lastCount);
-#ifndef BUFF_VB
-    UpdatesStates();
-#else
+
+    // submit unsubmitted vertices
     SubmitVertices();
-#endif
 };
 
 void GpuRenderer::primEnd() {
-#ifdef BUFF_VB
     // do ib
-    int vbOffset = verticesCount() - vbBaseVertexIndex;
     switch (m_PrimType) {
         case PRIM_TRIANGLE:
         {
             for (int i = 0; i < 3; i++) {
                 pCurrentIndice[0] = prevVerticesCount + i;
-                pCurrentIndice++;
+                NextIndice();
             }
             break;
         }
@@ -541,7 +554,7 @@ void GpuRenderer::primEnd() {
         {
             for (int i = 0; i < 6; i++) {
                 pCurrentIndice[0] = prevVerticesCount + indices_strip[i];
-                pCurrentIndice++;
+                NextIndice();
             }
             break;
         }
@@ -549,31 +562,11 @@ void GpuRenderer::primEnd() {
         {
             for (int i = 0; i < 6; i++) {
                 pCurrentIndice[0] = prevVerticesCount + indices_quad[i];
-                pCurrentIndice++;
+                NextIndice();
             }
             break;
         }
     }
-#else
-    // direct
-    switch (m_PrimType) {
-        case PRIM_TRIANGLE:
-        {
-            Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLELIST, prevVerticesCount, 1);
-            break;
-        }
-        case PRIM_TRIANGLE_STRIP:
-        {
-            Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLESTRIP, prevVerticesCount, 2);
-            break;
-        }
-        case PRIM_QUAD:
-        {
-            Xe_DrawPrimitive(xe, XE_PRIMTYPE_QUADLIST, prevVerticesCount, 1);
-            break;
-        }
-    }
-#endif
 };
 
 void GpuRenderer::primTexCoord(float * st) {
@@ -588,7 +581,7 @@ void GpuRenderer::primVertex(float * v) {
     pCurrentVertex[0].u = textcoord_u;
     pCurrentVertex[0].v = textcoord_v;
     pCurrentVertex[0].color = m_primColor;
-    pCurrentVertex++;
+    NextVertice();
 };
 
 void GpuRenderer::primColor(u8 *v) {
@@ -640,6 +633,9 @@ void XeTexSubImage(struct XenosSurface * surf, int srcbpp, int dstbpp, int xoffs
 
         Xe_Surface_Unlock(xe, surf);
     }
+    
+     // texture modified
+    gpuRenderer.StatesChanged();
 }
 
 void xeGfx_setTextureData(void * tex, void * buffer) {
@@ -673,4 +669,7 @@ void xeGfx_setTextureData(void * tex, void * buffer) {
 
         Xe_Surface_Unlock(xe, surf);
     }
+    
+     // texture modified
+    gpuRenderer.StatesChanged();
 }
