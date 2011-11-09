@@ -249,8 +249,8 @@ void GpuRenderer::DisableTexture() {
  * Clear
  */
 void GpuRenderer::Clear(uint32_t flags) {
-    Xe_Clear(xe, ~0);
-    Xe_Resolve(xe);
+    // Xe_Clear(xe, ~0);
+    // Xe_Resolve(xe);
     StatesChanged();
 }
 
