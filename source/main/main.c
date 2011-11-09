@@ -71,7 +71,15 @@
 //#define cdfile "uda:/psxisos/Darkstalkers 3 (USA)/Darkstalkers 3 (USA).bin"
 //#define cdfile "uda:/psxisos/Gran Turismo 2 (USA) (v1.0) (Simulation Mode)/Gran Turismo 2 (USA) (v1.0) (Simulation Mode).bin"
 
-#define cdfile "uda:/psxisos/Street Fighter Alpha - Warriors' Dreams (USA)/Street Fighter Alpha - Warriors' Dreams (USA) (Track 01).bin"
+//#define cdfile "uda:/psxisos/Street Fighter Alpha - Warriors' Dreams (USA)/Street Fighter Alpha - Warriors' Dreams (USA) (Track 01).bin"
+// #define cdfile "uda:/psxisos/Tekken 3 (USA)/Tekken 3 (USA) (Track 1).bin"
+
+
+
+// #define cdfile "uda:/psxisos/R4 - Ridge Racer Type 4 (USA)/R4 - Ridge Racer Type 4 (USA).bin"
+
+// #define cdfile "uda:/psxisos/Metal Gear Solid (France) (Disc 1)/Metal Gear Solid (France) (Disc 1).bin"
+#define cdfile "uda:/psxisos/Gran Turismo 2 (USA) (v1.0) (Simulation Mode)/Gran Turismo 2 (USA) (v1.0) (Simulation Mode).bin"
 
 #endif
 void printConfigInfo() {
@@ -141,8 +149,15 @@ int pcsxmain(const char * cdfile) {
 #endif
     
     network_init();
-//    telnet_console_init();
-    //httpd_start();
+    network_print_config();
+    
+    console_close();
+    
+    // telnet_console_init();
+    xenon_smc_start_bootanim(); // iam ready !!
+    //mdelay(5000);
+    
+    httpd_start();
     // uart speed patch 115200
     // *(volatile uint32_t*)(0xea001000+0x1c) = 0xe6010000;
 
@@ -164,8 +179,8 @@ int pcsxmain(const char * cdfile) {
     //Config.HLE = 0; 
     Config.Xa = 0; // Disable Xa Decoding
     Config.Cdda = 0; // Disable Cd audio
-    Config.PsxAuto = 0; // autodetect system (pal or ntsc)
-    Config.PsxType = PSX_TYPE_NTSC;
+    Config.PsxAuto = 1; // autodetect system
+    //Config.PsxType = PSX_TYPE_NTSC;
 #else
     Config.SpuIrq = GetSpuIrqGui(); // Spu Irq Always Enabled
     Config.Xa = GetXaGui(); // Disable Xa Decoding
@@ -231,7 +246,7 @@ int pcsxmain(const char * cdfile) {
 #endif                  
             }
 #ifndef LZX_GUI
-            // console_close();
+             //console_close();
 #endif
             psxCpu->Execute();
         }
@@ -247,5 +262,5 @@ void cpuReset() {
 
 
 void systemPoll(){
-    //network_poll();
+    // network_poll();
 }

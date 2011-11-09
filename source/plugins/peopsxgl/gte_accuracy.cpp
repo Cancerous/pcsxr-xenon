@@ -20,9 +20,12 @@
 #include "stdafx.h"
 #include "externals.h"
 
-extern int bGteAccuracy;
-float ***gteCoords = NULL;
+//extern BOOL bGteAccuracy;
+static BOOL bGteAccuracy = TRUE;
+//float ***gteCoords = NULL;
 
+typedef float (*gteCoords_t)[0x800 * 2][2];
+gteCoords_t gteCoords = NULL;
 // TODO: use malloc and pointer to the array's center.
 // 08000000
 
@@ -38,8 +41,8 @@ EXTERN void CALLBACK GPUaddVertex(short sx, short sy, long long fx, long long fy
 
 void resetGteVertices() {
     if (bGteAccuracy) {
-
-        gteCoords = (float***) malloc(0x8000000);
+        if(gteCoords==NULL)
+            gteCoords = (gteCoords_t) malloc(0x8000000);
         memset(gteCoords, 0x00, 0x8000000);
     }
 }

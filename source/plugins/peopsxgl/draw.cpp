@@ -907,10 +907,10 @@ BOOL offset2(void) {
         vertex[1].y = ly1;
     }
 
-    vertex[0].x = lx0 + PSXDisplay.CumulOffset.x;
-    vertex[1].x = lx1 + PSXDisplay.CumulOffset.x;
-    vertex[0].y = ly0 + PSXDisplay.CumulOffset.y;
-    vertex[1].y = ly1 + PSXDisplay.CumulOffset.y;
+    vertex[0].x += PSXDisplay.CumulOffset.x;
+    vertex[1].x += PSXDisplay.CumulOffset.x;
+    vertex[0].y += PSXDisplay.CumulOffset.y;
+    vertex[1].y += PSXDisplay.CumulOffset.y;
 
     return FALSE;
 }
@@ -920,7 +920,7 @@ BOOL offset2(void) {
 BOOL offset3(void) {
     if (bDisplayNotSet)
         SetOGLDisplaySettings(1);
-
+    
     if (!(dwActFixes & 16)) {
         lx0 = (short) (((int) lx0 << SIGNSHIFT) >> SIGNSHIFT);
         lx1 = (short) (((int) lx1 << SIGNSHIFT) >> SIGNSHIFT);
@@ -945,12 +945,12 @@ BOOL offset3(void) {
         vertex[2].y = ly2;
     }
 
-    vertex[0].x = lx0 + PSXDisplay.CumulOffset.x;
-    vertex[1].x = lx1 + PSXDisplay.CumulOffset.x;
-    vertex[2].x = lx2 + PSXDisplay.CumulOffset.x;
-    vertex[0].y = ly0 + PSXDisplay.CumulOffset.y;
-    vertex[1].y = ly1 + PSXDisplay.CumulOffset.y;
-    vertex[2].y = ly2 + PSXDisplay.CumulOffset.y;
+    vertex[0].x += PSXDisplay.CumulOffset.x;
+    vertex[1].x += PSXDisplay.CumulOffset.x;
+    vertex[2].x += PSXDisplay.CumulOffset.x;
+    vertex[0].y += PSXDisplay.CumulOffset.y;
+    vertex[1].y += PSXDisplay.CumulOffset.y;
+    vertex[2].y += PSXDisplay.CumulOffset.y;
 
     return FALSE;
 }
@@ -991,14 +991,14 @@ BOOL offset4(void) {
         vertex[3].y = ly3;
     }
 
-    vertex[0].x = lx0 + PSXDisplay.CumulOffset.x;
-    vertex[1].x = lx1 + PSXDisplay.CumulOffset.x;
-    vertex[2].x = lx2 + PSXDisplay.CumulOffset.x;
-    vertex[3].x = lx3 + PSXDisplay.CumulOffset.x;
-    vertex[0].y = ly0 + PSXDisplay.CumulOffset.y;
-    vertex[1].y = ly1 + PSXDisplay.CumulOffset.y;
-    vertex[2].y = ly2 + PSXDisplay.CumulOffset.y;
-    vertex[3].y = ly3 + PSXDisplay.CumulOffset.y;
+    vertex[0].x +=  PSXDisplay.CumulOffset.x;
+    vertex[1].x +=  PSXDisplay.CumulOffset.x;
+    vertex[2].x +=  PSXDisplay.CumulOffset.x;
+    vertex[3].x +=  PSXDisplay.CumulOffset.x;
+    vertex[0].y +=  PSXDisplay.CumulOffset.y;
+    vertex[1].y +=  PSXDisplay.CumulOffset.y;
+    vertex[2].y +=  PSXDisplay.CumulOffset.y;
+    vertex[3].y +=  PSXDisplay.CumulOffset.y;
 
     return FALSE;
 }

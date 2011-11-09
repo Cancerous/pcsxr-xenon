@@ -43,10 +43,11 @@ static XenosDevice *xe;
 static XenosDevice _xe;
 
 static int16_t indices_strip[] = {0, 1, 2, 2, 1, 3};
-static int16_t indices_quad[] = {0, 1, 2, 0, 1, 3};
-static int prevVerticesCount = 0;
+static int16_t indices_quad[] = {0, 1, 2, 0, 2, 3};
 // instance
 GpuRenderer gpuRenderer;
+
+int vbBaseVertexIndex = 0;
 
 #ifdef LZX_GUI
 extern "C" {
@@ -65,6 +66,12 @@ void GpuRenderer::StatesChanged() {
 
 void GpuRenderer::UpdatesStates() {
     if (b_StatesChanged) {
+/**
+ * HACK
+ */    
+        if(m_RenderStates.surface){
+            m_RenderStates.surface->use_filtering = XE_TEXF_POINT;
+        }
         Xe_SetTexture(xe, 0, m_RenderStates.surface);
 
         Xe_SetSrcBlend(xe, m_RenderStates.blend_src);
@@ -82,6 +89,9 @@ void GpuRenderer::UpdatesStates() {
         Xe_SetZEnable(xe, m_RenderStates.z_write);
         Xe_SetZWrite(xe, m_RenderStates.z_enable);
         Xe_SetZFunc(xe, m_RenderStates.z_func);
+        
+        
+        Xe_SetClearColor(xe, m_RenderStates.clearcolor);
 
         if (m_RenderStates.surface == NULL) {
             Xe_SetShader(xe, SHADER_TYPE_PIXEL, g_pPixelShaderC, 0);
@@ -91,12 +101,12 @@ void GpuRenderer::UpdatesStates() {
     }
 }
 
-int vbBaseVertexIndex = 0;
-
 void GpuRenderer::SubmitVertices() {
     // do we have some unsubmited vertices ?
-    if (b_StatesChanged) {
-        if (prevIndicesCount != indicesCount()) {
+    //if (b_StatesChanged) 
+    {
+        //if (prevIndicesCount != indicesCount()) 
+        {
             // update render states
             UpdatesStates();
             // Draw
@@ -212,9 +222,9 @@ void GpuRenderer::Unlock() {
 }
 
 /**
- * texture
+ * 
+ * @param s
  */
-
 void GpuRenderer::SetTexture(struct XenosSurface * s) {
     if (s != m_RenderStates.surface) {
         m_RenderStates.surface = s;
@@ -239,13 +249,26 @@ void GpuRenderer::DisableTexture() {
  * Clear
  */
 void GpuRenderer::Clear(uint32_t flags) {
-    // Xe_Clear(xe, ~0);
-    // Xe_Resolve(xe);
+    Xe_Clear(xe, ~0);
+    Xe_Resolve(xe);
+    StatesChanged();
 }
 
 void GpuRenderer::ClearColor(float r, float g, float b, float a) {
     //Xe_SetClearColor(xe, color);
     //m_RenderStates.clearcolor = color;
+    union {
+        uint8_t c[4];
+        uint32_t u;
+    } ucolor;
+    
+    ucolor.c[0] = a * 0xFF;
+    ucolor.c[1] = r * 0xFF;
+    ucolor.c[2] = g * 0xFF;
+    ucolor.c[3] = b * 0xFF;
+    
+    //Xe_SetClearColor(xe, ucolor.u);
+    m_RenderStates.clearcolor = ucolor.u;
     StatesChanged();
 }
 
@@ -403,7 +426,6 @@ void GpuRenderer::Close() {
 // view
 static float screen[2] = {0, 0};
 static float mwp[4][4];
-static float displaySize[2] = {640, 480};
 
 void GpuRenderer::SetOrtho(float l, float r, float b, float t, float zn, float zf) {
     /*
@@ -478,7 +500,7 @@ void GpuRenderer::SetViewPort(int left, int top, int right, int bottom) {
  */
 void GpuRenderer::Render() {
     // Submit last batch of vertices
-    SubmitVertices();
+    // SubmitVertices();
 
     Unlock();
 
@@ -534,9 +556,6 @@ void GpuRenderer::NextIndice() {
 void GpuRenderer::primBegin(int primType) {
     m_PrimType = primType;
     prevVerticesCount = verticesCount();
-
-    // submit unsubmitted vertices
-    SubmitVertices();
 };
 
 void GpuRenderer::primEnd() {
@@ -567,6 +586,9 @@ void GpuRenderer::primEnd() {
             break;
         }
     }
+    
+    // submit unsubmitted vertices if needed
+    SubmitVertices();
 };
 
 void GpuRenderer::primTexCoord(float * st) {
@@ -634,7 +656,7 @@ void XeTexSubImage(struct XenosSurface * surf, int srcbpp, int dstbpp, int xoffs
         Xe_Surface_Unlock(xe, surf);
     }
     
-     // texture modified
+     // texture modded
     gpuRenderer.StatesChanged();
 }
 
@@ -670,6 +692,6 @@ void xeGfx_setTextureData(void * tex, void * buffer) {
         Xe_Surface_Unlock(xe, surf);
     }
     
-     // texture modified
+     // texture modded
     gpuRenderer.StatesChanged();
 }

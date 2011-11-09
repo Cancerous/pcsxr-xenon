@@ -85,6 +85,8 @@
 #define PUTLE32(X, Y) do{*((uint32_t *)X)=HOST2LE16((uint32_t)Y);}while(0)
  */
 
+#define printf(...)
+
 #define CLUTCHK   0x00060000
 #define CLUTSHIFT 17
 
@@ -241,7 +243,7 @@ unsigned short CLUTMASK = 0x7fff;
 unsigned short CLUTYMASK = 0x1ff;
 unsigned short MAXSORTTEX = 196;
 
-#define printf(...)
+//#define printf(...)
 
 ////////////////////////////////////////////////////////////////////////
 // Texture color conversions... all my ASM funcs are removed for easier
@@ -594,6 +596,9 @@ void CheckTextureMemory(void) {
     
     iSortTexCnt = 8;
 #endif
+    
+    
+    iSortTexCnt = 8;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -855,6 +860,7 @@ void MarkFree(textureSubCacheEntryS * tsx) {
 }
 
 void InvalidateSubSTextureArea(int X, int Y, int W, int H) {
+    
     int i, j, k, iMax, px, py, px1, px2, py1, py2, iYM = 1;
     EXLong npos;
     textureSubCacheEntryS *tsb;
@@ -4074,7 +4080,7 @@ BOOL GetCompressTexturePlace(textureSubCacheEntryS * tsx) {
 
     rx = (int) tsx->pos.c[2]-(int) tsx->pos.c[3];
     ry = (int) tsx->pos.c[0]-(int) tsx->pos.c[1];
-
+    
     rx += 3;
     if (rx > 255) {
         cXAdj = 0;

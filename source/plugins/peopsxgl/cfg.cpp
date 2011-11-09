@@ -29,12 +29,12 @@
 #include "stdafx.h"
 #include "externals.h"
 #include "cfg.h"
-int bGteAccuracy; 
+BOOL bGteAccuracy; 
 void ReadConfig(void) // read config (linux file)
 {
     iResX = 1280;
     iResY = 720;
-    bGteAccuracy = FALSE;
+    bGteAccuracy = TRUE;
     bFullVRam = FALSE;
     iFilterType = 5; //0: None , 5: Standard + smoothed Sprites, 6: Extended + smoothed Sprites
     bDrawDither = FALSE;
@@ -61,7 +61,7 @@ void ReadConfig(void) // read config (linux file)
     iVRamSize = 128;
     iTexGarbageCollection = 1;
     iBlurBuffer = 0;
-    iHiResTextures = 0; //0: None (standard) ,1: 2xSaI (much vram needed) ,2: Stretched (filtering needed)
+    iHiResTextures = 1; //0: None (standard) ,1: 2xSaI (much vram needed) ,2: Stretched (filtering needed)
     
     if (iUseMask) iZBufferDepth = 16; // set zbuffer depth
     else iZBufferDepth = 0;

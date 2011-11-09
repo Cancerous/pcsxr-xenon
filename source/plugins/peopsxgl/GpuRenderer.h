@@ -149,7 +149,7 @@ public:
      * Clear
      */
     void Clear(uint32_t flags);
-    void ClearColor(float r, float g, float b, float a);
+    void ClearColor(float a, float r, float g, float b);
     // fillmode
 
     /**
