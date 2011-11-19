@@ -214,6 +214,19 @@ typedef union EXShortTag
 
 typedef union EXLongTag
 {
+    struct{
+#if 0
+        unsigned char _0;
+        unsigned char _1;
+        unsigned char _2;
+        unsigned char _3;
+#else
+        unsigned char _3;
+        unsigned char _2;
+        unsigned char _1;
+        unsigned char _0;
+#endif
+    };
  unsigned char c[4];
  unsigned int  l;
  EXShort       s[2];

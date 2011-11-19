@@ -349,7 +349,9 @@ static GLenum obm2 = XE_BLEND_ZERO;
 typedef struct SEMITRANSTAG {
     uint32_t srcFac;
     uint32_t dstFac;
+    
     uint32_t alpha;
+    int blendop;
 } SemiTransParams;
 
 //SemiTransParams TransSets[4]=
@@ -360,10 +362,10 @@ typedef struct SEMITRANSTAG {
 // {XE_BLEND_INVSRCALPHA,XE_BLEND_ONE,      192}
 //};
 SemiTransParams TransSets[4] = {
-    {XE_BLEND_SRCALPHA, XE_BLEND_SRCALPHA, 127},
-    {XE_BLEND_ONE, XE_BLEND_ONE, 255},
-    {XE_BLEND_ZERO, XE_BLEND_INVSRCCOLOR, 255},
-    {XE_BLEND_INVSRCALPHA, XE_BLEND_ONE, 192}
+    {XE_BLEND_SRCALPHA, XE_BLEND_SRCALPHA, 127, XE_BLENDOP_ADD},
+    {XE_BLEND_ONE, XE_BLEND_ONE, 255, XE_BLENDOP_ADD},
+    {XE_BLEND_ZERO, XE_BLEND_INVSRCCOLOR, 255, XE_BLENDOP_ADD},
+    {XE_BLEND_INVSRCALPHA, XE_BLEND_ONE, 192, XE_BLENDOP_REVSUBTRACT}
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -393,6 +395,11 @@ void SetSemiTrans(void) {
         bBlendEnable = TRUE;
     } // wanna blend
 
+    gpuRenderer.SetBlendFunc(TransSets[GlobalTextABR].srcFac, TransSets[GlobalTextABR].dstFac);
+    gpuRenderer.SetBlendOp(TransSets[GlobalTextABR].blendop);
+    
+#if 0
+    
     if (TransSets[GlobalTextABR].srcFac != obm1 ||
             TransSets[GlobalTextABR].dstFac != obm2) {
         //if(glBlendEquationEXTEx==NULL)
@@ -415,32 +422,17 @@ void SetSemiTrans(void) {
             gpuRenderer.SetBlendFunc(XE_BLEND_ONE, XE_BLEND_ONE); // set blend func
         }
     }
+#endif
 }
 
 void SetScanTrans(void) // blending for scan lines
 {
-    //if(glBlendEquationEXTEx!=NULL)
-    if (1) {
-        if (obm2 == XE_BLEND_INVSRCCOLOR)
-            gpuRenderer.SetBlendOp(XE_BLENDOP_ADD); //glBlendEquationEXTEx(FUNC_ADD_EXT);
-    }
-
-    obm1 = TransSets[0].srcFac;
-    obm2 = TransSets[0].dstFac;
-    gpuRenderer.SetBlendFunc(obm1, obm2); // set blend func
+   
 }
 
 void SetScanTexTrans(void) // blending for scan mask texture
 {
-    //if(glBlendEquationEXTEx!=NULL)
-    if (1) {
-        if (obm2 == XE_BLEND_INVSRCCOLOR)
-            gpuRenderer.SetBlendOp(XE_BLENDOP_ADD); //glBlendEquationEXTEx(FUNC_ADD_EXT);
-    }
 
-    obm1 = TransSets[2].srcFac;
-    obm2 = TransSets[2].dstFac;
-    gpuRenderer.SetBlendFunc(obm1, obm2); // set blend func
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -449,30 +441,36 @@ void SetScanTexTrans(void) // blending for scan mask texture
 
 SemiTransParams MultiTexTransSets[4][2] = {
     {
-        {XE_BLEND_ONE, XE_BLEND_SRCALPHA, 127},
-        {XE_BLEND_SRCALPHA, XE_BLEND_ONE, 127}
+        {XE_BLEND_ONE, XE_BLEND_SRCALPHA, 127, XE_BLENDOP_ADD},
+        {XE_BLEND_SRCALPHA, XE_BLEND_ONE, 127, XE_BLENDOP_ADD}
     },
     {
-        {XE_BLEND_ONE, XE_BLEND_SRCALPHA, 255},
-        {XE_BLEND_SRCALPHA, XE_BLEND_ONE, 255}
+        {XE_BLEND_ONE, XE_BLEND_SRCALPHA, 255, XE_BLENDOP_ADD},
+        {XE_BLEND_SRCALPHA, XE_BLEND_ONE, 255, XE_BLENDOP_ADD}
     },
     {
-        {XE_BLEND_ZERO, XE_BLEND_INVSRCCOLOR, 255},
-        {XE_BLEND_ZERO, XE_BLEND_INVSRCCOLOR, 255}
+        {XE_BLEND_ZERO, XE_BLEND_INVSRCCOLOR, 255, XE_BLENDOP_ADD},
+        {XE_BLEND_ZERO, XE_BLEND_INVSRCCOLOR, 255, XE_BLENDOP_ADD}
     },
+/* original */    
+//    {
+//        {XE_BLEND_SRCALPHA, XE_BLEND_ONE, 127, XE_BLENDOP_ADD},
+//        {XE_BLEND_INVSRCALPHA, XE_BLEND_ONE, 255, XE_BLENDOP_ADD}
+//    }    
     {
-        {XE_BLEND_SRCALPHA, XE_BLEND_ONE, 127},
-        {XE_BLEND_INVSRCALPHA, XE_BLEND_ONE, 255}
+        {XE_BLEND_ZERO, XE_BLEND_ONE, 127, XE_BLENDOP_REVSUBTRACT},
+        {XE_BLEND_ONE, XE_BLEND_ONE, 255, XE_BLENDOP_REVSUBTRACT}
     }
 };
 
 ////////////////////////////////////////////////////////////////////////
 
 SemiTransParams MultiColTransSets[4] = {
-    {XE_BLEND_SRCALPHA, XE_BLEND_SRCALPHA, 127},
-    {XE_BLEND_ONE, XE_BLEND_ONE, 255},
-    {XE_BLEND_ZERO, XE_BLEND_INVSRCCOLOR, 255},
-    {XE_BLEND_SRCALPHA, XE_BLEND_ONE, 127}
+    {XE_BLEND_SRCALPHA, XE_BLEND_SRCALPHA, 127, XE_BLENDOP_ADD},
+    {XE_BLEND_ONE, XE_BLEND_ONE, 255 , XE_BLENDOP_ADD},
+    {XE_BLEND_ZERO, XE_BLEND_INVSRCCOLOR, 255, XE_BLENDOP_ADD},
+//    {XE_BLEND_SRCALPHA, XE_BLEND_ONE, 127, XE_BLENDOP_ADD}, // ORIGINAL 
+    {XE_BLEND_ONE, XE_BLEND_ONE, 127, XE_BLENDOP_REVSUBTRACT}
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -480,6 +478,8 @@ SemiTransParams MultiColTransSets[4] = {
 void SetSemiTransMulti(int Pass) {
     static GLenum bm1 = XE_BLEND_ZERO;
     static GLenum bm2 = XE_BLEND_ONE;
+    
+    static int blendOp = XE_BLENDOP_ADD;
 
     ubGloAlpha = 255;
     ubGloColAlpha = 255;
@@ -490,11 +490,13 @@ void SetSemiTransMulti(int Pass) {
             bm1 = MultiTexTransSets[GlobalTextABR][Pass].srcFac;
             bm2 = MultiTexTransSets[GlobalTextABR][Pass].dstFac;
             ubGloAlpha = MultiTexTransSets[GlobalTextABR][Pass].alpha;
+            blendOp = MultiTexTransSets[GlobalTextABR][Pass].blendop;
         }// no texture
         else {
             bm1 = MultiColTransSets[GlobalTextABR].srcFac;
             bm2 = MultiColTransSets[GlobalTextABR].dstFac;
             ubGloColAlpha = MultiColTransSets[GlobalTextABR].alpha;
+            blendOp = MultiColTransSets[GlobalTextABR].blendop;
         }
     }// no shading
     else {
@@ -502,10 +504,12 @@ void SetSemiTransMulti(int Pass) {
             // disable blending
             bm1 = XE_BLEND_ONE;
             bm2 = XE_BLEND_ZERO;
+            blendOp = (XE_BLENDOP_ADD);
         } else {
             // disable blending, but add src col a second time
             bm1 = XE_BLEND_ONE;
             bm2 = XE_BLEND_ONE;
+            blendOp = (XE_BLENDOP_ADD);
         }
     }
 
@@ -514,11 +518,12 @@ void SetSemiTransMulti(int Pass) {
         bBlendEnable = TRUE;
     } // wanna blend
 
-    if (bm1 != obm1 || bm2 != obm2) {
+    //if (bm1 != obm1 || bm2 != obm2) {
         gpuRenderer.SetBlendFunc(bm1, bm2); // set blend func
         obm1 = bm1;
         obm2 = bm2;
-    }
+    //}
+    gpuRenderer.SetBlendOp(blendOp);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1214,6 +1219,12 @@ void UploadScreen(int Position) {
     if (xrUploadArea.x1 > 1024) xrUploadArea.x1 = 1024;
     if (xrUploadArea.y0 > iGPUHeightMask) xrUploadArea.y0 = iGPUHeightMask;
     if (xrUploadArea.y1 > iGPUHeight) xrUploadArea.y1 = iGPUHeight;
+    
+//    printf("UploadScreen %x\r\n",Position);
+//    printf("xrUploadArea.x1 =%d\r\n",xrUploadArea.x1);
+//    printf("xrUploadArea.x0 =%d\r\n",xrUploadArea.x0);
+//    printf("xrUploadArea.y1 =%d\r\n",xrUploadArea.y1);
+//    printf("xrUploadArea.y0 =%d\r\n\r\n",xrUploadArea.y0);
 
     if (xrUploadArea.x0 == xrUploadArea.x1) return;
     if (xrUploadArea.y0 == xrUploadArea.y1) return;
@@ -1298,6 +1309,31 @@ void UploadScreen(int Position) {
             offsetScreenUpload(Position);
             assignTextureVRAMWrite();
 
+//            printf("gl_ux.0 =%d\r\n",gl_ux[0]);
+//            printf("gl_ux.1 =%d\r\n",gl_ux[1]);
+//            printf("gl_ux.2 =%d\r\n",gl_ux[2]);
+//            printf("gl_ux.3 =%d\r\n\r\n",gl_ux[3]);
+//            
+//            printf("gl_vy.0 =%d\r\n",gl_vy[0]);
+//            printf("gl_vy.1 =%d\r\n",gl_vy[1]);
+//            printf("gl_vy.2 =%d\r\n",gl_vy[2]);
+//            printf("gl_vy.3 =%d\r\n\r\n",gl_vy[3]);
+//            
+//            printf("ly0 =%d\r\n",ly0);
+//            printf("ly1 =%d\r\n",ly1);
+//            printf("ly2 =%d\r\n",ly2);
+//            printf("ly3 =%d\r\n",ly3);
+//            printf("lx0 =%d\r\n",lx0);
+//            printf("lx1 =%d\r\n",lx1);
+//            printf("lx2 =%d\r\n",lx2);
+//            printf("lx3 =%d\r\n\r\n",lx3);
+//            
+//            printf("xrMovieArea.x1 =%d\r\n",xrMovieArea.x1);
+//            printf("xrMovieArea.x0 =%d\r\n",xrMovieArea.x0);
+//            printf("xrMovieArea.y1 =%d\r\n",xrMovieArea.y1);
+//            printf("xrMovieArea.y0 =%d\r\n\r\n",xrMovieArea.y0);
+            
+            
             PRIMdrawTexturedQuad(&vertex[0], &vertex[1], &vertex[2], &vertex[3]);
 
             U += UStep;
@@ -1901,7 +1937,8 @@ void primBlkFill(unsigned char * baseAddr) {
                 bDrawSmoothShaded = FALSE;
                 SetRenderState((uint32_t) 0x01000000);
                 SetRenderMode((uint32_t) 0x01000000, FALSE);
-                vertex[0].c.lcol = 0xff000000;
+                vertex[0].c.lcol = 0;
+                vertex[0].c.a = 0xFF;
                 SETCOL(vertex[0]);
                 if (ly0 > pd->DisplayPosition.y) {
                     vertex[0].x = 0;
@@ -1933,7 +1970,8 @@ void primBlkFill(unsigned char * baseAddr) {
             bDrawSmoothShaded = FALSE;
             SetRenderState((uint32_t) 0x01000000);
             SetRenderMode((uint32_t) 0x01000000, FALSE);
-            vertex[0].c.lcol = GETLE32(&gpuData[0]) | 0xff000000;
+            vertex[0].c.lcol = GETLE32(&gpuData[0]);
+            vertex[0].c.a = 0xFF;
             SETCOL(vertex[0]);
             //glDisable(GL_SCISSOR_TEST);
             PRIMdrawQuad(&vertex[0], &vertex[1], &vertex[2], &vertex[3]);

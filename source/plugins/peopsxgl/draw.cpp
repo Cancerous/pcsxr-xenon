@@ -284,7 +284,7 @@ void SetExtGLFuncs(void) {
             if (bGLExt) {
                 giWantedRGBA = XE_FMT_ARGB;
                 giWantedTYPE = XE_FMT_5551;
-                LoadSubTexFn = LoadPackedSubTexturePageSort;
+                //LoadSubTexFn = LoadPackedSubTexturePageSort;
                 if (bOpaquePass) {
                     if (dwActFixes & 32) PTCF[0] = CP4RGBA_0;
                     else PTCF[0] = XP4RGBA_0;
@@ -302,7 +302,7 @@ void SetExtGLFuncs(void) {
             if (bGLExt) {
                 giWantedRGBA = XE_FMT_ARGB;
                 giWantedTYPE = XE_FMT_5551;
-                LoadSubTexFn = LoadPackedSubTexturePageSort;
+                //LoadSubTexFn = LoadPackedSubTexturePageSort;
                 if (bOpaquePass) {
                     if (dwActFixes & 32) PTCF[0] = CP5RGBA_0;
                     else PTCF[0] = XP5RGBA_0;
