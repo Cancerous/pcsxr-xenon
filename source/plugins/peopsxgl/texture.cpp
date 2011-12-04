@@ -62,60 +62,18 @@
 #define _IN_TEXTURE
 
 #include "externals.h"
+using namespace xegpu;
 #include "texture.h"
 #include "gpu.h"
 #include "prim.h"
 #include "GpuRenderer.h"
+#include "texture_movie.h"
+#include "texture_load.h"
 
-/*
-#define HOST2LE32(x) (x)
-#define HOST2BE32(x) SWAP32(x)
-#define LE2HOST32(x) (x)
-#define BE2HOST32(x) SWAP32(x)
-
-#define HOST2LE16(x) (x)
-#define HOST2BE16(x) SWAP16(x)
-#define LE2HOST16(x) (x)
-#define BE2HOST16(x) SWAP16(x)
-
-#define GETLE16(X) LE2HOST16(*(uint16_t *)X)
-#define GETLE32(X) LE2HOST32(*(uint32_t *)X)
-#define GETLE16D(X) ({uint32_t val = GETLE32(X); (val<<16 | val >> 16);})
-#define PUTLE16(X, Y) do{*((uint16_t *)X)=HOST2LE16((uint16_t)Y);}while(0)
-#define PUTLE32(X, Y) do{*((uint32_t *)X)=HOST2LE16((uint32_t)Y);}while(0)
- */
-
-#define printf(...)
 
 #define CLUTCHK   0x00060000
 #define CLUTSHIFT 17
 
-// crappy
-#define glColorTableEXTEx 0
-
-int glGetError() {
-    return 0;
-}
-
-#define CLUTCHK   0x00060000
-#define CLUTSHIFT 17
-
-////////////////////////////////////////////////////////////////////////
-// texture conversion buffer ..
-////////////////////////////////////////////////////////////////////////
-
-int iHiResTextures = 0;
-GLubyte ubPaletteBuffer[256][4];
-struct XenosSurface * gTexMovieName = 0;
-struct XenosSurface * gTexBlurName = 0;
-struct XenosSurface * gTexFrameName = 0;
-int iTexGarbageCollection = 1;
-uint32_t dwTexPageComp = 0;
-int iVRamSize = 0;
-int iClampType = XE_TEXADDR_CLAMP;
-
-void (*LoadSubTexFn) (int, int, short, short);
-uint32_t(*PalTexturedColourFn) (uint32_t);
 
 ////////////////////////////////////////////////////////////////////////
 // defines
@@ -142,17 +100,28 @@ uint32_t(*PalTexturedColourFn) (uint32_t);
 #define SOFFC 2048
 #define SOFFD 3072
 
-#define MAXWNDTEXCACHE 128
 
 #define XCHECK(pos1,pos2) ((pos1._0>=pos2._1)&&(pos1._1<=pos2._0)&&(pos1._2>=pos2._3)&&(pos1._3<=pos2._2))
 #define INCHECK(pos2,pos1) ((pos1._0<=pos2._0) && (pos1._1>=pos2._1) && (pos1._2<=pos2._2) && (pos1._3>=pos2._3))
 
+namespace xegpu{
+////////////////////////////////////////////////////////////////////////
+// texture conversion buffer ..
 ////////////////////////////////////////////////////////////////////////
 
-unsigned char * CheckTextureInSubSCache(int TextureMode, uint32_t GivenClutId, unsigned short *pCache);
-void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy);
-void LoadPackedSubTexturePageSort(int pageid, int mode, short cx, short cy);
-void DefineSubTextureSort(void);
+int iHiResTextures = 0;
+GLubyte ubPaletteBuffer[256][4];
+GpuTex * gTexMovieName = 0;
+GpuTex * gTexBlurName = 0;
+GpuTex * gTexFrameName = 0;
+int iTexGarbageCollection = 1;
+uint32_t dwTexPageComp = 0;
+int iVRamSize = 0;
+int iClampType = XE_TEXADDR_CLAMP;
+
+void (*LoadSubTexFn) (int, int, short, short);
+uint32_t(*PalTexturedColourFn) (uint32_t);
+
 
 ////////////////////////////////////////////////////////////////////////
 // some globals
@@ -179,53 +148,10 @@ unsigned short (*PTCF[2]) (unsigned short);
 // texture cache implementation
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef _WINDOWS
-#pragma pack(1)
-#endif
-
-// for faster BSWAP test
-uint32_t ptr32(void * addr){
-    return GETLE32((uint32_t *)addr);
-}
-
-// "texture window" cache entry
-
-typedef struct textureWndCacheEntryTag {
-    uint32_t ClutID;
-    short pageid;
-    short textureMode;
-    short Opaque;
-    short used;
-    EXLong pos;
-    struct XenosSurface * texname;
-} textureWndCacheEntry;
-
-// "standard texture" cache entry (12 byte per entry, as small as possible... we need lots of them)
-
-typedef struct textureSubCacheEntryTagS {
-    uint32_t ClutID;
-    EXLong pos;
-    unsigned char posTX;
-    unsigned char posTY;
-    unsigned char cTexID;
-    unsigned char Opaque;
-} textureSubCacheEntryS;
-
-#ifdef _WINDOWS
-#pragma pack()
-#endif
-
-//---------------------------------------------
-
-#define MAXTPAGES_MAX  64
-#define MAXSORTTEX_MAX 196
-
-//---------------------------------------------
-
 textureWndCacheEntry wcWndtexStore[MAXWNDTEXCACHE];
 textureSubCacheEntryS * pscSubtexStore[3][MAXTPAGES_MAX];
 EXLong * pxSsubtexLeft [MAXSORTTEX_MAX];
-struct XenosSurface * uiStexturePage[MAXSORTTEX_MAX];
+GpuTex * uiStexturePage[MAXSORTTEX_MAX];
 
 unsigned short usLRUTexPage = 0;
 
@@ -242,8 +168,8 @@ unsigned short MAXTPAGES = 32;
 unsigned short CLUTMASK = 0x7fff;
 unsigned short CLUTYMASK = 0x1ff;
 unsigned short MAXSORTTEX = 196;
-
-//#define printf(...)
+}
+#define printf(...)
 
 ////////////////////////////////////////////////////////////////////////
 // Texture color conversions... all my ASM funcs are removed for easier
@@ -471,19 +397,21 @@ unsigned short P4RGBA(unsigned short BGR) {
 
 
 void _DumpExL(EXLongTag * l, const char * val_str){
-    printf("%s\r\n",val_str);
-    printf("l = %08x\r\n",l->l);
-    /*
-    printf("0 = %x\r\n",l->c[0]);
-    printf("1 = %x\r\n",l->c[1]);
-    printf("2 = %x\r\n",l->c[2]);
-    printf("3 = %x\r\n",l->c[3]);
-    */
-    printf("0 = %02x\r\n",l->_0);
-    printf("1 = %02x\r\n",l->_1);
-    printf("2 = %02x\r\n",l->_2);
-    printf("3 = %02x\r\n",l->_3);
-    printf("\r\n");
+    if(l!=NULL){
+        printf("%s\r\n",val_str);
+        printf("l = %08x\r\n",l->l);
+        /*
+        printf("0 = %x\r\n",l->c[0]);
+        printf("1 = %x\r\n",l->c[1]);
+        printf("2 = %x\r\n",l->c[2]);
+        printf("3 = %x\r\n",l->c[3]);
+        */
+        printf("0 = %02x\r\n",l->_0);
+        printf("1 = %02x\r\n",l->_1);
+        printf("2 = %02x\r\n",l->_2);
+        printf("3 = %02x\r\n",l->_3);
+        printf("\r\n");
+    }
 }
 
 #define DumpExL(x) {TR;_DumpExL(x, #x);}
@@ -519,22 +447,9 @@ void CheckTextureMemory(void) {
             if (iResY > 512) iFTexB = 1024;
         else iFTexB = 512;
 
-        /*
-           glGenTextures(1, &gTexBlurName);
-           gTexName=gTexBlurName;
-           glBindTexture(GL_TEXTURE_2D, gTexName);
-
-           glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-           glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-           glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-           glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-         */
-
         p = (char *) malloc(iFTexA * iFTexB * 4);
         memset(p, 0, iFTexA * iFTexB * 4);
-        /*
-           glTexImage2D(GL_TEXTURE_2D, 0, 3, iFTexA, iFTexB, 0, GL_RGB, GL_UNSIGNED_BYTE, p);
-         */
+
         free(p);
         glGetError();
         iRam -= iFTexA * iFTexB * 3;
@@ -574,30 +489,11 @@ void CheckTextureMemory(void) {
     p = (char *) malloc(iTSize * iTSize * 4);
 
     iCnt = 0;
-    //glGenTextures(MAXSORTTEX,uiStexturePage);
-    for (i = 0; i < MAXSORTTEX; i++) {
-        /*
-           glBindTexture(GL_TEXTURE_2D,uiStexturePage[i]);
-           glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, iClampType);
-           glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, iClampType);
-           glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-           glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-           glTexImage2D(GL_TEXTURE_2D, 0, giWantedRGBA, iTSize, iTSize, 0,GL_RGBA, giWantedTYPE, p);
-         */
-    }
-    /*
-     glBindTexture(GL_TEXTURE_2D,0);
-     */
 
     free(p);
 
     bDetail = (GLboolean*)malloc(MAXSORTTEX * sizeof (GLboolean));
     memset(bDetail, 0, MAXSORTTEX * sizeof (GLboolean));
-    /*
-     b=glAreTexturesResident(MAXSORTTEX,uiStexturePage,bDetail);
-
-     glDeleteTextures(MAXSORTTEX,uiStexturePage);
-     */
 
     for (i = 0; i < MAXSORTTEX; i++) {
         if (bDetail[i]) iCnt++;
@@ -675,7 +571,6 @@ void InitializeTextureStore() {
 ////////////////////////////////////////////////////////////////////////
 // Clean up on exit
 ////////////////////////////////////////////////////////////////////////
-
 void CleanupTextureStore() {
     int i, j;
     textureWndCacheEntry * tsx;
@@ -729,7 +624,6 @@ void CleanupTextureStore() {
 ////////////////////////////////////////////////////////////////////////
 // Reset textures in game...
 ////////////////////////////////////////////////////////////////////////
-
 void ResetTextureArea(BOOL bDelTex) {
     int i, j;
     textureSubCacheEntryS * tss;
@@ -782,7 +676,6 @@ void ResetTextureArea(BOOL bDelTex) {
 ////////////////////////////////////////////////////////////////////////
 // Invalidate tex windows
 ////////////////////////////////////////////////////////////////////////
-
 void InvalidateWndTextureArea(int X, int Y, int W, int H) {
     int i, px1, px2, py1, py2, iYM = 1;
     textureWndCacheEntry * tsw = wcWndtexStore;
@@ -851,7 +744,6 @@ void InvalidateWndTextureArea(int X, int Y, int W, int H) {
 ////////////////////////////////////////////////////////////////////////
 // same for sort textures
 ////////////////////////////////////////////////////////////////////////
-
 void MarkFree(textureSubCacheEntryS * tsx) {
     EXLong * ul, * uls;
     int j, iMax;
@@ -862,13 +754,18 @@ void MarkFree(textureSubCacheEntryS * tsx) {
     ul = uls + 1;
 
     if (!iMax) return;
+    DumpExL(&tsx->pos);
+    printf("iMax = %08x\r\n",iMax);
 
     for (j = 0; j < iMax; j++, ul++)
         if (ul->l == 0xffffffff) break;
 
     if (j < CSUBSIZE - 2) {
-        if (j == iMax) uls->l = uls->l + 1;
+        if (j == iMax) 
+            uls->l = uls->l + 1;
 
+        DumpExL(uls);
+        
         x1 = tsx->posTX;
         dx = tsx->pos._2 - tsx->pos._3;
         if (tsx->posTX) {
@@ -889,10 +786,24 @@ void MarkFree(textureSubCacheEntryS * tsx) {
     }
 }
 
+//#define DUMP_ISTA(){ \
+///*printf("InvalidateSubSTextureArea %d %d %d %d\r\n",ISTA_X,ISTA_Y,ISTA_W,ISTA_H);*/ \
+//printf("iMax:%08x\r\n",iMax); \
+//printf("tsb->ClutID : %08x\r\n",tsb->ClutID);\
+//DumpExL(&tsb->pos);\
+//DumpExL(&npos);\
+//}
+
+#define DUMP_ISTA(){ }
+
+// clutid 0xa6706abe
 void InvalidateSubSTextureArea(int X, int Y, int W, int H) {
-    
-    //printf("InvalidateSubSTextureArea %d %d %d %d - iMaxTexWnds : %d\r\n",X,Y,W,H,iMaxTexWnds);
-    
+    int ISTA_X = X;
+    int ISTA_Y = Y;
+    int ISTA_W = W;
+    int ISTA_H = H;
+    // printf("InvalidateSubSTextureArea %d %d %d %d\r\n",X,Y,W,H);
+
     int i, j, k, iMax, px, py, px1, px2, py1, py2, iYM = 1;
     EXLong npos;
     textureSubCacheEntryS *tsb;
@@ -957,15 +868,20 @@ void InvalidateSubSTextureArea(int X, int Y, int W, int H) {
                 else
                     npos.l = ((x1 - xa) << (26 - k)) | ((x2 - xa) << (18 - k)) | y1 | y2;
 
-                // DumpExL(&npos);
-                
+
+                //npos.l=bswap_32(npos.l);
                 {
                     tsb = pscSubtexStore[k][j] + SOFFA;
+
                     iMax = tsb->pos.l;
-//                    DumpExL(&tsb->pos);
+                    //DumpExL(&tsb->pos);
                     tsb++;
                     for (i = 0; i < iMax; i++, tsb++)
+
                         if (tsb->ClutID && XCHECK(tsb->pos, npos)) {
+
+                            DUMP_ISTA()
+
                             tsb->ClutID = 0;
                             MarkFree(tsb);
                         }
@@ -973,11 +889,14 @@ void InvalidateSubSTextureArea(int X, int Y, int W, int H) {
                     //         if(npos.l & 0x00800000)
                     {
                         tsb = pscSubtexStore[k][j] + SOFFB;
+
                         iMax = tsb->pos.l;
-//                        DumpExL(&tsb->pos);
+                        //DumpExL(&tsb->pos);
                         tsb++;
                         for (i = 0; i < iMax; i++, tsb++)
+
                             if (tsb->ClutID && XCHECK(tsb->pos, npos)) {
+                                DUMP_ISTA()
                                 tsb->ClutID = 0;
                                 MarkFree(tsb);
                             }
@@ -986,11 +905,14 @@ void InvalidateSubSTextureArea(int X, int Y, int W, int H) {
                     //         if(npos.l & 0x00000080)
                     {
                         tsb = pscSubtexStore[k][j] + SOFFC;
+
                         iMax = tsb->pos.l;
-//                        DumpExL(&tsb->pos);
+                        //DumpExL(&tsb->pos);
                         tsb++;
                         for (i = 0; i < iMax; i++, tsb++)
+
                             if (tsb->ClutID && XCHECK(tsb->pos, npos)) {
+                                DUMP_ISTA()
                                 tsb->ClutID = 0;
                                 MarkFree(tsb);
                             }
@@ -999,11 +921,14 @@ void InvalidateSubSTextureArea(int X, int Y, int W, int H) {
                     //         if(npos.l & 0x00800080)
                     {
                         tsb = pscSubtexStore[k][j] + SOFFD;
+
                         iMax = tsb->pos.l;
-//                        DumpExL(&tsb->pos);
+                        //DumpExL(&tsb->pos);
                         tsb++;
                         for (i = 0; i < iMax; i++, tsb++)
+
                             if (tsb->ClutID && XCHECK(tsb->pos, npos)) {
+                                DUMP_ISTA()
                                 tsb->ClutID = 0;
                                 MarkFree(tsb);
                             }
@@ -1017,7 +942,6 @@ void InvalidateSubSTextureArea(int X, int Y, int W, int H) {
 ////////////////////////////////////////////////////////////////////////
 // Invalidate some parts of cache: main routine
 ////////////////////////////////////////////////////////////////////////
-
 void InvalidateTextureAreaEx(void) {
     short W = sxmax - sxmin;
     short H = symax - symin;
@@ -1031,7 +955,6 @@ void InvalidateTextureAreaEx(void) {
 }
 
 ////////////////////////////////////////////////////////////////////////
-
 void InvalidateTextureArea(int X, int Y, int W, int H) {
     if (W == 0 && H == 0) return;
 
@@ -1040,1801 +963,9 @@ void InvalidateTextureArea(int X, int Y, int W, int H) {
     InvalidateSubSTextureArea(X, Y, W, H);
 }
 
-
-////////////////////////////////////////////////////////////////////////
-// tex window: define
-////////////////////////////////////////////////////////////////////////
-
-void DefineTextureWnd(void) {
-    if (gTexName == 0)
-        gTexName = gpuRenderer.CreateTexture( TWin.Position.x1, TWin.Position.y1, XE_FMT_8888 | XE_FMT_ARGB);
-
-    gTexName->u_addressing = XE_TEXADDR_WRAP;
-    gTexName->v_addressing = XE_TEXADDR_WRAP;
-
-    if (iFilterType && iFilterType < 3 && iHiResTextures != 2) {
-        gTexName->use_filtering = XE_TEXF_LINEAR;
-    } else {
-        gTexName->use_filtering = XE_TEXF_POINT;
-    }
-
-    xeGfx_setTextureData(gTexName, texturepart);
-}
-
-////////////////////////////////////////////////////////////////////////
-// tex window: load packed stretch
-////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
-// tex window: load stretched
-////////////////////////////////////////////////////////////////////////
-
-void LoadStretchWndTexturePage(int pageid, int mode, short cx, short cy) {
-    uint32_t start, row, column, j, sxh, sxm, ldx, ldy, ldxo, s;
-    unsigned int palstart;
-    uint32_t *px, *pa, *ta;
-    unsigned char *cSRCPtr, *cOSRCPtr;
-    unsigned short *wSRCPtr, *wOSRCPtr;
-    uint32_t LineOffset;
-    int pmult = pageid / 16;
-    uint32_t(*LTCOL)(uint32_t);
-
-    LTCOL = TCF[DrawSemiTrans];
-
-    ldxo = TWin.Position.x1 - TWin.OPosition.x1;
-    ldy = TWin.Position.y1 - TWin.OPosition.y1;
-
-    pa = px = (uint32_t *) ubPaletteBuffer;
-    ta = (uint32_t *) texturepart;
-    palstart = cx + (cy * 1024);
-
-    ubOpaqueDraw = 0;
-
-    switch (mode) {
-            //--------------------------------------------------//
-            // 4bit texture load ..
-        case 0:
-            //------------------- ZN STUFF
-
-            if (GlobalTextIL) {
-                unsigned int TXV, TXU, n_xi, n_yi;
-
-                wSRCPtr = psxVuw + palstart;
-
-                row = 4;
-                do {
-//                    *px = LTCOL(*wSRCPtr);
-//                    *(px + 1) = LTCOL(*(wSRCPtr + 1));
-//                    *(px + 2) = LTCOL(*(wSRCPtr + 2));
-//                    *(px + 3) = LTCOL(*(wSRCPtr + 3));
-                    *px = LTCOL(ptr32(wSRCPtr));
-                    *(px + 1) = LTCOL(ptr32(wSRCPtr + 1));
-                    *(px + 2) = LTCOL(ptr32(wSRCPtr + 2));
-                    *(px + 3) = LTCOL(ptr32(wSRCPtr + 3));
-                    row--;
-                    px += 4;
-                    wSRCPtr += 4;
-                } while (row);
-
-                column = g_y2 - ldy;
-                for (TXV = g_y1; TXV <= column; TXV++) {
-                    ldx = ldxo;
-                    for (TXU = g_x1; TXU <= g_x2 - ldxo; TXU++) {
-                        n_xi = ((TXU >> 2) & ~0x3c) + ((TXV << 2) & 0x3c);
-                        n_yi = (TXV & ~0xf) + ((TXU >> 4) & 0xf);
-
-//                        s = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x03) << 2)) & 0x0f));
-                        s = *(pa + ((ptr32(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x03) << 2)) & 0x0f));
-                        *ta++ = s;
-
-                        if (ldx) {
-                            *ta++ = s;
-                            ldx--;
-                        }
-                    }
-
-                    if (ldy) {
-                        ldy--;
-                        for (TXU = g_x1; TXU <= g_x2; TXU++)
-                            *ta++ = *(ta - (g_x2 - g_x1));
-                    }
-                }
-
-                DefineTextureWnd();
-
-                break;
-            }
-
-            //-------------------
-
-            start = ((pageid - 16 * pmult)*128) + 256 * 2048 * pmult;
-            // convert CLUT to 32bits .. and then use THAT as a lookup table
-
-            wSRCPtr = psxVuw + palstart;
-            for (row = 0; row < 16; row++)
-//                *px++ = LTCOL(*wSRCPtr++);
-                *px++ = LTCOL(ptr32(wSRCPtr++));
-
-            sxm = g_x1 & 1;
-            sxh = g_x1 >> 1;
-            if (sxm) j = g_x1 + 1;
-            else j = g_x1;
-            cSRCPtr = psxVub + start + (2048 * g_y1) + sxh;
-            for (column = g_y1; column <= g_y2; column++) {
-                cOSRCPtr = cSRCPtr;
-                ldx = ldxo;
-                if (sxm) *ta++ = *(pa + ((*cSRCPtr++ >> 4) & 0xF));
-
-                for (row = j; row <= g_x2 - ldxo; row++) {
-                    s = *(pa + (*cSRCPtr & 0xF));
-                    *ta++ = s;
-                    if (ldx) {
-                        *ta++ = s;
-                        ldx--;
-                    }
-                    row++;
-                    if (row <= g_x2 - ldxo) {
-                        s = *(pa + ((*cSRCPtr >> 4) & 0xF));
-                        *ta++ = s;
-                        if (ldx) {
-                            *ta++ = s;
-                            ldx--;
-                        }
-                    }
-                    cSRCPtr++;
-                }
-                if (ldy && column & 1) {
-                    ldy--;
-                    cSRCPtr = cOSRCPtr;
-                } else cSRCPtr = psxVub + start + (2048 * (column + 1)) + sxh;
-            }
-
-            DefineTextureWnd();
-            break;
-            //--------------------------------------------------//
-            // 8bit texture load ..
-        case 1:
-            //------------ ZN STUFF
-            if (GlobalTextIL) {
-                unsigned int TXV, TXU, n_xi, n_yi;
-
-                wSRCPtr = psxVuw + palstart;
-
-                row = 64;
-                do {
-//                    *px = LTCOL(*wSRCPtr);
-//                    *(px + 1) = LTCOL(*(wSRCPtr + 1));
-//                    *(px + 2) = LTCOL(*(wSRCPtr + 2));
-//                    *(px + 3) = LTCOL(*(wSRCPtr + 3));
-                    *px = (LTCOL(ptr32(wSRCPtr)));
-                    *(px + 1) = (LTCOL(ptr32(wSRCPtr + 1)));
-                    *(px + 2) = (LTCOL(ptr32(wSRCPtr + 2)));
-                    *(px + 3) = (LTCOL(ptr32(wSRCPtr + 3)));
-                    row--;
-                    px += 4;
-                    wSRCPtr += 4;
-                } while (row);
-
-                column = g_y2 - ldy;
-                for (TXV = g_y1; TXV <= column; TXV++) {
-                    ldx = ldxo;
-                    for (TXU = g_x1; TXU <= g_x2 - ldxo; TXU++) {
-                        n_xi = ((TXU >> 1) & ~0x78) + ((TXU << 2) & 0x40) + ((TXV << 3) & 0x38);
-                        n_yi = (TXV & ~0x7) + ((TXU >> 5) & 0x7);
-
-//                        s = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x01) << 3)) & 0xff));
-                        s = *(pa + ((ptr32(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x01) << 3)) & 0xff));
-                        *ta++ = s;
-                        if (ldx) {
-                            *ta++ = s;
-                            ldx--;
-                        }
-                    }
-
-                    if (ldy) {
-                        ldy--;
-                        for (TXU = g_x1; TXU <= g_x2; TXU++)
-                            *ta++ = *(ta - (g_x2 - g_x1));
-                    }
-
-                }
-
-                DefineTextureWnd();
-
-                break;
-            }
-            //------------
-
-            start = ((pageid - 16 * pmult)*128) + 256 * 2048 * pmult;
-
-            // not using a lookup table here... speeds up smaller texture areas
-            cSRCPtr = psxVub + start + (2048 * g_y1) + g_x1;
-            LineOffset = 2048 - (g_x2 - g_x1 + 1) + ldxo;
-
-            for (column = g_y1; column <= g_y2; column++) {
-                cOSRCPtr = cSRCPtr;
-                ldx = ldxo;
-                for (row = g_x1; row <= g_x2 - ldxo; row++) {
-//                    s = LTCOL(psxVuw[palstart + *cSRCPtr++]);
-                    s = LTCOL(ptr32(&psxVuw[palstart + *cSRCPtr++]));
-                    *ta++ = s;
-                    if (ldx) {
-                        *ta++ = s;
-                        ldx--;
-                    }
-                }
-                if (ldy && column & 1) {
-                    ldy--;
-                    cSRCPtr = cOSRCPtr;
-                } else cSRCPtr += LineOffset;
-            }
-
-            DefineTextureWnd();
-            break;
-            //--------------------------------------------------//
-            // 16bit texture load ..
-        case 2:
-            start = ((pageid - 16 * pmult)*64) + 256 * 1024 * pmult;
-
-            wSRCPtr = psxVuw + start + (1024 * g_y1) + g_x1;
-            LineOffset = 1024 - (g_x2 - g_x1 + 1) + ldxo;
-
-            for (column = g_y1; column <= g_y2; column++) {
-                wOSRCPtr = wSRCPtr;
-                ldx = ldxo;
-                for (row = g_x1; row <= g_x2 - ldxo; row++) {
-//                    s = LTCOL(*wSRCPtr++);
-                    s = LTCOL(ptr32(wSRCPtr++));
-                    *ta++ = s;
-                    if (ldx) {
-                        *ta++ = s;
-                        ldx--;
-                    }
-                }
-                if (ldy && column & 1) {
-                    ldy--;
-                    wSRCPtr = wOSRCPtr;
-                } else wSRCPtr += LineOffset;
-            }
-
-            DefineTextureWnd();
-            break;
-            //--------------------------------------------------//
-            // others are not possible !
-    }
-}
-
-////////////////////////////////////////////////////////////////////////
-// tex window: load packed simple
-////////////////////////////////////////////////////////////////////////
-
-
-////////////////////////////////////////////////////////////////////////
-// tex window: load simple
-////////////////////////////////////////////////////////////////////////
-
-void LoadWndTexturePage(int pageid, int mode, short cx, short cy) {
-    uint32_t start, row, column, j, sxh, sxm;
-    unsigned int palstart;
-    uint32_t *px, *pa, *ta;
-    unsigned char *cSRCPtr;
-    unsigned short *wSRCPtr;
-    uint32_t LineOffset;
-    int pmult = pageid / 16;
-    uint32_t(*LTCOL)(uint32_t);
-
-    LTCOL = TCF[DrawSemiTrans];
-
-    pa = px = (uint32_t *) ubPaletteBuffer;
-    ta = (uint32_t *) texturepart;
-    palstart = cx + (cy * 1024);
-
-    ubOpaqueDraw = 0;
-
-    switch (mode) {
-            //--------------------------------------------------//
-            // 4bit texture load ..
-        case 0:
-            if (GlobalTextIL) {
-                unsigned int TXV, TXU, n_xi, n_yi;
-
-                wSRCPtr = psxVuw + palstart;
-
-                row = 4;
-                do {
-//                    *px = LTCOL(*wSRCPtr);
-//                    *(px + 1) = LTCOL(*(wSRCPtr + 1));
-//                    *(px + 2) = LTCOL(*(wSRCPtr + 2));
-//                    *(px + 3) = LTCOL(*(wSRCPtr + 3));
-                    *px = LTCOL(ptr32(wSRCPtr));
-                    *(px + 1) = LTCOL(ptr32(wSRCPtr + 1));
-                    *(px + 2) = LTCOL(ptr32(wSRCPtr + 2));
-                    *(px + 3) = LTCOL(ptr32(wSRCPtr + 3));
-                    row--;
-                    px += 4;
-                    wSRCPtr += 4;
-                } while (row);
-
-                for (TXV = g_y1; TXV <= g_y2; TXV++) {
-                    for (TXU = g_x1; TXU <= g_x2; TXU++) {
-                        n_xi = ((TXU >> 2) & ~0x3c) + ((TXV << 2) & 0x3c);
-                        n_yi = (TXV & ~0xf) + ((TXU >> 4) & 0xf);
-
-//                        *ta++ = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x03) << 2)) & 0x0f));
-                        *ta++ = *(pa + ((ptr32(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x03) << 2)) & 0x0f));
-                    }
-                }
-
-                DefineTextureWnd();
-
-                break;
-            }
-
-            start = ((pageid - 16 * pmult)*128) + 256 * 2048 * pmult;
-
-            // convert CLUT to 32bits .. and then use THAT as a lookup table
-
-            wSRCPtr = psxVuw + palstart;
-            for (row = 0; row < 16; row++)
-//                *px++ = LTCOL(*wSRCPtr++);
-                *px++ = LTCOL(ptr32(wSRCPtr++));
-
-            sxm = g_x1 & 1;
-            sxh = g_x1 >> 1;
-            if (sxm) j = g_x1 + 1;
-            else j = g_x1;
-            cSRCPtr = psxVub + start + (2048 * g_y1) + sxh;
-            for (column = g_y1; column <= g_y2; column++) {
-                cSRCPtr = psxVub + start + (2048 * column) + sxh;
-
-                if (sxm) *ta++ = *(pa + ((*cSRCPtr++ >> 4) & 0xF));
-
-                for (row = j; row <= g_x2; row++) {
-                    *ta++ = *(pa + (*cSRCPtr & 0xF));
-                    row++;
-                    if (row <= g_x2) *ta++ = *(pa + ((*cSRCPtr >> 4) & 0xF));
-                    cSRCPtr++;
-                }
-            }
-
-            DefineTextureWnd();
-            break;
-            //--------------------------------------------------//
-            // 8bit texture load ..
-        case 1:
-            if (GlobalTextIL) {
-                unsigned int TXV, TXU, n_xi, n_yi;
-
-                wSRCPtr = psxVuw + palstart;
-
-                row = 64;
-                do {
-//                    *px = LTCOL(*wSRCPtr);
-//                    *(px + 1) = LTCOL(*(wSRCPtr + 1));
-//                    *(px + 2) = LTCOL(*(wSRCPtr + 2));
-//                    *(px + 3) = LTCOL(*(wSRCPtr + 3));
-                    *px = LTCOL(ptr32(wSRCPtr));
-                    *(px + 1) = LTCOL(ptr32(wSRCPtr + 1));
-                    *(px + 2) = LTCOL(ptr32(wSRCPtr + 2));
-                    *(px + 3) = LTCOL(ptr32(wSRCPtr + 3));
-                    row--;
-                    px += 4;
-                    wSRCPtr += 4;
-                } while (row);
-
-                for (TXV = g_y1; TXV <= g_y2; TXV++) {
-                    for (TXU = g_x1; TXU <= g_x2; TXU++) {
-                        n_xi = ((TXU >> 1) & ~0x78) + ((TXU << 2) & 0x40) + ((TXV << 3) & 0x38);
-                        n_yi = (TXV & ~0x7) + ((TXU >> 5) & 0x7);
-
-                        //*ta++ = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x01) << 3)) & 0xff));
-                        *ta++ = *(pa + ((ptr32(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x01) << 3)) & 0xff));
-                    }
-                }
-
-                DefineTextureWnd();
-
-                break;
-            }
-
-            start = ((pageid - 16 * pmult)*128) + 256 * 2048 * pmult;
-
-            // not using a lookup table here... speeds up smaller texture areas
-            cSRCPtr = psxVub + start + (2048 * g_y1) + g_x1;
-            LineOffset = 2048 - (g_x2 - g_x1 + 1);
-
-            for (column = g_y1; column <= g_y2; column++) {
-                for (row = g_x1; row <= g_x2; row++)
-                    //*ta++ = LTCOL(psxVuw[palstart + *cSRCPtr++]);
-                    *ta++ = LTCOL(ptr32(&psxVuw[palstart + *cSRCPtr++]));
-                cSRCPtr += LineOffset;
-            }
-
-            DefineTextureWnd();
-            break;
-            //--------------------------------------------------//
-            // 16bit texture load ..
-        case 2:
-            start = ((pageid - 16 * pmult)*64) + 256 * 1024 * pmult;
-
-            wSRCPtr = psxVuw + start + (1024 * g_y1) + g_x1;
-            LineOffset = 1024 - (g_x2 - g_x1 + 1);
-
-            for (column = g_y1; column <= g_y2; column++) {
-                for (row = g_x1; row <= g_x2; row++)
-                    //*ta++ = LTCOL(*wSRCPtr++);
-                    *ta++ = LTCOL(ptr32(wSRCPtr++));
-                wSRCPtr += LineOffset;
-            }
-
-            DefineTextureWnd();
-            break;
-            //--------------------------------------------------//
-            // others are not possible !
-    }
-}
-
-////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
-
-
-
-////////////////////////////////////////////////////////////////////////
-// JAMAIS UTILISER
-
-void DefinePalTextureWnd(void) {
-    /*
-     if(gTexName==0)
-      glGenTextures(1, &gTexName);
-
-     glBindTexture(GL_TEXTURE_2D, gTexName);
-
-     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-     if(iFilterType && iFilterType<3 && iHiResTextures!=2)
-      {
-       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      }
-     else
-      {
-       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-      }
-
-     glTexImage2D(GL_TEXTURE_2D, 0,GL_COLOR_INDEX8_EXT,
-                  TWin.Position.x1,
-                  TWin.Position.y1,
-                  0, GL_COLOR_INDEX, GL_UNSIGNED_BYTE,texturepart);
-     */
-}
-
-///////////////////////////////////////////////////////
-
-
-////////////////////////////////////////////////////////////////////////
-// tex window: main selecting, cache handler included
-////////////////////////////////////////////////////////////////////////
-
-struct XenosSurface * LoadTextureWnd(int pageid, int TextureMode, uint32_t GivenClutId) {
-    textureWndCacheEntry *ts, *tsx = NULL;
-    int i;
-    short cx, cy;
-    EXLong npos;
-
-    npos._3 = TWin.Position.x0;
-    npos._2 = TWin.OPosition.x1;
-    npos._1 = TWin.Position.y0;
-    npos._0 = TWin.OPosition.y1;
-
-    g_x1 = TWin.Position.x0;
-    g_x2 = g_x1 + TWin.Position.x1 - 1;
-    g_y1 = TWin.Position.y0;
-    g_y2 = g_y1 + TWin.Position.y1 - 1;
-
-    if (TextureMode == 2) {
-        GivenClutId = 0;
-        cx = cy = 0;
-    } else {
-        cx = ((GivenClutId << 4) & 0x3F0);
-        cy = ((GivenClutId >> 6) & CLUTYMASK);
-        GivenClutId = (GivenClutId & CLUTMASK) | (DrawSemiTrans << 30);
-
-        // palette check sum
-        {
-            uint32_t l = 0, row;
-            uint32_t *lSRCPtr = (uint32_t *) (psxVuw + cx + (cy * 1024));
-//            if (TextureMode == 1) for (row = 1; row < 129; row++) l += ((*lSRCPtr++) - 1) * row;
-//            else for (row = 1; row < 9; row++) l += ((*lSRCPtr++) - 1) << row;
-            if (TextureMode == 1) for (row = 1; row < 129; row++) l += (GETLE32(lSRCPtr++) - 1) * row;
-            else for (row = 1; row < 9; row++) l += (GETLE32(lSRCPtr++) - 1) << row;
-            l = (l + HIWORD(l))&0x3fffL;
-            GivenClutId |= (l << 16);
-        }
-
-    }
-
-    ts = wcWndtexStore;
-
-    for (i = 0; i < iMaxTexWnds; i++, ts++) {
-        if (ts->used) {
-            if (ts->pos.l == npos.l &&
-                    ts->pageid == pageid &&
-                    ts->textureMode == TextureMode) {
-                if (ts->ClutID == GivenClutId) {
-                    ubOpaqueDraw = ts->Opaque;
-                    return ts->texname;
-                }
-            }
-        } else tsx = ts;
-    }
-
-    if (!tsx) {
-        if (iMaxTexWnds == iTexWndLimit) {
-            tsx = wcWndtexStore + iTexWndTurn;
-            iTexWndTurn++;
-            if (iTexWndTurn == iTexWndLimit) iTexWndTurn = 0;
-        } else {
-            tsx = wcWndtexStore + iMaxTexWnds;
-            iMaxTexWnds++;
-        }
-    }
-
-    gTexName = tsx->texname;
-
-    if (TWin.OPosition.y1 == TWin.Position.y1 &&
-            TWin.OPosition.x1 == TWin.Position.x1) {
-
-        LoadWndTexturePage(pageid, TextureMode, cx, cy);
-    }
-    else {
-        LoadStretchWndTexturePage(pageid, TextureMode, cx, cy);
-    }
-
-    tsx->Opaque = ubOpaqueDraw;
-    tsx->pos.l = npos.l;
-    tsx->ClutID = GivenClutId;
-    tsx->pageid = pageid;
-    tsx->textureMode = TextureMode;
-    tsx->texname = gTexName;
-    tsx->used = 1;
-
-    return gTexName;
-}
-
 /////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////
-// movie texture: define
-////////////////////////////////////////////////////////////////////////
-
-void DefinePackedTextureMovie(void) {
-    /*
-     if(gTexMovieName==0)
-      {
-       glGenTextures(1, &gTexMovieName);
-       gTexName=gTexMovieName;
-       glBindTexture(GL_TEXTURE_2D, gTexName);
-
-       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, iClampType);
-       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, iClampType);
-
-       if(!bUseFastMdec)
-        {
-         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        }
-       else
-        {
-         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        }
-
-       glTexImage2D(GL_TEXTURE_2D, 0, //giWantedRGBA,
-                    GL_RGB5_A1,
-                    256, 256, 0, GL_RGBA, giWantedTYPE, texturepart);
-      }
-     else
-      {
-       gTexName=gTexMovieName;glBindTexture(GL_TEXTURE_2D, gTexName);
-      }
-
-     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
-                     (xrMovieArea.x1-xrMovieArea.x0),
-                     (xrMovieArea.y1-xrMovieArea.y0),
-                     GL_RGBA,
-                     GL_UNSIGNED_SHORT_5_5_5_1_EXT,
-                     texturepart);
-     */
-}
-
-////////////////////////////////////////////////////////////////////////
-
-void DefineTextureMovie(void) {
-
-    if (gTexMovieName == 0) {
-
-        gTexMovieName =gpuRenderer.CreateTexture(256, 256, XE_FMT_8888 | XE_FMT_ARGB);
-
-        xeGfx_setTextureData(gTexMovieName, texturepart);
-
-        gTexMovieName->u_addressing = iClampType;
-        gTexMovieName->v_addressing = iClampType;
-
-        if (!bUseFastMdec) {
-            gTexMovieName->use_filtering = XE_TEXF_LINEAR;
-        } else {
-            gTexMovieName->use_filtering = XE_TEXF_POINT;
-        }
-        gTexName = gTexMovieName;
-    } else {
-        gTexName = gTexMovieName;
-    }
-
-    XeTexSubImage(gTexName, 4, 4, 0, 0, (xrMovieArea.x1 - xrMovieArea.x0), (xrMovieArea.y1 - xrMovieArea.y0), texturepart);
-    
-//    printf("DefineTextureMovie\r\n");
-//    printf("xrMovieArea.x1 =%d\r\n",xrMovieArea.x1);
-//    printf("xrMovieArea.x0 =%d\r\n",xrMovieArea.x0);
-//    printf("xrMovieArea.y1 =%d\r\n",xrMovieArea.y1);
-//    printf("xrMovieArea.y0 =%d\r\n\r\n",xrMovieArea.y0);
-}
-
-////////////////////////////////////////////////////////////////////////
-// movie texture: load
-////////////////////////////////////////////////////////////////////////
-
-#define MRED(x)   ((x>>3) & 0x1f)
-#define MGREEN(x) ((x>>6) & 0x3e0)
-#define MBLUE(x)  ((x>>9) & 0x7c00)
-
-#define XMGREEN(x) ((x>>5)  & 0x07c0)
-#define XMRED(x)   ((x<<8)  & 0xf800)
-#define XMBLUE(x)  ((x>>18) & 0x003e)
-
-////////////////////////////////////////////////////////////////////////
-// movie texture: load
-////////////////////////////////////////////////////////////////////////
-
-unsigned char * LoadDirectMovieFast(void) {
-    TR;
-    int row, column;
-    unsigned int startxy;
-
-    uint32_t *ta = (uint32_t *) texturepart;
-
-    if (PSXDisplay.RGB24) {
-        unsigned char * pD;
-
-        startxy = ((1024) * xrMovieArea.y0) + xrMovieArea.x0;
-
-        for (column = xrMovieArea.y0; column < xrMovieArea.y1; column++, startxy += 1024) {
-            pD = (unsigned char *) &psxVuw[startxy];
-            for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++) {
-                *ta++ = *((uint32_t *) pD) | 0xff000000;
-                pD += 3;
-            }
-        }
-    } else {
-        uint32_t(*LTCOL)(uint32_t);
-
-        LTCOL = XP8RGBA_0; //TCF[0];
-
-        ubOpaqueDraw = 0;
-
-        for (column = xrMovieArea.y0; column < xrMovieArea.y1; column++) {
-            startxy = ((1024) * column) + xrMovieArea.x0;
-            for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++)
-                *ta++ = LTCOL(psxVuw[startxy++] | 0x8000);
-        }
-    }
-
-    return texturepart;
-}
-
-////////////////////////////////////////////////////////////////////////
-
-struct XenosSurface * LoadTextureMovieFast(void) {
-    int row, column;
-    unsigned int start, startxy;
-
-    if (bGLFastMovie) {
-        if (PSXDisplay.RGB24) {
-            unsigned char * pD;
-            uint32_t lu1, lu2;
-            unsigned short * ta = (unsigned short *) texturepart;
-            short sx0 = xrMovieArea.x1 - 1;
-
-            start = 0;
-
-            startxy = ((1024) * xrMovieArea.y0) + xrMovieArea.x0;
-            for (column = xrMovieArea.y0; column < xrMovieArea.y1; column++) {
-                pD = (unsigned char *) &psxVuw[startxy];
-                startxy += 1024;
-
-                for (row = xrMovieArea.x0; row < sx0; row += 2) {
-                    lu1 = *((uint32_t *) pD);
-                    pD += 3;
-                    lu2 = *((uint32_t *) pD);
-                    pD += 3;
-
-                    *((uint32_t *) ta) =
-                            (XMBLUE(lu1) | XMGREEN(lu1) | XMRED(lu1) | 1) |
-                            ((XMBLUE(lu2) | XMGREEN(lu2) | XMRED(lu2) | 1) << 16);
-                    ta += 2;
-                }
-                if (row == sx0) {
-                    lu1 = *((uint32_t *) pD);
-                    *ta++ = XMBLUE(lu1) | XMGREEN(lu1) | XMRED(lu1) | 1;
-                }
-            }
-        } else {
-            unsigned short *ta = (unsigned short *) texturepart;
-            uint32_t lc;
-            short sx0 = xrMovieArea.x1 - 1;
-
-            for (column = xrMovieArea.y0; column < xrMovieArea.y1; column++) {
-                startxy = ((1024) * column) + xrMovieArea.x0;
-                for (row = xrMovieArea.x0; row < sx0; row += 2) {
-                    lc = *((uint32_t *) & psxVuw[startxy]);
-                    *((uint32_t *) ta) =
-                            ((lc & 0x001f001f) << 11) | ((lc & 0x03e003e0) << 1) | ((lc & 0x7c007c00) >> 9) | 0x00010001;
-                    ta += 2;
-                    startxy += 2;
-                }
-                if (row == sx0) *ta++ = (psxVuw[startxy] << 1) | 1;
-            }
-        }
-        DefinePackedTextureMovie();
-    } else {
-        if (PSXDisplay.RGB24) {
-            unsigned char *pD;
-            uint32_t *ta = (uint32_t *) texturepart;
-
-            startxy = ((1024) * xrMovieArea.y0) + xrMovieArea.x0;
-
-            for (column = xrMovieArea.y0; column < xrMovieArea.y1; column++, startxy += 1024) {
-                //startxy=((1024)*column)+xrMovieArea.x0;
-                pD = (unsigned char *) &psxVuw[startxy];
-                for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++) {
-                    //*ta++ = *((uint32_t *) pD) | 0xff000000;
-                    
-                    uint32_t lu = *((uint32_t *) pD);
-                    *ta++ = 0xff000000 | (RED(lu) << 16) | (BLUE(lu) << 8) | (GREEN(lu));
-                    
-                    //*ta++ = GETLE32((uint32_t *) pD) | 0xff;
-                    pD += 3;
-                }
-            }
-        } else {
-            uint32_t(*LTCOL)(uint32_t);
-            uint32_t *ta;
-
-            LTCOL = XP8RGBA_0; //TCF[0];
-
-            ubOpaqueDraw = 0;
-            ta = (uint32_t *) texturepart;
-
-            for (column = xrMovieArea.y0; column < xrMovieArea.y1; column++) {
-                startxy = (1024 * column) + xrMovieArea.x0;
-                for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++)
-                    *ta++ = LTCOL( bswap_32(psxVuw[startxy++] | 0x8000));
-            }
-        }
-        DefineTextureMovie();
-    }
-    return gTexName;
-}
-
-////////////////////////////////////////////////////////////////////////
-
-struct XenosSurface * LoadTextureMovie(void) {
-    short row, column, dx;
-    unsigned int startxy;
-    BOOL b_X, b_Y;
-
-    if (bUseFastMdec) return LoadTextureMovieFast();
-
-    b_X = FALSE;
-    b_Y = FALSE;
-
-    if ((xrMovieArea.x1 - xrMovieArea.x0) < 255) b_X = TRUE;
-    if ((xrMovieArea.y1 - xrMovieArea.y0) < 255) b_Y = TRUE;
-
-    if (bGLFastMovie) {
-        unsigned short c;
-
-        if (PSXDisplay.RGB24) {
-            unsigned char * pD;
-            uint32_t lu;
-            unsigned short * ta = (unsigned short *) texturepart;
-
-            if (b_X) {
-                for (column = xrMovieArea.y0; column < xrMovieArea.y1; column++) {
-                    startxy = ((1024) * column) + xrMovieArea.x0;
-                    pD = (unsigned char *) &psxVuw[startxy];
-                    for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++) {
-                        lu = *((uint32_t *) pD);
-                        pD += 3;
-                        *ta++ = XMBLUE(lu) | XMGREEN(lu) | XMRED(lu) | 1;
-                    }
-                    *ta++ = *(ta - 1);
-                }
-                if (b_Y) {
-                    dx = xrMovieArea.x1 - xrMovieArea.x0 + 1;
-                    for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++)
-                        *ta++ = *(ta - dx);
-                    *ta++ = *(ta - 1);
-                }
-            } else {
-                for (column = xrMovieArea.y0; column < xrMovieArea.y1; column++) {
-                    startxy = ((1024) * column) + xrMovieArea.x0;
-                    pD = (unsigned char *) &psxVuw[startxy];
-                    for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++) {
-                        lu = *((uint32_t *) pD);
-                        pD += 3;
-                        *ta++ = XMBLUE(lu) | XMGREEN(lu) | XMRED(lu) | 1;
-                    }
-                }
-                if (b_Y) {
-                    dx = xrMovieArea.x1 - xrMovieArea.x0;
-                    for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++)
-                        *ta++ = *(ta - dx);
-                }
-            }
-        } else {
-            unsigned short *ta;
-
-            ubOpaqueDraw = 0;
-
-            ta = (unsigned short *) texturepart;
-
-            if (b_X) {
-                for (column = xrMovieArea.y0; column < xrMovieArea.y1; column++) {
-                    startxy = ((1024) * column) + xrMovieArea.x0;
-                    for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++) {
-                        c = psxVuw[startxy++];
-                        *ta++ = ((c & 0x1f) << 11) | ((c & 0x3e0) << 1) | ((c & 0x7c00) >> 9) | 1;
-                    }
-
-                    *ta++ = *(ta - 1);
-                }
-                if (b_Y) {
-                    dx = xrMovieArea.x1 - xrMovieArea.x0 + 1;
-                    for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++)
-                        *ta++ = *(ta - dx);
-                    *ta++ = *(ta - 1);
-                }
-            } else {
-                for (column = xrMovieArea.y0; column < xrMovieArea.y1; column++) {
-                    startxy = ((1024) * column) + xrMovieArea.x0;
-                    for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++) {
-                        c = psxVuw[startxy++];
-                        *ta++ = ((c & 0x1f) << 11) | ((c & 0x3e0) << 1) | ((c & 0x7c00) >> 9) | 1;
-                    }
-                }
-                if (b_Y) {
-                    dx = xrMovieArea.x1 - xrMovieArea.x0;
-                    for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++)
-                        *ta++ = *(ta - dx);
-                }
-            }
-        }
-        xrMovieArea.x1 += b_X;
-        xrMovieArea.y1 += b_Y;
-        DefinePackedTextureMovie();
-        xrMovieArea.x1 -= b_X;
-        xrMovieArea.y1 -= b_Y;
-    } else {
-        if (PSXDisplay.RGB24) {
-            unsigned char * pD;
-            uint32_t * ta = (uint32_t *) texturepart;
-
-            if (b_X) {
-                for (column = xrMovieArea.y0; column < xrMovieArea.y1; column++) {
-                    startxy = ((1024) * column) + xrMovieArea.x0;
-                    pD = (unsigned char *) &psxVuw[startxy];
-                    for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++) {
-                        *ta++ = *((uint32_t *) pD) | 0xff000000;
-                        pD += 3;
-                    }
-                    *ta++ = *(ta - 1);
-                }
-                if (b_Y) {
-                    dx = xrMovieArea.x1 - xrMovieArea.x0 + 1;
-                    for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++)
-                        *ta++ = *(ta - dx);
-                    *ta++ = *(ta - 1);
-                }
-            } else {
-                for (column = xrMovieArea.y0; column < xrMovieArea.y1; column++) {
-                    startxy = ((1024) * column) + xrMovieArea.x0;
-                    pD = (unsigned char *) &psxVuw[startxy];
-                    for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++) {
-                        *ta++ = *((uint32_t *) pD) | 0xff000000;
-                        pD += 3;
-                    }
-                }
-                if (b_Y) {
-                    dx = xrMovieArea.x1 - xrMovieArea.x0;
-                    for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++)
-                        *ta++ = *(ta - dx);
-                }
-            }
-        } else {
-            uint32_t(*LTCOL)(uint32_t);
-            uint32_t *ta;
-
-            LTCOL = XP8RGBA_0; //TCF[0];
-
-            ubOpaqueDraw = 0;
-            ta = (uint32_t *) texturepart;
-
-            if (b_X) {
-                for (column = xrMovieArea.y0; column < xrMovieArea.y1; column++) {
-                    startxy = ((1024) * column) + xrMovieArea.x0;
-                    for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++)
-                        *ta++ = LTCOL(psxVuw[startxy++] | 0x8000);
-                    *ta++ = *(ta - 1);
-                }
-
-                if (b_Y) {
-                    dx = xrMovieArea.x1 - xrMovieArea.x0 + 1;
-                    for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++)
-                        *ta++ = *(ta - dx);
-                    *ta++ = *(ta - 1);
-                }
-            } else {
-                for (column = xrMovieArea.y0; column < xrMovieArea.y1; column++) {
-                    startxy = ((1024) * column) + xrMovieArea.x0;
-                    for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++)
-                        *ta++ = LTCOL(psxVuw[startxy++] | 0x8000);
-                }
-
-                if (b_Y) {
-                    dx = xrMovieArea.x1 - xrMovieArea.x0;
-                    for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++)
-                        *ta++ = *(ta - dx);
-                }
-            }
-        }
-
-        xrMovieArea.x1 += b_X;
-        xrMovieArea.y1 += b_Y;
-        DefineTextureMovie();
-        xrMovieArea.x1 -= b_X;
-        xrMovieArea.y1 -= b_Y;
-    }
-    return gTexName;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-
-struct XenosSurface * BlackFake15BitTexture(void) {
-    int pmult;
-    short x1, x2, y1, y2;
-
-    if (PSXDisplay.InterlacedTest) return 0;
-
-    pmult = GlobalTexturePage / 16;
-    x1 = gl_ux[7];
-    x2 = gl_ux[6] - gl_ux[7];
-    y1 = gl_ux[5];
-    y2 = gl_ux[4] - gl_ux[5];
-
-    if (iSpriteTex) {
-        if (x2 < 255) x2++;
-        if (y2 < 255) y2++;
-    }
-
-    y1 += pmult * 256;
-    x1 += ((GlobalTexturePage - 16 * pmult) << 6);
-
-    if (FastCheckAgainstFrontScreen(x1, y1, x2, y2)
-            || FastCheckAgainstScreen(x1, y1, x2, y2)) {
-        if (!gTexFrameName) {
-            /*
-                 glGenTextures(1, &gTexFrameName);
-                 gTexName=gTexFrameName;
-                 glBindTexture(GL_TEXTURE_2D, gTexName);
-
-                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, iClampType);
-                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, iClampType);
-                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-             */
-
-            if (bGLExt) {
-                unsigned short s;
-                unsigned short * ta;
-
-                /*
-                       if(giWantedTYPE==GL_UNSIGNED_SHORT_4_4_4_4_EXT)
-                            s=0x000f;
-                       else
-                 */
-                s = 0x0001;
-
-                ta = (unsigned short *) texturepart;
-                for (y1 = 0; y1 <= 4; y1++)
-                    for (x1 = 0; x1 <= 4; x1++)
-                        *ta++ = s;
-            } else {
-                uint32_t *ta = (uint32_t *) texturepart;
-                for (y1 = 0; y1 <= 4; y1++)
-                    for (x1 = 0; x1 <= 4; x1++)
-                        *ta++ = 0xff000000;
-            }
-            /*
-                 glTexImage2D(GL_TEXTURE_2D, 0, giWantedRGBA, 4, 4, 0, GL_RGBA, GL_UNSIGNED_BYTE, texturepart);
-             */
-        } else {
-            /*
-                 gTexName=gTexFrameName;
-                 glBindTexture(GL_TEXTURE_2D, gTexName);
-             */
-        }
-
-        ubOpaqueDraw = 0;
-
-        return gTexName;
-    }
-    return 0;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-
-BOOL bFakeFrontBuffer = FALSE;
-BOOL bIgnoreNextTile = FALSE;
-
-int iFTex = 512;
-
-struct XenosSurface * Fake15BitTexture(void) {
-    int pmult;
-    short x1, x2, y1, y2;
-    int iYAdjust;
-    float ScaleX, ScaleY;
-    RECT rSrc;
-
-    if (iFrameTexType == 1) return BlackFake15BitTexture();
-    if (PSXDisplay.InterlacedTest) return 0;
-
-    pmult = GlobalTexturePage / 16;
-    x1 = gl_ux[7];
-    x2 = gl_ux[6] - gl_ux[7];
-    y1 = gl_ux[5];
-    y2 = gl_ux[4] - gl_ux[5];
-
-    y1 += pmult * 256;
-    x1 += ((GlobalTexturePage - 16 * pmult) << 6);
-
-    if (iFrameTexType == 3) {
-        if (iFrameReadType == 4) return 0;
-
-        if (!FastCheckAgainstFrontScreen(x1, y1, x2, y2) &&
-                !FastCheckAgainstScreen(x1, y1, x2, y2))
-            return 0;
-
-        if (bFakeFrontBuffer) bIgnoreNextTile = TRUE;
-        CheckVRamReadEx(x1, y1, x1 + x2, y1 + y2);
-        return 0;
-    }
-
-    /////////////////////////
-
-    if (FastCheckAgainstFrontScreen(x1, y1, x2, y2)) {
-        x1 -= PSXDisplay.DisplayPosition.x;
-        y1 -= PSXDisplay.DisplayPosition.y;
-    } else
-        if (FastCheckAgainstScreen(x1, y1, x2, y2)) {
-        x1 -= PreviousPSXDisplay.DisplayPosition.x;
-        y1 -= PreviousPSXDisplay.DisplayPosition.y;
-    } else return 0;
-
-    bDrawMultiPass = FALSE;
-
-    if (!gTexFrameName) {
-        char * p;
-
-        if (iResX > 1280 || iResY > 1024) iFTex = 2048;
-        else
-            if (iResX > 640 || iResY > 480) iFTex = 1024;
-        else iFTex = 512;
-
-        /*
-           glGenTextures(1, &gTexFrameName);
-           gTexName=gTexFrameName;
-           glBindTexture(GL_TEXTURE_2D, gTexName);
-
-           glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, iClampType);
-           glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, iClampType);
-           glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-           glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-         */
-
-        p = (char *) malloc(iFTex * iFTex * 4);
-        memset(p, 0, iFTex * iFTex * 4);
-        /*
-           glTexImage2D(GL_TEXTURE_2D, 0, 3, iFTex, iFTex, 0, GL_RGB, GL_UNSIGNED_BYTE, p);
-         */
-        free(p);
-
-        glGetError();
-    } else {
-        gTexName = gTexFrameName;
-        /*
-           glBindTexture(GL_TEXTURE_2D, gTexName);
-         */
-    }
-
-    x1 += PreviousPSXDisplay.Range.x0;
-    y1 += PreviousPSXDisplay.Range.y0;
-
-    if (PSXDisplay.DisplayMode.x)
-        ScaleX = (float) rRatioRect.right / (float) PSXDisplay.DisplayMode.x;
-    else ScaleX = 1.0f;
-    if (PSXDisplay.DisplayMode.y)
-        ScaleY = (float) rRatioRect.bottom / (float) PSXDisplay.DisplayMode.y;
-    else ScaleY = 1.0f;
-
-    rSrc.left = max(x1*ScaleX, 0);
-    rSrc.right = min((x1 + x2) * ScaleX + 0.99f, iResX - 1);
-    rSrc.top = max(y1*ScaleY, 0);
-    rSrc.bottom = min((y1 + y2) * ScaleY + 0.99f, iResY - 1);
-
-    iYAdjust = (y1 + y2) - PSXDisplay.DisplayMode.y;
-    if (iYAdjust > 0)
-        iYAdjust = (int) ((float) iYAdjust * ScaleY) + 1;
-    else iYAdjust = 0;
-
-    gl_vy[0] = 255 - gl_vy[0];
-    gl_vy[1] = 255 - gl_vy[1];
-    gl_vy[2] = 255 - gl_vy[2];
-    gl_vy[3] = 255 - gl_vy[3];
-
-    y1 = min(gl_vy[0], min(gl_vy[1], min(gl_vy[2], gl_vy[3])));
-
-    gl_vy[0] -= y1;
-    gl_vy[1] -= y1;
-    gl_vy[2] -= y1;
-    gl_vy[3] -= y1;
-    gl_ux[0] -= gl_ux[7];
-    gl_ux[1] -= gl_ux[7];
-    gl_ux[2] -= gl_ux[7];
-    gl_ux[3] -= gl_ux[7];
-
-    ScaleX *= 256.0f / ((float) (iFTex));
-    ScaleY *= 256.0f / ((float) (iFTex));
-
-    y1 = ((float) gl_vy[0] * ScaleY);
-    if (y1 > 255) y1 = 255;
-    gl_vy[0] = y1;
-    y1 = ((float) gl_vy[1] * ScaleY);
-    if (y1 > 255) y1 = 255;
-    gl_vy[1] = y1;
-    y1 = ((float) gl_vy[2] * ScaleY);
-    if (y1 > 255) y1 = 255;
-    gl_vy[2] = y1;
-    y1 = ((float) gl_vy[3] * ScaleY);
-    if (y1 > 255) y1 = 255;
-    gl_vy[3] = y1;
-
-    x1 = ((float) gl_ux[0] * ScaleX);
-    if (x1 > 255) x1 = 255;
-    gl_ux[0] = x1;
-    x1 = ((float) gl_ux[1] * ScaleX);
-    if (x1 > 255) x1 = 255;
-    gl_ux[1] = x1;
-    x1 = ((float) gl_ux[2] * ScaleX);
-    if (x1 > 255) x1 = 255;
-    gl_ux[2] = x1;
-    x1 = ((float) gl_ux[3] * ScaleX);
-    if (x1 > 255) x1 = 255;
-    gl_ux[3] = x1;
-
-    x1 = rSrc.right - rSrc.left;
-    if (x1 <= 0) x1 = 1;
-    if (x1 > iFTex) x1 = iFTex;
-
-    y1 = rSrc.bottom - rSrc.top;
-    if (y1 <= 0) y1 = 1;
-    if (y1 + iYAdjust > iFTex) y1 = iFTex - iYAdjust;
-    /*
-     if(bFakeFrontBuffer) glReadBuffer(GL_FRONT);
-
-     glCopyTexSubImage2D( GL_TEXTURE_2D, 0,
-                          0,
-                          iYAdjust,
-                          rSrc.left+rRatioRect.left,
-                          iResY-rSrc.bottom-rRatioRect.top,
-                          x1,y1);
-
-     if(glGetError())
-      {
-       char * p=(char *)malloc(iFTex*iFTex*4);
-       memset(p,0,iFTex*iFTex*4);
-       glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, iFTex, iFTex,
-                       GL_RGB, GL_UNSIGNED_BYTE, p);
-       free(p);
-      }
-
-     if(bFakeFrontBuffer)
-      {glReadBuffer(GL_BACK);bIgnoreNextTile=TRUE;}
-     */
-    ubOpaqueDraw = 0;
-
-    if (iSpriteTex) {
-        sprtW = gl_ux[1] - gl_ux[0];
-        sprtH = -(gl_vy[0] - gl_vy[2]);
-    }
-
-    return gTexName;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-//
-// load texture part (unpacked)
-//
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-
-void LoadSubTexturePageSort(int pageid, int mode, short cx, short cy) {
-    uint32_t start, row, column, j, sxh, sxm;
-    unsigned int palstart;
-    uint32_t *px, *pa, *ta;
-    unsigned char *cSRCPtr;
-    unsigned short *wSRCPtr;
-    uint32_t LineOffset;
-    uint32_t x2a, xalign = 0;
-    uint32_t x1 = gl_ux[7];
-    uint32_t x2 = gl_ux[6];
-    uint32_t y1 = gl_ux[5];
-    uint32_t y2 = gl_ux[4];
-    uint32_t dx = x2 - x1 + 1;
-    uint32_t dy = y2 - y1 + 1;
-    int pmult = pageid / 16;
-    uint32_t(*LTCOL)(uint32_t);
-    unsigned int a, r, g, b, cnt, h;
-    uint32_t scol[8];
-
-    LTCOL = TCF[DrawSemiTrans];
-
-    pa = px = (uint32_t *) ubPaletteBuffer;
-    ta = (uint32_t *) texturepart;
-    palstart = cx + (cy << 10);
-
-    ubOpaqueDraw = 0;
-
-    if (YTexS) {
-        ta += dx;
-        if (XTexS) ta += 2;
-    }
-    if (XTexS) {
-        ta += 1;
-        xalign = 2;
-    }
-
-    switch (mode) {
-            //--------------------------------------------------//
-            // 4bit texture load ..
-        case 0:
-            if (GlobalTextIL) {
-                unsigned int TXV, TXU, n_xi, n_yi;
-
-                wSRCPtr = psxVuw + palstart;
-
-                row = 4;
-                do {
-/*
-                    *px    =LTCOL(*wSRCPtr);
-                    *(px+1)=LTCOL(*(wSRCPtr+1));
-                    *(px+2)=LTCOL(*(wSRCPtr+2));
-                    *(px+3)=LTCOL(*(wSRCPtr+3));
-*/
-                    *px = (LTCOL(ptr32(wSRCPtr)));
-                    *(px + 1) = (LTCOL(ptr32(wSRCPtr + 1)));
-                    *(px + 2) = (LTCOL(ptr32(wSRCPtr + 2)));
-                    *(px + 3) = (LTCOL(ptr32(wSRCPtr + 3)));
-
-                    row--;
-                    px += 4;
-                    wSRCPtr += 4;
-                } while (row);
-
-                for (TXV = y1; TXV <= y2; TXV++) {
-                    for (TXU = x1; TXU <= x2; TXU++) {
-                        n_xi = ((TXU >> 2) & ~0x3c) + ((TXV << 2) & 0x3c);
-                        n_yi = (TXV & ~0xf) + ((TXU >> 4) & 0xf);
-
-                        //*ta++ = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x03) << 2)) & 0x0f));
-                        *ta++ = *(pa + ((ptr32(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x03) << 2)) & 0x0f));
-                    }
-                    ta += xalign;
-                }
-                break;
-            }
-
-            start = ((pageid - 16 * pmult) << 7) + 524288 * pmult;
-            // convert CLUT to 32bits .. and then use THAT as a lookup table
-
-            wSRCPtr = psxVuw + palstart;
-
-            row = 4;
-            do {
-/*
-                *px = LTCOL(*wSRCPtr);
-                *(px + 1) = LTCOL(*(wSRCPtr + 1));
-                *(px + 2) = LTCOL(*(wSRCPtr + 2));
-                *(px + 3) = LTCOL(*(wSRCPtr + 3));
-*/
-                *px = (LTCOL(ptr32(wSRCPtr)));
-                *(px + 1) = (LTCOL(ptr32(wSRCPtr + 1)));
-                *(px + 2) = (LTCOL(ptr32(wSRCPtr + 2)));
-                *(px + 3) = (LTCOL(ptr32(wSRCPtr + 3)));
-
-                row--;
-                px += 4;
-                wSRCPtr += 4;
-            } while (row);
-
-            x2a = x2 ? (x2 - 1) : 0; //if(x2) x2a=x2-1; else x2a=0;
-            sxm = x1 & 1;
-            sxh = x1 >> 1;
-            j = sxm ? (x1 + 1) : x1; //if(sxm) j=x1+1; else j=x1;
-            for (column = y1; column <= y2; column++) {
-                cSRCPtr = psxVub + start + (column << 11) + sxh;
-
-                if (sxm) 
-                    *ta++ = *(pa + ((*cSRCPtr++ >> 4) & 0xF));
-
-                for (row = j; row < x2a; row += 2) {
-                    *ta = *(pa + (*cSRCPtr & 0xF));
-                    *(ta + 1) = *(pa + ((*cSRCPtr >> 4) & 0xF));
-                    cSRCPtr++;
-                    ta += 2;
-                }
-
-                if (row <= x2) {
-                    *ta++ = *(pa + (*cSRCPtr & 0xF));
-                    row++;
-                    if (row <= x2) 
-                        *ta++ = *(pa + ((*cSRCPtr >> 4) & 0xF));
-                }
-
-                ta += xalign;
-            }
-
-            break;
-            //--------------------------------------------------//
-            // 8bit texture load ..
-        case 1:
-            if (GlobalTextIL) {
-                unsigned int TXV, TXU, n_xi, n_yi;
-
-                wSRCPtr = psxVuw + palstart;
-
-                row = 64;
-                do {
-/*
-                    *px = LTCOL(*wSRCPtr);
-                    *(px + 1) = LTCOL(*(wSRCPtr + 1));
-                    *(px + 2) = LTCOL(*(wSRCPtr + 2));
-                    *(px + 3) = LTCOL(*(wSRCPtr + 3));
-*/
-                    *px = (LTCOL(ptr32(wSRCPtr)));
-                    *(px + 1) = (LTCOL(ptr32(wSRCPtr + 1)));
-                    *(px + 2) = (LTCOL(ptr32(wSRCPtr + 2)));
-                    *(px + 3) = (LTCOL(ptr32(wSRCPtr + 3)));
-                    row--;
-                    px += 4;
-                    wSRCPtr += 4;
-                } while (row);
-
-                for (TXV = y1; TXV <= y2; TXV++) {
-                    for (TXU = x1; TXU <= x2; TXU++) {
-                        n_xi = ((TXU >> 1) & ~0x78) + ((TXU << 2) & 0x40) + ((TXV << 3) & 0x38);
-                        n_yi = (TXV & ~0x7) + ((TXU >> 5) & 0x7);
-
-                         *ta++ = *(pa + ((*(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x01) << 3)) & 0xff));
-                        //*ta++ = *(pa + ((ptr32(psxVuw + ((GlobalTextAddrY + n_yi)*1024) + GlobalTextAddrX + n_xi) >> ((TXU & 0x01) << 3)) & 0xff));
-                    }
-                    ta += xalign;
-                }
-
-                break;
-            }
-
-            start = ((pageid - 16 * pmult) << 7) + 524288 * pmult;
-
-            cSRCPtr = psxVub + start + (y1 << 11) + x1;
-            LineOffset = 2048 - dx;
-
-            if (dy * dx > 384) {
-                wSRCPtr = psxVuw + palstart;
-
-                row = 64;
-                do {
-/*
-                    *px = LTCOL(*wSRCPtr);
-                    *(px + 1) = LTCOL(*(wSRCPtr + 1));
-                    *(px + 2) = LTCOL(*(wSRCPtr + 2));
-                    *(px + 3) = LTCOL(*(wSRCPtr + 3));
-*/
-                    *px = (LTCOL(ptr32(wSRCPtr)));
-                    *(px + 1) = (LTCOL(ptr32(wSRCPtr + 1)));
-                    *(px + 2) = (LTCOL(ptr32(wSRCPtr + 2)));
-                    *(px + 3) = (LTCOL(ptr32(wSRCPtr + 3)));
-
-                    row--;
-                    px += 4;
-                    wSRCPtr += 4;
-                } while (row);
-
-                column = dy;
-                do {
-                    row = dx;
-                    do {
-                        *ta++ = *(pa + (*cSRCPtr++));
-                        row--;
-                    } while (row);
-                    ta += xalign;
-                    cSRCPtr += LineOffset;
-                    column--;
-                } while (column);
-            } else {
-                wSRCPtr = psxVuw + palstart;
-
-                column = dy;
-                do {
-                    row = dx;
-                    do {
-                        *ta++ = LTCOL(ptr32(wSRCPtr + *cSRCPtr++));
-                        //*ta++ = LTCOL(*(wSRCPtr + *cSRCPtr++));
-                        row--;
-                    } while (row);
-                    ta += xalign;
-                    cSRCPtr += LineOffset;
-                    column--;
-                } while (column);
-            }
-
-            break;
-            //--------------------------------------------------//
-            // 16bit texture load ..
-        case 2:
-            start = ((pageid - 16 * pmult) << 6) + 262144 * pmult;
-
-            wSRCPtr = psxVuw + start + (y1 << 10) + x1;
-            LineOffset = 1024 - dx;
-
-            column = dy;
-            do {
-                row = dx;
-                do {
-                    //*ta++ = LTCOL(*wSRCPtr++);
-                    *ta++ = (LTCOL(ptr32(wSRCPtr)));
-
-                    row--;
-                } while (row);
-                ta += xalign;
-                wSRCPtr += LineOffset;
-                column--;
-            } while (column);
-
-            break;
-            //--------------------------------------------------//
-            // others are not possible !
-    }
-
-    x2a = dx + xalign;
-
-    if (YTexS) {
-        ta = (uint32_t *) texturepart;
-        pa = (uint32_t *) texturepart + x2a;
-        row = x2a;
-        do {
-            *ta++ = *pa++;
-            row--;
-        } while (row);
-        pa = (uint32_t *) texturepart + dy*x2a;
-        ta = pa + x2a;
-        row = x2a;
-        do {
-            *ta++ = *pa++;
-            row--;
-        } while (row);
-        YTexS--;
-        dy += 2;
-    }
-
-    if (XTexS) {
-        ta = (uint32_t *) texturepart;
-        pa = ta + 1;
-        row = dy;
-        do {
-            *ta = *pa;
-            ta += x2a;
-            pa += x2a;
-            row--;
-        } while (row);
-        pa = (uint32_t *) texturepart + dx;
-        ta = pa + 1;
-        row = dy;
-        do {
-            *ta = *pa;
-            ta += x2a;
-            pa += x2a;
-            row--;
-        } while (row);
-        XTexS--;
-        dx += 2;
-    }
-
-    DXTexS = dx;
-    DYTexS = dy;
-
-    if (!iFilterType) {
-        DefineSubTextureSort();
-        return;
-    }
-    if (iFilterType != 2 && iFilterType != 4 && iFilterType != 6) {
-        DefineSubTextureSort();
-        return;
-    }
-    if ((iFilterType == 4 || iFilterType == 6) && ly0 == ly1 && ly2 == ly3 && lx0 == lx3 && lx1 == lx2) {
-        DefineSubTextureSort();
-        return;
-    }
-
-    ta = (uint32_t *) texturepart;
-    x1 = dx - 1;
-    y1 = dy - 1;
-#if 1
-    if (bOpaquePass) {
-        if (bSmallAlpha) {
-            for (column = 0; column < dy; column++) {
-                for (row = 0; row < dx; row++) {
-                    if (*ta == 0x03000000) {
-                        cnt = 0;
-
-                        if (column && *(ta - dx) >> 24 != 0x03) scol[cnt++] = *(ta - dx);
-                        if (row && *(ta - 1) >> 24 != 0x03) scol[cnt++] = *(ta - 1);
-                        if (row != x1 && *(ta + 1) >> 24 != 0x03) scol[cnt++] = *(ta + 1);
-                        if (column != y1 && *(ta + dx) >> 24 != 0x03) scol[cnt++] = *(ta + dx);
-
-                        if (row && column && *(ta - dx - 1) >> 24 != 0x03) scol[cnt++] = *(ta - dx - 1);
-                        if (row != x1 && column && *(ta - dx + 1) >> 24 != 0x03) scol[cnt++] = *(ta - dx + 1);
-                        if (row && column != y1 && *(ta + dx - 1) >> 24 != 0x03) scol[cnt++] = *(ta + dx - 1);
-                        if (row != x1 && column != y1 && *(ta + dx + 1) >> 24 != 0x03) scol[cnt++] = *(ta + dx + 1);
-
-                        if (cnt) {
-                            r = g = b = a = 0;
-                            for (h = 0; h < cnt; h++) {
-                                r += (scol[h] >> 16)&0xff;
-                                g += (scol[h] >> 8)&0xff;
-                                b += scol[h]&0xff;
-                            }
-                            r /= cnt;
-                            b /= cnt;
-                            g /= cnt;
-
-                            *ta = (r << 16) | (g << 8) | b;
-                            *ta |= 0x03000000;
-                        }
-                    }
-                    ta++;
-                }
-            }
-        } else {
-            for (column = 0; column < dy; column++) {
-                for (row = 0; row < dx; row++) {
-                    if (*ta == 0x50000000) {
-                        cnt = 0;
-
-                        if (column && *(ta - dx) != 0x50000000 && *(ta - dx) >> 24 != 1) scol[cnt++] = *(ta - dx);
-                        if (row && *(ta - 1) != 0x50000000 && *(ta - 1) >> 24 != 1) scol[cnt++] = *(ta - 1);
-                        if (row != x1 && *(ta + 1) != 0x50000000 && *(ta + 1) >> 24 != 1) scol[cnt++] = *(ta + 1);
-                        if (column != y1 && *(ta + dx) != 0x50000000 && *(ta + dx) >> 24 != 1) scol[cnt++] = *(ta + dx);
-
-                        if (row && column && *(ta - dx - 1) != 0x50000000 && *(ta - dx - 1) >> 24 != 1) scol[cnt++] = *(ta - dx - 1);
-                        if (row != x1 && column && *(ta - dx + 1) != 0x50000000 && *(ta - dx + 1) >> 24 != 1) scol[cnt++] = *(ta - dx + 1);
-                        if (row && column != y1 && *(ta + dx - 1) != 0x50000000 && *(ta + dx - 1) >> 24 != 1) scol[cnt++] = *(ta + dx - 1);
-                        if (row != x1 && column != y1 && *(ta + dx + 1) != 0x50000000 && *(ta + dx + 1) >> 24 != 1) scol[cnt++] = *(ta + dx + 1);
-
-                        if (cnt) {
-                            r = g = b = a = 0;
-                            for (h = 0; h < cnt; h++) {
-                                a += (scol[h] >> 24);
-                                r += (scol[h] >> 16)&0xff;
-                                g += (scol[h] >> 8)&0xff;
-                                b += scol[h]&0xff;
-                            }
-                            r /= cnt;
-                            b /= cnt;
-                            g /= cnt;
-
-                            //*ta =  SWAP32( (r << 16) | (g << 8) | b );
-                            *ta =  ( (r << 16) | (g << 8) | b );
-                            if (a) *ta |= 0x50000000;
-                            else *ta |= 0x01000000;
-                        }
-                    }
-                    ta++;
-                }
-            }
-        }
-    } else
-        for (column = 0; column < dy; column++) {
-            for (row = 0; row < dx; row++) {
-                if (*ta == 0x00000000) {
-                    cnt = 0;
-
-                    if (row != x1 && *(ta + 1) != 0x00000000) scol[cnt++] = *(ta + 1);
-                    if (column != y1 && *(ta + dx) != 0x00000000) scol[cnt++] = *(ta + dx);
-
-                    if (cnt) {
-                        r = g = b = 0;
-                        for (h = 0; h < cnt; h++) {
-                            r += (scol[h] >> 16)&0xff;
-                            g += (scol[h] >> 8)&0xff;
-                            b += scol[h]&0xff;
-                        }
-                        r /= cnt;
-                        b /= cnt;
-                        g /= cnt;
-                        //*ta = SWAP32( (r << 16) | (g << 8) | b);
-                        *ta = ( (r << 16) | (g << 8) | b);
-                    }
-                }
-                ta++;
-            }
-        }
-#endif
-    DefineSubTextureSort();
-}
-
-
-/////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-//
-// hires texture funcs
-//
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-#include "tex2Sai.h"
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-//
-// ogl texture defines
-//
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-
-void DefineSubTextureSortHiRes(void) {
-    int x, y, dx2;
-
-    if (!gTexName) {
-
-        gTexName = gpuRenderer.CreateTexture(512, 512, XE_FMT_8888 | XE_FMT_ARGB);
-        xeGfx_setTextureData(gTexName, texturepart);
-
-        gTexName->u_addressing = iClampType;
-        gTexName->v_addressing = iClampType;
-
-        if (iFilterType) {
-            gTexName->use_filtering = XE_TEXF_LINEAR;
-        } else {
-            gTexName->use_filtering = XE_TEXF_POINT;
-        }
-    }
-
-    if (bGLExt && (iTexQuality == 1 || iTexQuality == 2)) {
-        if (DXTexS < 4 || DYTexS < 4 || iHiResTextures == 2) {
-            unsigned short * pS, *pD1, *pD2;
-            dx2 = (DXTexS << 1);
-            pS = (unsigned short *) texturepart;
-            pD1 = (unsigned short *) texturebuffer;
-            pD2 = (unsigned short *) texturebuffer;
-            pD2 += dx2;
-            for (y = 0; y < DYTexS; y++) {
-                for (x = 0; x < DXTexS; x++) {
-                    *(pD2 + 1) = *pD2 = *(pD1 + 1) = *pD1 = *pS;
-                    pS++;
-                    pD1 += 2;
-                    pD2 += 2;
-                }
-                pD1 += dx2;
-                pD2 += dx2;
-            }
-        } else {
-            if (iTexQuality == 1)
-                Super2xSaI_ex4(texturepart, DXTexS << 1, texturebuffer, DXTexS, DYTexS);
-            else
-                Super2xSaI_ex5(texturepart, DXTexS << 1, texturebuffer, DXTexS, DYTexS);
-        }
-    } else {
-        if (DXTexS < 4 || DYTexS < 4 || iHiResTextures == 2) {
-            uint32_t * pS, *pD1, *pD2;
-            dx2 = (DXTexS << 1);
-            pS = (uint32_t *) texturepart;
-            pD1 = (uint32_t *) texturebuffer;
-            pD2 = (uint32_t *) texturebuffer;
-            pD2 += dx2;
-            for (y = 0; y < DYTexS; y++) {
-                for (x = 0; x < DXTexS; x++) {
-                    *(pD2 + 1) = *pD2 = *(pD1 + 1) = *pD1 = *pS;
-                    pS++;
-                    pD1 += 2;
-                    pD2 += 2;
-                }
-                pD1 += dx2;
-                pD2 += dx2;
-            }
-        } else
-            if (bSmallAlpha)
-            Super2xSaI_ex8_Ex(texturepart, DXTexS * 4, texturebuffer, DXTexS, DYTexS);
-        else
-            Super2xSaI_ex8(texturepart, DXTexS * 4, texturebuffer, DXTexS, DYTexS);
-    }
-
-    XeTexSubImage(gTexName, 4, 4, XTexS << 1, YTexS << 1, DXTexS << 1, DYTexS << 1, texturebuffer);
-}
-
-/////////////////////////////////////////////////////////////////////////////
-
-void DefineSubTextureSort(void) {
-    if (iHiResTextures) {
-        DefineSubTextureSortHiRes();
-        return;
-    }
-
-
-    if (!gTexName) {
-
-        gTexName = gpuRenderer.CreateTexture(256, 256, XE_FMT_8888 | XE_FMT_ARGB);
-        xeGfx_setTextureData(gTexName, texturepart);
-
-        gTexName->u_addressing = iClampType;
-        gTexName->v_addressing = iClampType;
-
-        if (iFilterType) {
-            gTexName->use_filtering = XE_TEXF_LINEAR;
-        } else {
-            gTexName->use_filtering = XE_TEXF_POINT;
-        }
-    }
-
-    XeTexSubImage(gTexName, 4, 4, XTexS, YTexS, DXTexS, DYTexS, texturepart);
-
-}
-
-/////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-//
 // texture cache garbage collection
-//
 /////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-
 void DoTexGarbageCollection(void) {
     static unsigned short LRUCleaned = 0;
     unsigned short iC, iC1, iC2;
@@ -2870,20 +1001,12 @@ void DoTexGarbageCollection(void) {
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-//
 // search cache for existing (already used) parts
-//
 /////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-
 unsigned char * CheckTextureInSubSCache(int TextureMode, uint32_t GivenClutId, unsigned short * pCache) {
-    //TR;
     textureSubCacheEntryS * tsx, * tsb, *tsg; //, *tse=NULL;
     int i, iMax;
-    EXLong npos;
+    EXLong npos,tpos;
     unsigned char cx, cy;
     int iC, j, k;
     uint32_t rx, ry, mx, my;
@@ -2891,17 +1014,16 @@ unsigned char * CheckTextureInSubSCache(int TextureMode, uint32_t GivenClutId, u
     EXLong rfree;
     unsigned char cXAdj, cYAdj;
 
-    npos.l = *((uint32_t *) & gl_ux[4]);
-    npos.l=bswap_32(npos.l);
-
+    npos.l = GETLE32((uint32_t *) & gl_ux[4]);
+        
     //--------------------------------------------------------------//
     // find matching texturepart first... speed up...
     //--------------------------------------------------------------//
-
     tsg = pscSubtexStore[TextureMode][GlobalTexturePage];
     tsg += ((GivenClutId & CLUTCHK) >> CLUTSHIFT) * SOFFB;
 
     iMax = tsg->pos.l;
+    
     if (iMax) {
         i = iMax;
         tsb = tsg + 1;
@@ -2940,13 +1062,14 @@ unsigned char * CheckTextureInSubSCache(int TextureMode, uint32_t GivenClutId, u
 
     tsx = NULL;
     tsb = tsg + 1;
+    
     for (i = 0; i < iMax; i++, tsb++) {
         if (!tsb->ClutID) {
             tsx = tsb;
             break;
         }
     }
-
+    
     if (!tsx) {
         iMax++;
         if (iMax >= SOFFB - 2) {
@@ -2957,7 +1080,6 @@ unsigned char * CheckTextureInSubSCache(int TextureMode, uint32_t GivenClutId, u
                     *pCache = 0xffff;
                     return 0;
                 }
-
                 iMax--;
                 tsb = tsg + 1;
 
@@ -2979,23 +1101,20 @@ unsigned char * CheckTextureInSubSCache(int TextureMode, uint32_t GivenClutId, u
                 {
                     // *((uint32_t *) & gl_ux[4]) = npos.l = rfree.l;
                     npos.l = rfree.l;
-                    *((uint32_t *) & gl_ux[4]) = bswap_32(rfree.l);
-                    
-                    rx = (int) rfree._2-(int) rfree._3;
-                    ry = (int) rfree._0-(int) rfree._1;
+                    PUTLE32(((uint32_t *) & gl_ux[4]), rfree.l);
+
+                    rx = (int) rfree._2 - (int) rfree._3;
+                    ry = (int) rfree._0 - (int) rfree._1;
                     DoTexGarbageCollection();
 
                     goto ENDLOOP3;
                 }
             }
-
             iMax = 1;
         }
         tsx = tsg + iMax;
-        
-        tsg->pos.l = iMax;
 
-        // DumpExL(&tsg->pos);
+        tsg->pos.l = iMax;
     }
 
     //----------------------------------------------------//
@@ -3106,6 +1225,7 @@ ENDLOOP3:
     //----------------------------------------------------//
 
 ENDLOOP:
+
     if (ul) {
         //////////////////////////////////////////////////////
 
@@ -3156,8 +1276,7 @@ ENDLOOP:
         }
         tsg->pos.l = 1;
 
-//        DumpExL(&tsg->pos);
-        
+
         tsx = tsg + 1;
     }
 
@@ -3166,7 +1285,7 @@ ENDLOOP:
 
     tsx->cTexID = *pCache = iC;
     tsx->pos = npos;
-//    DumpExL(&npos);
+
     tsx->ClutID = GivenClutId;
     tsx->posTX = rfree._3;
     tsx->posTY = rfree._1;
@@ -3189,31 +1308,26 @@ ENDLOOP:
     return &tsx->Opaque;
 }
 
+
 /////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-//
 // search cache for free place (on compress)
-//
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
 
 BOOL GetCompressTexturePlace(textureSubCacheEntryS * tsx) {
-    
+
     TR;
-//    printf("tsx->cTexID = %d\r\n",tsx->cTexID);
-//    printf("XTexS = %d\r\n",XTexS);
-//    printf("YTexS = %d\r\n",YTexS);
-    
+    //    printf("tsx->cTexID = %d\r\n",tsx->cTexID);
+    //    printf("XTexS = %d\r\n",XTexS);
+    //    printf("YTexS = %d\r\n",YTexS);
+
     int i, j, k, iMax, iC;
     uint32_t rx, ry, mx, my;
     EXLong * ul = 0, * uls, rfree;
     unsigned char cXAdj = 1, cYAdj = 1;
 
-    rx = (int) tsx->pos._2-(int) tsx->pos._3;
-    ry = (int) tsx->pos._0-(int) tsx->pos._1;
-    
+    rx = (int) tsx->pos._2 - (int) tsx->pos._3;
+    ry = (int) tsx->pos._0 - (int) tsx->pos._1;
+
     rx += 3;
     if (rx > 255) {
         cXAdj = 0;
@@ -3326,24 +1440,19 @@ TENDLOOP:
 
     XTexS = rfree._3;
     YTexS = rfree._1;
-    
-//    printf("tsx->cTexID = %d\r\n",tsx->cTexID);
-//    
-//    printf("XTexS = %d\r\n",XTexS);
-//    printf("YTexS = %d\r\n",YTexS);
+
+    //    printf("tsx->cTexID = %d\r\n",tsx->cTexID);
+    //    
+    //    printf("XTexS = %d\r\n",XTexS);
+    //    printf("YTexS = %d\r\n",YTexS);
 
     return TRUE;
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-//
 // compress texture cache (to make place for new texture part, if needed)
-//
 /////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
+
 void CompressTextureSpace(void) {
     textureSubCacheEntryS * tsx, * tsg, * tsb;
     int i, j, k, m, n, iMax;
@@ -3353,10 +1462,7 @@ void CompressTextureSpace(void) {
     uint32_t l, row;
     uint32_t *lSRCPtr;
 
-    opos.l = *((uint32_t *) & gl_ux[4]);
-    opos.l = bswap_32(opos.l);
-    
-    DumpExL(&opos);
+    opos.l = GETLE32((uint32_t *) & gl_ux[4]);
 
     // 1. mark all textures as free
     for (i = 0; i < iSortTexCnt; i++) {
@@ -3369,9 +1475,7 @@ void CompressTextureSpace(void) {
     for (j = 0; j < 3; j++) {
         for (k = 0; k < MAXTPAGES; k++) {
             tsg = pscSubtexStore[j][k];
-           
-            DumpExL(&tsg->pos);
-            
+
             if ((!(dwTexPageComp & (1 << k)))) {
                 (tsg + SOFFA)->pos.l = 0;
                 (tsg + SOFFB)->pos.l = 0;
@@ -3383,13 +1487,10 @@ void CompressTextureSpace(void) {
             for (m = 0; m < 4; m++, tsg += SOFFB) {
                 iMax = tsg->pos.l;
 
-                printf("iMax : %08x\r\n",iMax);
-                
                 tsx = tsg + 1;
                 for (i = 0; i < iMax; i++, tsx++) {
                     if (tsx->ClutID) {
                         r.l = tsx->pos.l;
-                        DumpExL(&r);
                         for (n = i + 1, tsb = tsx + 1; n < iMax; n++, tsb++) {
                             if (tsx->ClutID == tsb->ClutID) {
                                 r._3 = min(r._3, tsb->pos._3);
@@ -3397,7 +1498,6 @@ void CompressTextureSpace(void) {
                                 r._1 = min(r._1, tsb->pos._1);
                                 r._0 = max(r._0, tsb->pos._0);
                                 tsb->ClutID = 0;
-                                DumpExL(&r);
                             }
                         }
 
@@ -3417,11 +1517,6 @@ void CompressTextureSpace(void) {
                                     tsx->ClutID = 0;
                                     continue;
                                 }
-                                
-//                                printf("tsx->ClutID = %d\r\n",tsx->ClutID);
-//                                printf("cx = %d\r\n",cx);
-//                                printf("cy = %d\r\n",cy);
-//                                printf("l = %d\r\n",l);
                             }
 
                             tsx->pos.l = r.l;
@@ -3440,15 +1535,14 @@ void CompressTextureSpace(void) {
                                     ul = pxSsubtexLeft[i];
                                     ul->l = 0;
                                 }
-                                DumpExL(ul);
-                                
+                                //                                DumpExL(ul);
+
                                 usLRUTexPage = 0;
                                 DrawSemiTrans = sOldDST;
                                 GlobalTexturePage = lOGTP;
-                                
-                                printf("DrawSemiTrans : %08x\r\n",DrawSemiTrans);
-                                
-                                *((uint32_t *) & gl_ux[4]) = bswap_32(opos.l);
+
+                                PUTLE32(((uint32_t *) & gl_ux[4]), opos.l);
+
                                 dwTexPageComp = 0;
 
                                 return;
@@ -3456,10 +1550,8 @@ void CompressTextureSpace(void) {
 
                             if (tsx->ClutID & (1 << 30)) DrawSemiTrans = 1;
                             else DrawSemiTrans = 0;
-                            *((uint32_t *) & gl_ux[4]) = bswap_32(r.l);
-                            
-                            printf("DrawSemiTrans : %08x\r\n",DrawSemiTrans);
-                            DumpExL(&r);
+
+                            PUTLE32(((uint32_t *) & gl_ux[4]), r.l);
 
                             gTexName = uiStexturePage[tsx->cTexID];
                             LoadSubTexFn(k, j, cx, cy);
@@ -3485,120 +1577,9 @@ void CompressTextureSpace(void) {
 
     if (dwTexPageComp == 0xffffffff) dwTexPageComp = 0;
 
-    *((uint32_t *) & gl_ux[4]) = bswap_32(opos.l);
-    DumpExL(&opos);
+    PUTLE32(((uint32_t *) & gl_ux[4]), opos.l);
+
     GlobalTexturePage = lOGTP;
     DrawSemiTrans = sOldDST;
 }
 
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-//
-// main entry for searching/creating textures, called from prim.c
-//
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-
-struct XenosSurface * SelectSubTextureS(int TextureMode, uint32_t GivenClutId) {
-    unsigned char * OPtr;
-    unsigned short iCache;
-    short cx, cy;
-
-    // sort sow/tow infos for fast access
-
-    unsigned char ma1, ma2, mi1, mi2;
-    if (gl_ux[0] > gl_ux[1]) {
-        mi1 = gl_ux[1];
-        ma1 = gl_ux[0];
-    } else {
-        mi1 = gl_ux[0];
-        ma1 = gl_ux[1];
-    }
-    if (gl_ux[2] > gl_ux[3]) {
-        mi2 = gl_ux[3];
-        ma2 = gl_ux[2];
-    } else {
-        mi2 = gl_ux[2];
-        ma2 = gl_ux[3];
-    }
-    if (mi1 > mi2) gl_ux[7] = mi2;
-    else gl_ux[7] = mi1;
-    if (ma1 > ma2) gl_ux[6] = ma1;
-    else gl_ux[6] = ma2;
-
-    if (gl_vy[0] > gl_vy[1]) {
-        mi1 = gl_vy[1];
-        ma1 = gl_vy[0];
-    } else {
-        mi1 = gl_vy[0];
-        ma1 = gl_vy[1];
-    }
-    if (gl_vy[2] > gl_vy[3]) {
-        mi2 = gl_vy[3];
-        ma2 = gl_vy[2];
-    } else {
-        mi2 = gl_vy[2];
-        ma2 = gl_vy[3];
-    }
-    if (mi1 > mi2) gl_ux[5] = mi2;
-    else gl_ux[5] = mi1;
-    if (ma1 > ma2) gl_ux[4] = ma1;
-    else gl_ux[4] = ma2;
-
-    // get clut infos in one 32 bit val
-
-    if (TextureMode == 2) // no clut here
-    {
-        GivenClutId = CLUTUSED | (DrawSemiTrans << 30);
-        cx = cy = 0;
-
-        if (iFrameTexType && Fake15BitTexture())
-            return gTexName;
-    }
-    else {
-        cx = ((GivenClutId << 4) & 0x3F0); // but here
-        cy = ((GivenClutId >> 6) & CLUTYMASK);
-        GivenClutId = (GivenClutId & CLUTMASK) | (DrawSemiTrans << 30) | CLUTUSED;
-
-        // palette check sum.. removed MMX asm, this easy func works as well
-        {
-            uint32_t l = 0, row;
-
-            uint32_t *lSRCPtr = (uint32_t *) (psxVuw + cx + (cy * 1024));
-            if (TextureMode == 1) for (row = 1; row < 129; row++) l += ((GETLE32(lSRCPtr++)) - 1) * row;
-            else for (row = 1; row < 9; row++) l += ((GETLE32(lSRCPtr++)) - 1) << row;
-            l = (l + HIWORD(l))&0x3fffL;
-            GivenClutId |= (l << 16);
-        }
-
-    }
-
-    // search cache
-    iCache = 0;
-    OPtr = CheckTextureInSubSCache(TextureMode, GivenClutId, &iCache);
-
-    // cache full? compress and try again
-    if (iCache == 0xffff) {
-        CompressTextureSpace();
-        OPtr = CheckTextureInSubSCache(TextureMode, GivenClutId, &iCache);
-    }
-
-    //printf("OPtr %p\r\n",OPtr);
-    
-    // found? fine
-    usLRUTexPage = iCache;
-    if (!OPtr) return uiStexturePage[iCache];
-
-    // not found? upload texture and store infos in cache
-    gTexName = uiStexturePage[iCache];
-    LoadSubTexFn(GlobalTexturePage, TextureMode, cx, cy);
-    uiStexturePage[iCache] = gTexName;
-    *OPtr = ubOpaqueDraw;
-    return gTexName;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////

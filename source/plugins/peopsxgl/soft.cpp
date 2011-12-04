@@ -19,10 +19,11 @@
 #define _IN_SOFT
 
 #include "externals.h"
+using namespace xegpu;
 #include "soft.h"
-
-int iDither = 0;
-
+namespace xegpu{
+    int iDither = 0;
+}
 #ifdef _WINDOWS
 #pragma warning (disable:4244)
 #pragma warning (disable:4761)
@@ -31,7 +32,7 @@ int iDither = 0;
 ////////////////////////////////////////////////////////////////////////////////////
 // "NO EDGE BUFFER" POLY VERSION... FUNCS BASED ON FATMAP.TXT FROM MRI / Doomsday
 ////////////////////////////////////////////////////////////////////////////////////
-// #define PUTLE32(X,Y) {*((uint32_t *)X)=((uint32_t)Y);}
+
 ////////////////////////////////////////////////////////////////////////////////////
 // defines
 ////////////////////////////////////////////////////////////////////////////////////
@@ -80,19 +81,20 @@ int iDither = 0;
 
 #define XPSXCOL(r,g,b) ((g&0x7c00)|(b&0x3e0)|(r&0x1f))
 
-////////////////////////////////////////////////////////////////////////////////////
-// soft globals
-////////////////////////////////////////////////////////////////////////////////////
+namespace xegpu {
+    ////////////////////////////////////////////////////////////////////////////////////
+    // soft globals
+    ////////////////////////////////////////////////////////////////////////////////////
 
-short g_m1 = 255, g_m2 = 255, g_m3 = 255;
-short DrawSemiTrans = FALSE;
-short Ymin;
-short Ymax;
+    short g_m1 = 255, g_m2 = 255, g_m3 = 255;
+    short DrawSemiTrans = FALSE;
+    short Ymin;
+    short Ymax;
 
-short ly0, lx0, ly1, lx1, ly2, lx2, ly3, lx3; // global psx vertex coords
-int32_t GlobalTextAddrX, GlobalTextAddrY, GlobalTextTP;
-int32_t GlobalTextREST, GlobalTextABR, GlobalTextPAGE;
-
+    short ly0, lx0, ly1, lx1, ly2, lx2, ly3, lx3; // global psx vertex coords
+    int32_t GlobalTextAddrX, GlobalTextAddrY, GlobalTextTP;
+    int32_t GlobalTextREST, GlobalTextABR, GlobalTextPAGE;
+}
 ////////////////////////////////////////////////////////////////////////
 // POLYGON OFFSET FUNCS
 ////////////////////////////////////////////////////////////////////////
@@ -188,14 +190,14 @@ void offsetPSX4(void) {
 /////////////////////////////////////////////////////////////////
 
 
-unsigned char dithertable[16] = {
+static unsigned char dithertable[16] = {
     7, 0, 6, 1,
     2, 5, 3, 4,
     1, 6, 0, 7,
     4, 3, 5, 2
 };
 
-void Dither16(unsigned short * __restrict pdest, uint32_t r, uint32_t g, uint32_t b, unsigned short sM) {
+static void Dither16(unsigned short * pdest, uint32_t r, uint32_t g, uint32_t b, unsigned short sM) {
     unsigned char coeff;
     unsigned char rlow, glow, blow;
     int x, y;
@@ -227,7 +229,7 @@ void Dither16(unsigned short * __restrict pdest, uint32_t r, uint32_t g, uint32_
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 
-__inline void GetShadeTransCol_Dither(unsigned short * __restrict pdest, int32_t m1, int32_t m2, int32_t m3) {
+static __inline void GetShadeTransCol_Dither(unsigned short * pdest, int32_t m1, int32_t m2, int32_t m3) {
     int32_t r, g, b;
 
     if (bCheckMask && (*pdest & HOST2LE16(0x8000))) return;
@@ -280,7 +282,7 @@ __inline void GetShadeTransCol_Dither(unsigned short * __restrict pdest, int32_t
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetShadeTransCol(unsigned short * __restrict pdest, unsigned short color) {
+static __inline void GetShadeTransCol(unsigned short * pdest, unsigned short color) {
     if (bCheckMask && (*pdest & HOST2LE16(0x8000))) return;
 
     if (DrawSemiTrans) {
@@ -329,7 +331,7 @@ __inline void GetShadeTransCol(unsigned short * __restrict pdest, unsigned short
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetShadeTransCol32(uint32_t * pdest, uint32_t color) {
+static __inline void GetShadeTransCol32(uint32_t * pdest, uint32_t color) {
     if (DrawSemiTrans) {
         int32_t r, g, b;
 
@@ -414,7 +416,7 @@ __inline void GetShadeTransCol32(uint32_t * pdest, uint32_t color) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColG(unsigned short * __restrict pdest, unsigned short color) {
+static __inline void GetTextureTransColG(unsigned short * pdest, unsigned short color) {
     int32_t r, g, b;
     unsigned short l;
 
@@ -477,7 +479,7 @@ __inline void GetTextureTransColG(unsigned short * __restrict pdest, unsigned sh
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColG_S(unsigned short * __restrict pdest, unsigned short color) {
+static __inline void GetTextureTransColG_S(unsigned short * pdest, unsigned short color) {
     int32_t r, g, b;
     unsigned short l;
 
@@ -493,13 +495,12 @@ __inline void GetTextureTransColG_S(unsigned short * __restrict pdest, unsigned 
     if (b & 0x7FFFFC00) b = 0x3e0;
     if (g & 0x7FFF8000) g = 0x7c00;
 
-    //PUTLE16(pdest, (XPSXCOL(r, g, b)) | l);
-    *pdest = (XPSXCOL(r, g, b)) | l;
+    PUTLE16(pdest, (XPSXCOL(r, g, b)) | l);
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColG_SPR(unsigned short * __restrict pdest, unsigned short color) {
+static __inline void GetTextureTransColG_SPR(unsigned short * pdest, unsigned short color) {
     int32_t r, g, b;
     unsigned short l;
 
@@ -562,7 +563,7 @@ __inline void GetTextureTransColG_SPR(unsigned short * __restrict pdest, unsigne
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColG32(uint32_t * pdest, uint32_t color) {
+static __inline void GetTextureTransColG32(uint32_t * pdest, uint32_t color) {
     int32_t r, g, b, l;
 
     if (color == 0) return;
@@ -664,8 +665,7 @@ __inline void GetTextureTransColG32(uint32_t * pdest, uint32_t color) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColG32_S(uint32_t * pdest, uint32_t color) {
-
+static __inline void GetTextureTransColG32_S(uint32_t * pdest, uint32_t color) {
     int32_t r, g, b;
 
     if (color == 0) return;
@@ -695,7 +695,7 @@ __inline void GetTextureTransColG32_S(uint32_t * pdest, uint32_t color) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColG32_SPR(uint32_t * pdest, uint32_t color) {
+static __inline void GetTextureTransColG32_SPR(uint32_t * pdest, uint32_t color) {
     int32_t r, g, b;
 
     if (color == 0) return;
@@ -795,7 +795,7 @@ __inline void GetTextureTransColG32_SPR(uint32_t * pdest, uint32_t color) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColGX_Dither(unsigned short * __restrict pdest, unsigned short color, int32_t m1, int32_t m2, int32_t m3) {
+static __inline void GetTextureTransColGX_Dither(unsigned short * pdest, unsigned short color, int32_t m1, int32_t m2, int32_t m3) {
     int32_t r, g, b;
 
     if (color == 0) return;
@@ -855,7 +855,7 @@ __inline void GetTextureTransColGX_Dither(unsigned short * __restrict pdest, uns
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColGX(unsigned short * __restrict pdest, unsigned short color, short m1, short m2, short m3) {
+static __inline void GetTextureTransColGX(unsigned short * pdest, unsigned short color, short m1, short m2, short m3) {
     int32_t r, g, b;
     unsigned short l;
 
@@ -917,7 +917,7 @@ __inline void GetTextureTransColGX(unsigned short * __restrict pdest, unsigned s
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColGX_S(unsigned short * __restrict pdest, unsigned short color, short m1, short m2, short m3) {
+static __inline void GetTextureTransColGX_S(unsigned short * pdest, unsigned short color, short m1, short m2, short m3) {
     int32_t r, g, b;
 
     if (color == 0) return;
@@ -935,7 +935,7 @@ __inline void GetTextureTransColGX_S(unsigned short * __restrict pdest, unsigned
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColGX32_S(uint32_t * pdest, uint32_t color, short m1, short m2, short m3) {
+static __inline void GetTextureTransColGX32_S(uint32_t * pdest, uint32_t color, short m1, short m2, short m3) {
     int32_t r, g, b;
 
     if (color == 0) return;
@@ -1017,7 +1017,7 @@ void FillSoftwareAreaTrans(short x0, short y0, short x1, // FILL AREA TRANS
 
     if (dx & 1) // slow fill
     {
-        unsigned short * __restrict DSTPtr;
+        unsigned short *DSTPtr;
         unsigned short LineOffset;
         DSTPtr = psxVuw + (1024 * y0) + x0;
         LineOffset = 1024 - dx;
@@ -1028,7 +1028,7 @@ void FillSoftwareAreaTrans(short x0, short y0, short x1, // FILL AREA TRANS
         }
     } else // fast fill
     {
-        uint32_t * __restrict DSTPtr;
+        uint32_t *DSTPtr;
         unsigned short LineOffset;
         uint32_t lcol = lSetMask | (((uint32_t) (col)) << 16) | col;
         dx >>= 1;
@@ -1036,36 +1036,17 @@ void FillSoftwareAreaTrans(short x0, short y0, short x1, // FILL AREA TRANS
         LineOffset = 512 - dx;
 
         if (!bCheckMask && !DrawSemiTrans) {
-
-            lcol = SWAP32(lcol);
             for (i = 0; i < dy; i++) {
-                int do_dcbz = 0;
-
-
                 for (j = 0; j < dx; j++) {
-                    if (do_dcbz == 4) {
-                        do_dcbz = 0;
-                        __asm__ __volatile__("dcbz 0,%0" : : "r" (DSTPtr));
-                    }
-                    do_dcbz++;
-
-                    *((uint32_t *) DSTPtr) = lcol;
+                    PUTLE32(DSTPtr, lcol);
                     DSTPtr++;
                 }
                 DSTPtr += LineOffset;
             }
         } else {
             for (i = 0; i < dy; i++) {
-                int do_dcbz = 0;
-
-                for (j = 0; j < dx; j++) {
-                    if (do_dcbz == 4) {
-                        do_dcbz = 0;
-                        __asm__ __volatile__("dcbz 0,%0" : : "r" (DSTPtr));
-                    }
-                    do_dcbz++;
+                for (j = 0; j < dx; j++)
                     GetShadeTransCol32(DSTPtr++, lcol);
-                }
                 DSTPtr += LineOffset;
             }
         }
@@ -1091,48 +1072,30 @@ void FillSoftwareArea(short x0, short y0, short x1, // FILL AREA (BLK FILL)
     dx = x1 - x0;
     dy = y1 - y0;
     if (dx & 1) {
-        unsigned short * __restrict DSTPtr;
+        unsigned short *DSTPtr;
         unsigned short LineOffset;
 
         DSTPtr = psxVuw + (1024 * y0) + x0;
         LineOffset = 1024 - dx;
 
-        col = SWAP16(col);
-
         for (i = 0; i < dy; i++) {
             for (j = 0; j < dx; j++) {
-                int do_dcbz = 0;
-                if (do_dcbz == 4) {
-                    do_dcbz = 0;
-                    __asm__ __volatile__("dcbz 0,%0" : : "r" (DSTPtr));
-                }
-                do_dcbz++;
-
-                *((uint16_t *) DSTPtr) = col;
+                PUTLE16(DSTPtr, col);
                 DSTPtr++;
             }
             DSTPtr += LineOffset;
         }
     } else {
-        uint32_t * __restrict DSTPtr;
+        uint32_t *DSTPtr;
         unsigned short LineOffset;
         uint32_t lcol = (((int32_t) col) << 16) | col;
         dx >>= 1;
         DSTPtr = (uint32_t *) (psxVuw + (1024 * y0) + x0);
         LineOffset = 512 - dx;
 
-        lcol = SWAP32(lcol);
         for (i = 0; i < dy; i++) {
-            int do_dcbz = 0;
             for (j = 0; j < dx; j++) {
-
-                if (do_dcbz == 4) {
-                    do_dcbz = 0;
-                    __asm__ __volatile__("dcbz 0,%0" : : "r" (DSTPtr));
-                }
-                do_dcbz++;
-
-                *((uint32_t *) DSTPtr) = lcol;
+                PUTLE32(DSTPtr, lcol);
                 DSTPtr++;
             }
             DSTPtr += LineOffset;
@@ -1170,12 +1133,12 @@ static int left_B, delta_left_B, right_B, delta_right_B;
 // NASM version (external):
 #define shl10idiv i386_shl10idiv
 
-__inline int shl10idiv(int x, int y);
+extern __inline int shl10idiv(int x, int y);
 
 #else
 
-__inline int shl10idiv(int x, int y) {
-     long long bi = x;
+static __inline int shl10idiv(int x, int y) {
+    long long int bi = x;
     bi <<= 10;
     return bi / y;
 }
@@ -1186,7 +1149,7 @@ __inline int shl10idiv(int x, int y) {
 
 // GNUC long long int version:
 
-__inline int shl10idiv(int x, int y) {
+static __inline int shl10idiv(int x, int y) {
     long long int bi = x;
     bi <<= 10;
     return bi / y;
@@ -1198,7 +1161,7 @@ __inline int shl10idiv(int x, int y) {
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-__inline int RightSection_F(void) {
+static __inline int RightSection_F(void) {
     soft_vertex * v1 = right_array[ right_section ];
     soft_vertex * v2 = right_array[ right_section - 1 ];
 
@@ -1213,7 +1176,7 @@ __inline int RightSection_F(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline int LeftSection_F(void) {
+static __inline int LeftSection_F(void) {
     soft_vertex * v1 = left_array[ left_section ];
     soft_vertex * v2 = left_array[ left_section - 1 ];
 
@@ -1228,7 +1191,7 @@ __inline int LeftSection_F(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL NextRow_F(void) {
+static __inline BOOL NextRow_F(void) {
     if (--left_section_height <= 0) {
         if (--left_section <= 0) {
             return TRUE;
@@ -1255,7 +1218,7 @@ __inline BOOL NextRow_F(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL SetupSections_F(short x1, short y1, short x2, short y2, short x3, short y3) {
+static __inline BOOL SetupSections_F(short x1, short y1, short x2, short y2, short x3, short y3) {
     soft_vertex * v1, * v2, * v3;
     int height, longest;
 
@@ -1333,7 +1296,7 @@ __inline BOOL SetupSections_F(short x1, short y1, short x2, short y2, short x3, 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-__inline int RightSection_G(void) {
+static __inline int RightSection_G(void) {
     soft_vertex * v1 = right_array[ right_section ];
     soft_vertex * v2 = right_array[ right_section - 1 ];
 
@@ -1348,7 +1311,7 @@ __inline int RightSection_G(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline int LeftSection_G(void) {
+static __inline int LeftSection_G(void) {
     soft_vertex * v1 = left_array[ left_section ];
     soft_vertex * v2 = left_array[ left_section - 1 ];
 
@@ -1370,7 +1333,7 @@ __inline int LeftSection_G(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL NextRow_G(void) {
+static __inline BOOL NextRow_G(void) {
     if (--left_section_height <= 0) {
         if (--left_section <= 0) {
             return TRUE;
@@ -1400,7 +1363,7 @@ __inline BOOL NextRow_G(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL SetupSections_G(short x1, short y1, short x2, short y2, short x3, short y3, int32_t rgb1, int32_t rgb2, int32_t rgb3) {
+static __inline BOOL SetupSections_G(short x1, short y1, short x2, short y2, short x3, short y3, int32_t rgb1, int32_t rgb2, int32_t rgb3) {
     soft_vertex * v1, * v2, * v3;
     int height, longest, temp;
 
@@ -1494,7 +1457,7 @@ __inline BOOL SetupSections_G(short x1, short y1, short x2, short y2, short x3, 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-__inline int RightSection_FT(void) {
+static __inline int RightSection_FT(void) {
     soft_vertex * v1 = right_array[ right_section ];
     soft_vertex * v2 = right_array[ right_section - 1 ];
 
@@ -1509,7 +1472,7 @@ __inline int RightSection_FT(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline int LeftSection_FT(void) {
+static __inline int LeftSection_FT(void) {
     soft_vertex * v1 = left_array[ left_section ];
     soft_vertex * v2 = left_array[ left_section - 1 ];
 
@@ -1529,7 +1492,7 @@ __inline int LeftSection_FT(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL NextRow_FT(void) {
+static __inline BOOL NextRow_FT(void) {
     if (--left_section_height <= 0) {
         if (--left_section <= 0) {
             return TRUE;
@@ -1558,7 +1521,7 @@ __inline BOOL NextRow_FT(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL SetupSections_FT(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2, short ty2, short tx3, short ty3) {
+static __inline BOOL SetupSections_FT(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2, short ty2, short tx3, short ty3) {
     soft_vertex * v1, * v2, * v3;
     int height, longest, temp;
 
@@ -1665,7 +1628,7 @@ __inline BOOL SetupSections_FT(short x1, short y1, short x2, short y2, short x3,
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-__inline int RightSection_GT(void) {
+static __inline int RightSection_GT(void) {
     soft_vertex * v1 = right_array[ right_section ];
     soft_vertex * v2 = right_array[ right_section - 1 ];
 
@@ -1680,7 +1643,7 @@ __inline int RightSection_GT(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline int LeftSection_GT(void) {
+static __inline int LeftSection_GT(void) {
     soft_vertex * v1 = left_array[ left_section ];
     soft_vertex * v2 = left_array[ left_section - 1 ];
 
@@ -1707,7 +1670,7 @@ __inline int LeftSection_GT(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL NextRow_GT(void) {
+static __inline BOOL NextRow_GT(void) {
     if (--left_section_height <= 0) {
         if (--left_section <= 0) {
             return TRUE;
@@ -1739,7 +1702,7 @@ __inline BOOL NextRow_GT(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL SetupSections_GT(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2, short ty2, short tx3, short ty3, int32_t rgb1, int32_t rgb2, int32_t rgb3) {
+static __inline BOOL SetupSections_GT(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2, short ty2, short tx3, short ty3, int32_t rgb1, int32_t rgb2, int32_t rgb3) {
     soft_vertex * v1, * v2, * v3;
     int height, longest, temp;
 
@@ -1863,7 +1826,7 @@ __inline BOOL SetupSections_GT(short x1, short y1, short x2, short y2, short x3,
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-__inline int RightSection_F4(void) {
+static __inline int RightSection_F4(void) {
     soft_vertex * v1 = right_array[ right_section ];
     soft_vertex * v2 = right_array[ right_section - 1 ];
 
@@ -1880,7 +1843,7 @@ __inline int RightSection_F4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline int LeftSection_F4(void) {
+static __inline int LeftSection_F4(void) {
     soft_vertex * v1 = left_array[ left_section ];
     soft_vertex * v2 = left_array[ left_section - 1 ];
 
@@ -1897,7 +1860,7 @@ __inline int LeftSection_F4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL NextRow_F4(void) {
+static __inline BOOL NextRow_F4(void) {
     if (--left_section_height <= 0) {
         if (--left_section > 0)
             while (LeftSection_F4() <= 0) {
@@ -1920,7 +1883,7 @@ __inline BOOL NextRow_F4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL SetupSections_F4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4) {
+static __inline BOOL SetupSections_F4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4) {
     soft_vertex * v1, * v2, * v3, * v4;
     int height, width, longest1, longest2;
 
@@ -2077,7 +2040,7 @@ __inline BOOL SetupSections_F4(short x1, short y1, short x2, short y2, short x3,
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-__inline int RightSection_FT4(void) {
+static __inline int RightSection_FT4(void) {
     soft_vertex * v1 = right_array[ right_section ];
     soft_vertex * v2 = right_array[ right_section - 1 ];
 
@@ -2098,7 +2061,7 @@ __inline int RightSection_FT4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline int LeftSection_FT4(void) {
+static __inline int LeftSection_FT4(void) {
     soft_vertex * v1 = left_array[ left_section ];
     soft_vertex * v2 = left_array[ left_section - 1 ];
 
@@ -2119,7 +2082,7 @@ __inline int LeftSection_FT4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL NextRow_FT4(void) {
+static __inline BOOL NextRow_FT4(void) {
     if (--left_section_height <= 0) {
         if (--left_section > 0)
             while (LeftSection_FT4() <= 0) {
@@ -2146,7 +2109,7 @@ __inline BOOL NextRow_FT4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL SetupSections_FT4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1, short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4) {
+static __inline BOOL SetupSections_FT4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1, short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4) {
     soft_vertex * v1, * v2, * v3, * v4;
     int height, width, longest1, longest2;
 
@@ -2314,7 +2277,7 @@ __inline BOOL SetupSections_FT4(short x1, short y1, short x2, short y2, short x3
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-__inline int RightSection_GT4(void) {
+static __inline int RightSection_GT4(void) {
     soft_vertex * v1 = right_array[ right_section ];
     soft_vertex * v2 = right_array[ right_section - 1 ];
 
@@ -2342,7 +2305,7 @@ __inline int RightSection_GT4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline int LeftSection_GT4(void) {
+static __inline int LeftSection_GT4(void) {
     soft_vertex * v1 = left_array[ left_section ];
     soft_vertex * v2 = left_array[ left_section - 1 ];
 
@@ -2370,7 +2333,7 @@ __inline int LeftSection_GT4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL NextRow_GT4(void) {
+static __inline BOOL NextRow_GT4(void) {
     if (--left_section_height <= 0) {
         if (--left_section > 0)
             while (LeftSection_GT4() <= 0) {
@@ -2403,7 +2366,7 @@ __inline BOOL NextRow_GT4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL SetupSections_GT4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1, short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4) {
+static __inline BOOL SetupSections_GT4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1, short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4) {
     soft_vertex * v1, * v2, * v3, * v4;
     int height, width, longest1, longest2;
 
@@ -2592,7 +2555,7 @@ __inline BOOL SetupSections_GT4(short x1, short y1, short x2, short y2, short x3
 // POLY 3/4 FLAT SHADED
 ////////////////////////////////////////////////////////////////////////
 
-__inline void drawPoly3Fi(short x1, short y1, short x2, short y2, short x3, short y3, int32_t rgb) {
+static __inline void drawPoly3Fi(short x1, short y1, short x2, short y2, short x3, short y3, int32_t rgb) {
     int i, j, xmin, xmax, ymin, ymax;
     unsigned short color;
     uint32_t lcolor;
@@ -2611,9 +2574,6 @@ __inline void drawPoly3Fi(short x1, short y1, short x2, short y2, short x3, shor
     color = ((rgb & 0x00f80000) >> 9) | ((rgb & 0x0000f800) >> 6) | ((rgb & 0x000000f8) >> 3);
     lcolor = lSetMask | (((uint32_t) (color)) << 16) | color;
 
-    lcolor = SWAP32(lcolor);
-    color = SWAP16(color);
-
     for (ymin = Ymin; ymin < drawY; ymin++)
         if (NextRow_F()) return;
 
@@ -2628,12 +2588,9 @@ __inline void drawPoly3Fi(short x1, short y1, short x2, short y2, short x3, shor
             if (drawW < xmax) xmax = drawW;
 
             for (j = xmin; j < xmax; j += 2) {
-                //PUTLE32(((uint32_t *) & psxVuw[(i << 10) + j]), lcolor);
-                (*(uint32_t *) & psxVuw[(i << 10) + j]) = lcolor;
+                PUTLE32(((uint32_t *) & psxVuw[(i << 10) + j]), lcolor);
             }
-            if (j == xmax)
-                (*(uint16_t *) & psxVuw[(i << 10) + j]) = color;
-            //PUTLE16(&psxVuw[(i << 10) + j], color);
+            if (j == xmax) PUTLE16(&psxVuw[(i << 10) + j], color);
 
             if (NextRow_F()) return;
         }
@@ -2697,9 +2654,6 @@ void drawPoly4F(int32_t rgb) {
     color = ((rgb & 0x00f80000) >> 9) | ((rgb & 0x0000f800) >> 6) | ((rgb & 0x000000f8) >> 3);
     lcolor = lSetMask | (((uint32_t) (color)) << 16) | color;
 
-    lcolor = SWAP32(lcolor);
-    color = SWAP16(color);
-
 #ifdef FASTSOLID
 
     if (!bCheckMask && !DrawSemiTrans) {
@@ -2711,12 +2665,9 @@ void drawPoly4F(int32_t rgb) {
             if (drawW < xmax) xmax = drawW;
 
             for (j = xmin; j < xmax; j += 2) {
-                //PUTLE32(((uint32_t *) & psxVuw[(i << 10) + j]), lcolor);
-                (*(uint32_t *) & psxVuw[(i << 10) + j]) = lcolor;
+                PUTLE32(((uint32_t *) & psxVuw[(i << 10) + j]), lcolor);
             }
-            if (j == xmax)
-                //PUTLE16(&psxVuw[(i << 10) + j], color);
-                (*(uint16_t *) & psxVuw[(i << 10) + j]) = color;
+            if (j == xmax) PUTLE16(&psxVuw[(i << 10) + j], color);
 
             if (NextRow_F4()) return;
         }
@@ -5229,7 +5180,7 @@ void drawPoly4TD_TW_S(short x1, short y1, short x2, short y2, short x3, short y3
 // POLY 3/4 G-SHADED
 ////////////////////////////////////////////////////////////////////////
 
-__inline void drawPoly3Gi(short x1, short y1, short x2, short y2, short x3, short y3, int32_t rgb1, int32_t rgb2, int32_t rgb3) {
+static __inline void drawPoly3Gi(short x1, short y1, short x2, short y2, short x3, short y3, int32_t rgb1, int32_t rgb2, int32_t rgb3) {
     int i, j, xmin, xmax, ymin, ymax;
     int32_t cR1, cG1, cB1;
     int32_t difR, difB, difG, difR2, difB2, difG2;
@@ -7188,7 +7139,7 @@ void drawPoly4TGD_TW(short x1, short y1, short x2, short y2, short x3, short y3,
 
 /*
 // no real rect test, but it does its job the way I need it
-__inline BOOL IsNoRect(void)
+static __inline BOOL IsNoRect(void)
 {
  if(lx0==lx1 && lx2==lx3) return FALSE;
  if(lx0==lx2 && lx1==lx3) return FALSE;
@@ -7199,7 +7150,7 @@ __inline BOOL IsNoRect(void)
 
 // real rect test
 
-__inline BOOL IsNoRect(void) {
+static __inline BOOL IsNoRect(void) {
     if (!(dwActFixes & 0x200)) return FALSE;
 
     if (ly0 == ly1) {

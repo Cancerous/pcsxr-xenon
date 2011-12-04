@@ -21,15 +21,10 @@
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
+
+#ifdef LIBXENON
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <math.h> 
-
-#define CALLBACK /* */
-
-#define EXTERN extern "C"
-
-
 //#include "gl_ext.h"
 #include <xenos/xe.h>
 #include <xenos/xenos.h>
@@ -39,8 +34,20 @@
 #include <ppc/timebase.h>
 #include <time/time.h>
 #include <time.h>
+#else
+#ifdef WIN32
+#include <Windows.h>
+#endif
+#endif
+
 
 #include "swap.h"
+
+#include <math.h> 
+
+#define CALLBACK /* */
+
+#define EXTERN extern "C"
 
 typedef unsigned int GLenum;
 typedef unsigned char GLboolean;
@@ -90,10 +97,11 @@ typedef void GLvoid;
 #define GPUgetScreenPic		HW_GPUgetScreenPic
 #define GPUshowScreenPic	HW_GPUshowScreenPic
 
-#define PSEgetLibName           GPUPSEgetLibName
-#define PSEgetLibType           GPUPSEgetLibType
-#define PSEgetLibVersion        GPUPSEgetLibVersion
+#define PSEgetLibName           HW_GPUPSEgetLibName
+#define PSEgetLibType           HW_GPUPSEgetLibType
+#define PSEgetLibVersion        HW_GPUPSEgetLibVersion
 
+#define GPUsetfix               HW_GPUsetfix
 
 #define GPUaddVertex            HW_GPUaddVertex
 

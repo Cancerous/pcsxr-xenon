@@ -20,15 +20,15 @@
 //#define NOVMODE
 
 #include "stdafx.h"
-
-
-
-#include "config.h"
+//#include "config.h"
 
 
 #define _IN_GPU
 
 #include "externals.h"
+
+using namespace xegpu;
+
 #include "gpu.h"
 #include "draw.h"
 #include "cfg.h"
@@ -41,11 +41,6 @@
 #include "gte_accuracy.h"
 #include "GpuRenderer.h"
 
-
-#ifdef _WINDOWS
-#include "resource.h"
-#include "ssave.h"
-#endif
 #ifdef ENABLE_NLS
 #include <libintl.h>
 #include <locale.h>
@@ -63,100 +58,107 @@ static char * pCaptionText = NULL;
 #define Xe_Clear
 
 
+namespace xegpu{
+    ////////////////////////////////////////////////////////////////////////
+    // PPDK developer must change libraryName field and can change revision and build
+    ////////////////////////////////////////////////////////////////////////
 
-////////////////////////////////////////////////////////////////////////
-// PPDK developer must change libraryName field and can change revision and build
-////////////////////////////////////////////////////////////////////////
+    const unsigned char version = 1; // do not touch - library for PSEmu 1.x
+    const unsigned char revision = 1;
+    const unsigned char build = 78;
 
-const unsigned char version = 1; // do not touch - library for PSEmu 1.x
-const unsigned char revision = 1;
-const unsigned char build = 78;
+    static char * libraryName = (char*)"libxenon driver based on PEOPSXGL";
+    static char * libraryInfo = (char*)"Based on P.E.Op.S. MesaGL Driver V1.78\nCoded by Pete Bernert\n";
 
-static char *libraryName = "OpenGL Driver";
+    ////////////////////////////////////////////////////////////////////////
+    // memory image of the PSX vram
+    ////////////////////////////////////////////////////////////////////////
 
-static char *PluginAuthor = "Pete Bernert";
-static char *libraryInfo = "Based on P.E.Op.S. MesaGL Driver V1.78\nCoded by Pete Bernert\n";
+    unsigned char *psxVSecure;
+    unsigned char *psxVub;
+    signed char *psxVsb;
+    unsigned short *psxVuw;
+    unsigned short *psxVuw_eom;
+    signed short *psxVsw;
+    uint32_t *psxVul;
+    signed int *psxVsl;
 
-////////////////////////////////////////////////////////////////////////
-// memory image of the PSX vram
-////////////////////////////////////////////////////////////////////////
+    // macro for easy access to packet information
+    #define GPUCOMMAND(x) ((x>>24) & 0xff)
 
-unsigned char *psxVSecure;
-unsigned char *psxVub;
-signed char *psxVsb;
-unsigned short *psxVuw;
-unsigned short *psxVuw_eom;
-signed short *psxVsw;
-uint32_t *psxVul;
-signed int *psxVsl;
+    GLfloat gl_z = 0.0f;
+    BOOL bNeedInterlaceUpdate = FALSE;
+    BOOL bNeedRGB24Update = FALSE;
+    BOOL bChangeWinMode = FALSE;
 
-// macro for easy access to packet information
-#define GPUCOMMAND(x) ((x>>24) & 0xff)
+    uint32_t ulStatusControl[256];
 
-GLfloat gl_z = 0.0f;
-BOOL bNeedInterlaceUpdate = FALSE;
-BOOL bNeedRGB24Update = FALSE;
-BOOL bChangeWinMode = FALSE;
+    ////////////////////////////////////////////////////////////////////////
+    // global GPU vars
+    ////////////////////////////////////////////////////////////////////////
 
-uint32_t ulStatusControl[256];
+    static int GPUdataRet;
+    int lGPUstatusRet;
+    char szDispBuf[64];
 
-////////////////////////////////////////////////////////////////////////
-// global GPU vars
-////////////////////////////////////////////////////////////////////////
+    uint32_t dwGPUVersion = 0;
+    int iGPUHeight = 512;
+    int iGPUHeightMask = 511;
+    int GlobalTextIL = 0;
+    int iTileCheat = 0;
 
-static int GPUdataRet;
-int lGPUstatusRet;
-char szDispBuf[64];
+    static uint32_t gpuDataM[256];
+    static unsigned char gpuCommand = 0;
+    static int gpuDataC = 0;
+    static int gpuDataP = 0;
 
-uint32_t dwGPUVersion = 0;
-int iGPUHeight = 512;
-int iGPUHeightMask = 511;
-int GlobalTextIL = 0;
-int iTileCheat = 0;
+    VRAMLoad_t VRAMWrite;
+    VRAMLoad_t VRAMRead;
+    int iDataWriteMode;
+    int iDataReadMode;
 
-static uint32_t gpuDataM[256];
-static unsigned char gpuCommand = 0;
-static int gpuDataC = 0;
-static int gpuDataP = 0;
+    int lClearOnSwap;
+    int lClearOnSwapColor;
+    BOOL bSkipNextFrame = FALSE;
+    int iWinSize;
 
-VRAMLoad_t VRAMWrite;
-VRAMLoad_t VRAMRead;
-int iDataWriteMode;
-int iDataReadMode;
+    // possible psx display widths
+    short dispWidths[8] = {256, 320, 512, 640, 368, 384, 512, 640};
 
-int lClearOnSwap;
-int lClearOnSwapColor;
-BOOL bSkipNextFrame = FALSE;
-int iWinSize;
+    PSXDisplay_t PSXDisplay;
+    PSXDisplay_t PreviousPSXDisplay;
+    TWin_t TWin;
+    short imageX0, imageX1;
+    short imageY0, imageY1;
+    BOOL bDisplayNotSet = TRUE;
 
-// possible psx display widths
-short dispWidths[8] = {256, 320, 512, 640, 368, 384, 512, 640};
+    float iScanlineColor[] = {0, 0, 0, 0.3}; // easy on the eyes.
+    int lSelectedSlot = 0;
+    unsigned char * pGfxCardScreen = 0;
+    int iBlurBuffer = 0;
+    int iScanBlend = 0;
+    int iRenderFVR = 0;
+    int iNoScreenSaver = 0;
+    uint32_t ulGPUInfoVals[16];
+    int iFakePrimBusy = 0;
+    int iRumbleVal = 0;
+    int iRumbleTime = 0;
+    uint32_t vBlank = 0;
 
-PSXDisplay_t PSXDisplay;
-PSXDisplay_t PreviousPSXDisplay;
-TWin_t TWin;
-short imageX0, imageX1;
-short imageY0, imageY1;
-BOOL bDisplayNotSet = TRUE;
+    // missing ...
+    char * pConfigFile = NULL;
+    unsigned short usCursorActive = 0;
+    GLuint         gTexPicName;
+    PSXPoint_t ptCursorPoint[8];
+    
 
-float iScanlineColor[] = {0, 0, 0, 0.3}; // easy on the eyes.
-int lSelectedSlot = 0;
-unsigned char * pGfxCardScreen = 0;
-int iBlurBuffer = 0;
-int iScanBlend = 0;
-int iRenderFVR = 0;
-int iNoScreenSaver = 0;
-uint32_t ulGPUInfoVals[16];
-int iFakePrimBusy = 0;
-int iRumbleVal = 0;
-int iRumbleTime = 0;
-uint32_t vBlank = 0;
+    BOOL bNeedWriteUpload = FALSE;
 
-// missing ...
-char * pConfigFile = NULL;
-unsigned short usCursorActive = 0;
-GLuint         gTexPicName;
-PSXPoint_t ptCursorPoint[8];
+    
+    int iLastRGB24 = 0; // special vars for checking when to skip two display updates
+    int iSkipTwo = 0;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 // stuff to make this a true PDK module
@@ -299,7 +301,6 @@ EXTERN long GPUopen(unsigned long * disp, char * CapText, char * CfgFile) {
 
     bIsFirstFrame = TRUE; // we have to init later (well, no really... in Linux we do all in GPUopen)
 
-    unsigned long display = 1;
     gpuRenderer.Init();
 
     InitializeTextureStore(); // init texture mem
@@ -384,9 +385,6 @@ void UnBlurBackBuffer(void) {
 // every emulated vsync, otherwise whenever the displayed screen region
 // has been changed
 ////////////////////////////////////////////////////////////////////////
-
-int iLastRGB24 = 0; // special vars for checking when to skip two display updates
-int iSkipTwo = 0;
 
 void updateDisplay(void) // UPDATE DISPLAY
 {
@@ -926,6 +924,7 @@ EXTERN void CALLBACK GPUcursor(int iPlayer, int x, int y) {
 static unsigned short usFirstPos = 2;
 
 static void ShowFPS() {
+#ifndef WIN32
     static unsigned long lastTick = 0;
     static int frames = 0;
     unsigned long nowTick;
@@ -938,6 +937,7 @@ static void ShowFPS() {
         frames = 0;
         lastTick = nowTick;
     }
+#endif
 }
 
 EXTERN void CALLBACK GPUupdateLace(void) {
@@ -1266,8 +1266,6 @@ EXTERN void CALLBACK GPUwriteStatus(uint32_t gdata) {
 ////////////////////////////////////////////////////////////////////////
 // vram read/write helpers
 ////////////////////////////////////////////////////////////////////////
-
-BOOL bNeedWriteUpload = FALSE;
 
 __inline void FinishedVRAMWrite(void) {
     if (bNeedWriteUpload) {

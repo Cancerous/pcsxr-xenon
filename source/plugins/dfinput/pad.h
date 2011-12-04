@@ -53,6 +53,29 @@ extern "C" {
 
     int JoyHapticRumble(int pad, uint32_t low, uint32_t high);
 
+    enum XBPAD{
+        // 0 -> 3
+        XBPAD_Y=0,
+        XBPAD_B,
+        XBPAD_A,
+        XBPAD_X,
+        // 4
+        XBPAD_LT,
+        XBPAD_RT,
+        XBPAD_LB,
+        XBPAD_RB,
+        // 8
+        XBPAD_SELECT,
+        XBPAD_START,
+        // Logo
+        XBPAD_LOGO = 10,
+        // DIRECTION
+        XBPAD_UP = 12,
+        XBPAD_DOWN,
+        XBPAD_LEFT,
+        XBPAD_RIGHT
+    };
+    
     enum {
         DKEY_SELECT = 0,
         DKEY_L3,

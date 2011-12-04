@@ -47,8 +47,6 @@ void assignTexture4(void);
 void assignTextureSprite(void);
 void assignTextureVRAMWrite(void);
 void SetOGLDisplaySettings (BOOL DisplaySet);
-void ReadConfig(void);
-void WriteConfig(void);
 void SetExtGLFuncs(void);
 
 ///////////////////////////////////////////////////////////////////////

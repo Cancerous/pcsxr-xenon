@@ -20,16 +20,40 @@
 #define _GPU_TEXTURE_H_
 
 #define TEXTUREPAGESIZE 256 * 256
+#define MAXTPAGES_MAX  64
+#define MAXSORTTEX_MAX 196
+#define MAXWNDTEXCACHE 128
+
+// "texture window" cache entry
+typedef struct textureWndCacheEntryTag {
+    uint32_t ClutID;
+    short pageid;
+    short textureMode;
+    short Opaque;
+    short used;
+    EXLong pos;
+    GpuTex * texname;
+} textureWndCacheEntry;
+
+// "standard texture" cache entry (12 byte per entry, as small as possible... we need lots of them)
+typedef struct textureSubCacheEntryTagS {
+    uint32_t ClutID;
+    EXLong pos;
+    unsigned char posTX;
+    unsigned char posTY;
+    unsigned char cTexID;
+    unsigned char Opaque;
+} textureSubCacheEntryS;
 
 void           InitializeTextureStore();
 void           CleanupTextureStore();
-struct XenosSurface *         LoadTextureWnd(int pageid, int TextureMode, uint32_t GivenClutId);
-struct XenosSurface *         LoadTextureMovie(void);
+GpuTex *         LoadTextureWnd(int pageid, int TextureMode, uint32_t GivenClutId);
+GpuTex *         LoadTextureMovie(void);
 void           InvalidateTextureArea(int imageX0, int imageY0, int imageX1, int imageY1);
 void           InvalidateTextureAreaEx(void);
 void           LoadTexturePage(int pageid, int mode, short cx, short cy);
 void           ResetTextureArea(BOOL bDelTex);
-struct XenosSurface *         SelectSubTextureS(int TextureMode, uint32_t GivenClutId);
+GpuTex *         SelectSubTextureS(int TextureMode, uint32_t GivenClutId);
 void           CheckTextureMemory(void);
 
 void           LoadSubTexturePage(int pageid, int mode, short cx, short cy);
@@ -65,4 +89,60 @@ unsigned short XP4RGBA_1 (unsigned short BGR);
 unsigned short P4RGBA (unsigned short BGR);
 unsigned short CP4RGBA_0 (unsigned short BGR);
 
+static inline int glGetError() {
+    return 0;
+}
+
+// for faster BSWAP test
+static __inline uint32_t ptr32(void * addr){
+    return GETLE32((uint32_t *)addr);
+}
+
+
+namespace xegpu{
+    
+    extern uint32_t(*TCF[2]) (uint32_t);
+    extern void (*LoadSubTexFn) (int, int, short, short);
+
+    extern GpuTex * gTexFrameName;
+
+    extern GLubyte * texturepart;
+    extern GLubyte * texturebuffer;
+    extern int iHiResTextures;
+
+    extern GLubyte ubPaletteBuffer[256][4];
+    extern unsigned char ubOpaqueDraw;
+    extern uint32_t g_x1, g_y1, g_x2, g_y2;
+
+    extern unsigned short MAXTPAGES;
+    extern unsigned short CLUTMASK;
+    extern unsigned short CLUTYMASK;
+    extern unsigned short MAXSORTTEX;
+
+    extern int iMaxTexWnds;
+    extern int iTexWndTurn;
+    extern int iTexWndLimit;
+
+    extern GLint XTexS;
+    extern GLint YTexS;
+    extern GLint DXTexS;
+    extern GLint DYTexS;
+
+    extern int iFrameTexType;
+    extern int iFrameReadType;
+
+    extern int GlobalTexturePage;
+
+    extern GpuTex * uiStexturePage[MAXSORTTEX_MAX];
+    extern textureWndCacheEntry wcWndtexStore[MAXWNDTEXCACHE];
+    extern unsigned short usLRUTexPage;
+
+    extern int iClampType;
+    
+    extern GpuTex * gTexMovieName;
+    extern int iClampType;
+    extern unsigned char ubOpaqueDraw;
+    extern GLubyte * texturepart;
+    extern BOOL bUseFastMdec;
+}
 #endif // _TEXTURE_H_

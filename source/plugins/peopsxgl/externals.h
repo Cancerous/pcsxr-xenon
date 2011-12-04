@@ -15,10 +15,15 @@
  *   additional informations.                                              *
  *                                                                         *
  ***************************************************************************/
+#include "gpu_types.h"
+
+
+#define TR {printf("[Trace] in function %s, line %d, file %s\n",__FUNCTION__,__LINE__,__FILE__);}
+
+namespace xegpu {
 
 extern struct XenosDevice *xe;
 
-#define TR {printf("[Trace] in function %s, line %d, file %s\n",__FUNCTION__,__LINE__,__FILE__);}
 
 #define MIRROR_TEST 1
 #define SCISSOR_TEST 1
@@ -208,10 +213,30 @@ typedef struct OGLVertexTag
 
 typedef union EXShortTag
 {
- unsigned char  c[2];
- unsigned short s;
+ uint8_t  c[2];
+ uint16_t s;
 } EXShort;
-
+#if 0
+typedef union EXLongTag
+{
+    struct{
+#if 0
+        uint8_t _0;
+        uint8_t _1;
+        uint8_t _2;
+        uint8_t _3;
+#else
+        uint8_t _3;
+        uint8_t _2;
+        uint8_t _1;
+        uint8_t _0;
+#endif
+    };
+ uint8_t c[4];
+uint32_t  l;
+ EXShort       s[2];
+} EXLong;
+#else
 typedef union EXLongTag
 {
     struct{
@@ -231,7 +256,7 @@ typedef union EXLongTag
  unsigned int  l;
  EXShort       s[2];
 } EXLong;
-
+#endif
 #ifndef _IN_CFG
 
 extern char *pConfigFile;
@@ -291,7 +316,6 @@ extern int            iShowFPS;
 extern BOOL           bSetClip;
 extern int            iUseExts;
 extern int            iUsePalTextures;
-extern struct XenosSurface *         gTexScanName;
 
 #endif
 
@@ -325,7 +349,7 @@ extern PSXRect_t     xrMovieArea;
 extern PSXRect_t     xrUploadArea;
 extern PSXRect_t     xrUploadAreaIL;
 extern PSXRect_t     xrUploadAreaRGB24;
-extern struct XenosSurface *        gTexName;
+extern GpuTex *        gTexName;
 extern BOOL          bDrawNonShaded;
 extern BOOL          bDrawMultiPass;
 extern GLubyte       ubGloColAlpha;
@@ -374,8 +398,8 @@ extern int            iFrameReadType;
 extern int            iClampType;
 extern int            iSortTexCnt;
 extern BOOL           bFakeFrontBuffer; 
-extern struct XenosSurface *         gTexFrameName;
-extern struct XenosSurface *         gTexBlurName;
+extern GpuTex*         gTexFrameName;
+extern GpuTex *         gTexBlurName;
 extern int            iVRamSize;
 extern int            iTexGarbageCollection;
 extern int            iFTexA;
@@ -463,3 +487,6 @@ extern int           GlobalTextIL;
 extern int           iTileCheat;
 
 #endif
+
+
+}

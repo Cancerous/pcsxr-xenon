@@ -6,6 +6,7 @@
 #include <time/time.h>
 #include <xenon_smc/xenon_smc.h>
 
+#if 1
 // miss in gligli libxenon
 int stat(const char * __restrict path, struct stat * __restrict buf) {
     int fd = -1;
@@ -16,7 +17,7 @@ int stat(const char * __restrict path, struct stat * __restrict buf) {
     }
     return ENOENT; // file doesn't exist
 }
-
+#endif
 void usleep(int s) {
     udelay(s);
 }
@@ -87,3 +88,4 @@ void * fast_memcpy(void * _to, const void * _from, size_t len) {
 }
 
 #endif
+

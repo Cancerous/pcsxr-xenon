@@ -21,6 +21,9 @@
 #define _IN_DRAW
 
 #include "externals.h"
+
+using namespace xegpu;
+
 #include "gpu.h"
 #include "draw.h"
 #include "prim.h"
@@ -76,7 +79,7 @@
 #define Xe_SetScissor
 ////////////////////////////////////////////////////////////////////////////////////
 // draw globals; most will be initialized again later (by config or checks)
-
+namespace xegpu {
 BOOL bIsFirstFrame = TRUE;
 
 // resolution/ratio vars
@@ -130,6 +133,14 @@ PFNGLCOLORTABLEEXT glColorTableEXTEx = NULL;
 int iDepthFunc = 0;
 int iZBufferDepth = 0;
 GLbitfield uiBufferBits = XE_CLEAR_DS;
+
+#ifndef _WINDOWS
+#define EqualRect(pr1,pr2) ((pr1)->left==(pr2)->left && (pr1)->top==(pr2)->top && (pr1)->right==(pr2)->right && (pr1)->bottom==(pr2)->bottom)
+#endif
+GpuTex * gLastTex = NULL;
+GLuint gLastFMode = (GLuint) - 1;
+BOOL bSetClip = FALSE;
+}
 
 ////////////////////////////////////////////////////////////////////////
 // Set OGL pixel format
@@ -1153,8 +1164,7 @@ void assignTextureVRAMWrite(void) {
 #endif
 }
 
-struct XenosSurface * gLastTex = NULL;
-GLuint gLastFMode = (GLuint) - 1;
+
 
 /////////////////////////////////////////////////////////
 
@@ -1215,10 +1225,11 @@ void assignTextureSprite(void) {
                                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
                                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
                  */
+#ifndef WIN32
                 gTexName->use_filtering = XE_TEXF_POINT;
                 gLastTex = gTexName;
                 gLastFMode = 0;
-
+#endif
             }
         }
     }
@@ -1272,10 +1283,11 @@ void assignTexture3(void) {
                                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
                  */
+#ifndef WIN32
                 gTexName->use_filtering = XE_TEXF_LINEAR;
                 gLastTex = gTexName;
                 gLastFMode = 1;
-
+#endif
             }
         }
 
@@ -1340,9 +1352,11 @@ void assignTexture4(void) {
                                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
                  */
+#ifndef WIN32
                 gTexName->use_filtering = XE_TEXF_LINEAR;
                 gLastTex = gTexName;
                 gLastFMode = 1;
+#endif
             }
         }
 
@@ -1374,15 +1388,12 @@ void assignTexture4(void) {
 // render pos / buffers
 ////////////////////////////////////////////////////////////////////////
 
-#ifndef _WINDOWS
-#define EqualRect(pr1,pr2) ((pr1)->left==(pr2)->left && (pr1)->top==(pr2)->top && (pr1)->right==(pr2)->right && (pr1)->bottom==(pr2)->bottom)
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 // SetDisplaySettings: "simply" calcs the new drawing area and updates
 //                     the ogl clipping (scissor)
 
-BOOL bSetClip = FALSE;
+
 
 void SetOGLDisplaySettings(BOOL DisplaySet) {
     static RECT rprev = {0, 0, 0, 0};

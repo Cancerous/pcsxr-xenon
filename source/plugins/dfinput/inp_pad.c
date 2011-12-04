@@ -150,7 +150,6 @@ static void UpdateInput(void) {
     CheckJoy();
     for (pad = 0; pad < 2; pad++) {
         if (g.PadState[pad].PadModeSwitch) {
-            TR;
             g.PadState[pad].PadModeSwitch = 0;
             INPUT_PADsetMode(pad, 1 - g.PadState[pad].PadMode);
         }
@@ -586,9 +585,6 @@ unsigned char DF_INPUT_PADpoll(unsigned char value) {
 unsigned char INPUT_PADpoll(unsigned char value) {
     static uint8_t *buf = NULL;
     uint16_t n;
-    usb_do_poll();
-    //printf("INPUT_PADpoll : %08x\r\n",value);
-    //TR
     if (CurByte == 0) {
         CurByte++;
 

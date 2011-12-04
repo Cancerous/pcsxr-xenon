@@ -30,6 +30,8 @@
 
 #include "externals.h"
 
+
+namespace xegpu{
 ////////////////////////////////////////////////////////////////////////
 // FPS stuff
 ////////////////////////////////////////////////////////////////////////
@@ -51,15 +53,19 @@ BOOL         bInitCap = TRUE;
 float        fps_skip = 0;
 float        fps_cur  = 0;
 
-#define TIMEBASE 100000
+}
 
+using namespace xegpu;
+
+#define TIMEBASE 100000
+#ifndef WIN32
 unsigned long timeGetTime()
 {
  struct timeval tv;
  gettimeofday(&tv, 0);                                // well, maybe there are better ways
  return tv.tv_sec * 100000 + tv.tv_usec/10;           // to do that in linux, but at least it works
 }
-
+#endif
 void FrameCap(void)
 {
  static unsigned long curticks, lastticks, _ticks_since_last_update;

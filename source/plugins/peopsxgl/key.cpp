@@ -21,28 +21,10 @@
 #define _IN_KEY
 
 #include "externals.h"
-#include "menu.h"
-#include "texture.h"
-#include "draw.h"
-#include "fps.h"
 
-////////////////////////////////////////////////////////////////////////
-// KeyBoard handler stuff
-////////////////////////////////////////////////////////////////////////
-
-uint32_t   ulKeybits = 0;                     
-
-////////////////////////////////////////////////////////////////////////
-// keyboard handler (LINUX)
-////////////////////////////////////////////////////////////////////////
-
-#define VK_INSERT      65379
-#define VK_HOME        65360
-#define VK_PRIOR       65365
-#define VK_NEXT        65366
-#define VK_END         65367
-#define VK_DEL         65535
-#define VK_F5          65474
+namespace xegpu{
+    uint32_t       ulKeybits;
+}
 
 void GPUkeypressed(int keycode)
 {

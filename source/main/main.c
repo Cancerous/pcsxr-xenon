@@ -63,7 +63,7 @@
 //#define cdfile "uda:/psxisos/Tekken 3 (USA)/Tekken 3 (USA) (Track 1).bin"
 //#define cdfile  "uda:/psxisos/Final Fantasy VII (F)/Final Fantasy VII (F) (Disc 1) [SCES-00868].bin"
 //#define cdfile "uda:/psxisos/CTR - Crash Team Racing (USA).bin"
-#define cdfile "uda:/psxisos/Crash Bandicoot - Warped (USA).bin"
+//#define cdfile "uda:/psxisos/Crash Bandicoot - Warped (USA).bin"
 //#define cdfile "uda:/psxisos/WipEout XL (USA)/WipEout XL (USA) (Track 01).bin"
 //#define cdfile "uda:/psxisos/Tekken 3 (USA)/Tekken 3 (USA) (Track 1).bin"
 //#define cdfile "uda:/psxiso.iso"
@@ -72,15 +72,20 @@
 //#define cdfile "uda:/psxisos/Gran Turismo 2 (USA) (v1.0) (Simulation Mode)/Gran Turismo 2 (USA) (v1.0) (Simulation Mode).bin"
 
 //#define cdfile "uda:/psxisos/Street Fighter Alpha - Warriors' Dreams (USA)/Street Fighter Alpha - Warriors' Dreams (USA) (Track 01).bin"
-#define cdfile "uda:/psxisos/Tekken 3 (USA)/Tekken 3 (USA) (Track 1).bin"
+//#define cdfile "uda:/psxisos/Tekken 3 (USA)/Tekken 3 (USA) (Track 1).bin"
 
 
-
- //#define cdfile "uda:/psxisos/R4 - Ridge Racer Type 4 (USA)/R4 - Ridge Racer Type 4 (USA).bin"
+//#define cdfile "uda:/psxisos/CTR - Crash Team Racing (USA).bin"
+//#define cdfile "uda:/psxisos/R4 - Ridge Racer Type 4 (USA)/R4 - Ridge Racer Type 4 (USA).bin"
 
 // #define cdfile "uda:/psxisos/Metal Gear Solid (France) (Disc 1)/Metal Gear Solid (France) (Disc 1).bin"
 //#define cdfile "uda:/psxisos/Gran Turismo 2 (USA) (v1.0) (Simulation Mode)/Gran Turismo 2 (USA) (v1.0) (Simulation Mode).bin"
-
+//#define cdfile "sda:/hdd1/xenon/psx/CTR - Crash Team Racing (USA)/CTR - Crash Team Racing (USA).bin.Z"
+//#define cdfile "sda:/hdd1/xenon/psx/Tekken 3 (USA)/Tekken 3 (USA) (Track 1).bin.Z"
+//#define cdfile "sda:/hdd1/xenon/psx/R4 - Ridge Racer Type 4 (USA).bin"
+//#define cdfile "uda:/CTR - Crash Team Racing (USA).bin"
+#define cdfile "uda:/Street Fighter Alpha - Warriors' Dreams (USA) (Track 01).bin"
+//
 #endif
 void printConfigInfo() {
 
@@ -102,6 +107,17 @@ int GetSlowbootGui();
 int GetCpuGui();
 #endif
 
+void buffer_dump(uint8_t * buf, int size){
+    int i = 0;
+    TR;
+    for(i=0;i<size;i++){
+        
+        printf("%02x ",buf[i]);
+    }
+    printf("\r\n");
+}
+
+uint8_t * xtaf_buff();
 
 void SetIso(const char * fname){
     FILE *fd = fopen(fname,"rb");
@@ -109,10 +125,14 @@ void SetIso(const char * fname){
         printf("Error loading %s\r\n",fname);
         return;
     }
-    uint8_t header[2];
-    fread(header,2,1,fd);
+    uint8_t header[0x10];
+    int n = fread(header,0x10,1,fd);
+    printf("n : %d\r\n",n);
+
+    buffer_dump(header,0x10);
     
     if(header[0]==0x78 && header[1]==0xDA){
+    //if(1){
         printf("Use CDRCIMG for  %s\r\n",fname);
         strcpy(Config.Cdr, "CDRCIMG");
         cdrcimg_set_fname(fname);
@@ -122,6 +142,8 @@ void SetIso(const char * fname){
     }
     
     fclose(fd);
+    
+    //exit(0);
 }
 
 extern void httpd_start(void);
@@ -134,8 +156,16 @@ int main() {
     xenon_sound_init();
     //xenos_init(VIDEO_MODE_YUV_720P);
     console_init();
+    
+    
+    
     usb_init();
+    
     usb_do_poll();
+    
+    //xenon_ata_init();
+
+//    xenon_atapi_init();
     
 #else
 int pcsxmain(const char * cdfile) {
@@ -148,8 +178,8 @@ int pcsxmain(const char * cdfile) {
     Xe_SetClearColor(getLzxVideoDevice(),0xff000000);
 #endif
     
-    network_init();
-    network_print_config();
+    //network_init();
+    //network_print_config();
     
     console_close();
     
@@ -158,7 +188,7 @@ int pcsxmain(const char * cdfile) {
     // telnet_console_init();
     // mdelay(5000);
     
-    httpd_start();
+    //httpd_start();
     
     // uart speed patch 115200 - jtag/freeboot
     // *(volatile uint32_t*)(0xea001000+0x1c) = 0xe6010000;
@@ -174,6 +204,9 @@ int pcsxmain(const char * cdfile) {
     //strcpy(Config.Bios, "SCPH1001.BIN"); // Use actual BIOS
     //strcpy(Config.Bios, "HLE"); // Use HLE
     strcpy(Config.BiosDir, "uda:/pcsxr/bios");
+/*
+    strcpy(Config.BiosDir, "sda:/hdd1/xenon/bios");
+*/
 #ifndef LZX_GUI
     strcpy(Config.Bios, "scph7502.bin");
     Config.PsxOut = 0; // Enable Console Output 
@@ -191,14 +224,20 @@ int pcsxmain(const char * cdfile) {
     strcpy(Config.Bios, GetBiosGui());
    // strcpy(Config.Bios, "scph7502.bin");
 #endif
-   // Config.Cpu = CPU_DYNAREC;
+    Config.Cpu = CPU_DYNAREC;
     //Config.RCntFix = 1;// parasite eve fix ?
-    //Config.Cpu = CPU_INTERPRETER;
+   // Config.Cpu = CPU_INTERPRETER;
 //    Config.SlowBoot = 0; // Active bios
 
     strcpy(Config.Mcd1, "uda:/pcsxr/memcards/card1.mcd");
     strcpy(Config.Mcd2, "uda:/pcsxr/memcards/card2.mcd");
 
+/*
+    strcpy(Config.Mcd1, "sda:/hdd1/xenon/memcards/card1.mcd");
+    strcpy(Config.Mcd2, "sda:/hdd1/xenon/memcards/card2.mcd");
+*/
+
+    
     //SysPrintf("Init ...");
 #ifndef PCSXDF
 /*

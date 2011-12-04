@@ -30,6 +30,9 @@ typedef unsigned int DWORD;
 #include "psx.ps.c.h"
 #include "psx.vs.h"
 
+#include "fxaa.vs.h"
+#include "fxaa.ps.h"
+
 #define MAX_VERTEX_COUNT 65536
 #define MAX_INDICE_COUNT 65536
 
@@ -49,6 +52,19 @@ GpuRenderer gpuRenderer;
 
 int vbBaseVertexIndex = 0;
 
+
+struct fxaa_vb{
+    float x, y, z, w; // pos
+    float u, v; //tex coord
+};
+enum {
+    UvBottom = 0,
+    UvTop,
+    UvLeft,
+    UvRight
+};
+float ScreenUv[4] = {0.f, 1.0f, 1.0f, 0.f};
+
 #ifdef LZX_GUI
 extern "C" {
     struct XenosDevice * getLzxVideoDevice();
@@ -58,6 +74,116 @@ extern "C" {
 extern "C" {
     void doScreenCapture();
     void systemPoll(); // main.c
+}
+
+
+void GpuRenderer::BeginPostProcess(){
+//    Xe_SetIndices(xe, pIb);
+//    Xe_SetStreamSource(xe, 0, pVb, 0, 4);
+//    Xe_SetRenderTarget(xe, pPostRenderSurface);
+};
+
+void GpuRenderer::EndPostProcess(){
+    //Xe_SetRenderTarget(xe, pRenderSurface);
+};
+
+void GpuRenderer::RenderPostProcess(){
+//    Xe_Resolve(xe);
+//    Xe_Sync(xe);
+//
+//    Xe_InvalidateState(xe);
+//    
+//    EndPostProcess();
+//    
+//    Xe_SetCullMode(xe, XE_CULL_NONE);
+//    
+//    // set shaders
+//    Xe_SetShader(xe,SHADER_TYPE_PIXEL,g_pPixelShaderPost,0);
+//    Xe_SetShader(xe,SHADER_TYPE_VERTEX,g_pVertexShaderPost,0);
+//    // 
+//    Xe_SetTexture(xe,0,pPostRenderSurface);
+//     //Xe_SetTexture(xe,0,pRenderSurface);
+//    //
+//    Xe_SetStreamSource(xe, 0, pVbPost, 0, sizeof (fxaa_vb));
+//    Xe_SetIndices(xe, NULL);
+//    // draw 
+//    Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLELIST, 0, 1);
+//    // resolve
+//    Xe_Resolve(xe);
+//    Xe_Sync(xe); // wait for background render to finish !
+//    //Xe_InvalidateState(xe);
+}
+
+void GpuRenderer::InitPostProcess(){
+    static const struct XenosVBFFormat vbf = {
+        2,
+        {
+            {XE_USAGE_POSITION, 0, XE_TYPE_FLOAT4},
+            {XE_USAGE_TEXCOORD, 0, XE_TYPE_FLOAT2},
+        }
+    };
+    
+    // create shaders
+    g_pPixelShaderPost = Xe_LoadShaderFromMemory(xe, (void*) g_xps_ps_fxaa);
+    Xe_InstantiateShader(xe, g_pPixelShaderPost, 0);
+
+    g_pVertexShaderPost = Xe_LoadShaderFromMemory(xe, (void*) g_xvs_vs_fxaa);
+    Xe_InstantiateShader(xe, g_pVertexShaderPost, 0);
+    
+    Xe_ShaderApplyVFetchPatches(xe, g_pVertexShaderPost, 0, &vbf);
+    
+    // create render texture - all data will be rendering into
+    pPostRenderSurface = Xe_CreateTexture(xe, pRenderSurface->width, pRenderSurface->height, 0, XE_FMT_8888 | XE_FMT_ARGB, 1);
+    pPostRenderSurface->use_filtering = 0;
+    //Xe_SetRenderTarget(xe, pPostRenderSurface);
+    
+    // create post vb
+    float x = -1.0f;
+    float y = 1.0f;
+    float w = 4.0f;
+    float h = 4.0f;
+    /*
+        float w = 2.0f;
+        float h = 2.0f;
+     */
+
+    pVbPost = Xe_CreateVertexBuffer(xe, 3 * sizeof (fxaa_vb));
+    fxaa_vb *Rect = (fxaa_vb *)Xe_VB_Lock(xe, pVbPost, 0, 3 * sizeof (fxaa_vb), XE_LOCK_WRITE);
+    {
+        ScreenUv[UvTop] = ScreenUv[UvTop]*2;
+        ScreenUv[UvLeft] = ScreenUv[UvLeft]*2;
+
+        // top left
+        Rect[0].x = x;
+        Rect[0].y = y;
+        Rect[0].u = ScreenUv[UvBottom];
+        Rect[0].v = ScreenUv[UvRight];
+
+        // bottom left
+        Rect[1].x = x;
+        Rect[1].y = y - h;
+        Rect[1].u = ScreenUv[UvBottom];
+        Rect[1].v = ScreenUv[UvLeft];
+
+        // top right
+        Rect[2].x = x + w;
+        Rect[2].y = y;
+        Rect[2].u = ScreenUv[UvTop];
+        Rect[2].v = ScreenUv[UvRight];
+
+        // top right
+        Rect[3].x = x + w;
+        Rect[3].y = y;
+        Rect[3].u = ScreenUv[UvTop];
+        Rect[3].v = ScreenUv[UvRight];
+
+        int i = 0;
+        for (i = 0; i < 3; i++) {
+            Rect[i].z = 0.0;
+            Rect[i].w = 1.0;
+        }
+    }
+    Xe_VB_Unlock(xe, pVbPost);
 }
 
 void GpuRenderer::StatesChanged() {
@@ -198,13 +324,17 @@ void GpuRenderer::InitXe() {
 
     Xe_ShaderApplyVFetchPatches(xe, g_pVertexShader, 0, &vbf);
 
-    Xe_InvalidateState(xe);
-
     edram_init(xe);
 
-    Xe_Resolve(xe);
-    Xe_Sync(xe);
+    for(int i=0;i<60;i++){
+        Xe_InvalidateState(xe);
+        Xe_Resolve(xe);
+        Xe_Sync(xe);
+    }
+    
 }
+
+
 
 void GpuRenderer::Lock() {
     // VB
@@ -412,10 +542,12 @@ void GpuRenderer::DepthFunc(int func) {
 void GpuRenderer::Init() {
     InitXe();
     InitStates();
-
+    
     pVb = Xe_CreateVertexBuffer(xe, MAX_VERTEX_COUNT * sizeof (verticeformats));
     pIb = Xe_CreateIndexBuffer(xe, MAX_VERTEX_COUNT * sizeof (uint16_t), XE_FMT_INDEX16);
-
+    
+    
+//    InitPostProcess();
     Lock();
 }
 
@@ -484,8 +616,8 @@ void GpuRenderer::SetViewPort(int left, int top, int right, int bottom) {
     TR
 
     // identity
-    printf("SetViewPort lt => %f - %f \r\n", left, top);
-    printf("SetViewPort rb=> %f - %f \r\n", right, bottom);
+    printf("SetViewPort lt => %d - %d \r\n", left, top);
+    printf("SetViewPort rb=> %d - %d \r\n", right, bottom);
 
     printf("Dump ..\r\n");
     for (int i = 0; i < 4; i++) {
@@ -504,16 +636,20 @@ void GpuRenderer::Render() {
 
     Unlock();
 
-    // can be done in other way ...
-    // Resolve
-    Xe_Resolve(xe);
+    // Resolve in temporary surface
+    //RenderPostProcess();
+    
+    Xe_Resolve(xe);    
     Xe_Sync(xe); // wait for background render to finish !
-
+    
+    
     systemPoll();
 
     Xe_InvalidateState(xe);
 
     doScreenCapture();
+    
+    BeginPostProcess();
 
     // relock
     Lock();

@@ -60,19 +60,11 @@ static void SetDefaultConfig() {
 
     // Pad1 joystick
     g.cfg.PadDef[0].KeyDef[DKEY_ANALOG].JoyEvType = BUTTON;
-    g.cfg.PadDef[0].KeyDef[DKEY_ANALOG].J.Button = 10;
+    g.cfg.PadDef[0].KeyDef[DKEY_ANALOG].J.Button = XBPAD_LOGO;
     g.cfg.PadDef[0].KeyDef[DKEY_SELECT].JoyEvType = BUTTON;
-    g.cfg.PadDef[0].KeyDef[DKEY_SELECT].J.Button = 8;
+    g.cfg.PadDef[0].KeyDef[DKEY_SELECT].J.Button = XBPAD_SELECT;
     g.cfg.PadDef[0].KeyDef[DKEY_START].JoyEvType = BUTTON;
-    g.cfg.PadDef[0].KeyDef[DKEY_START].J.Button = 9;
-    g.cfg.PadDef[0].KeyDef[DKEY_UP].JoyEvType = AXIS;
-    g.cfg.PadDef[0].KeyDef[DKEY_UP].J.Axis = -2;
-    g.cfg.PadDef[0].KeyDef[DKEY_RIGHT].JoyEvType = AXIS;
-    g.cfg.PadDef[0].KeyDef[DKEY_RIGHT].J.Axis = 1;
-    g.cfg.PadDef[0].KeyDef[DKEY_DOWN].JoyEvType = AXIS;
-    g.cfg.PadDef[0].KeyDef[DKEY_DOWN].J.Axis = 2;
-    g.cfg.PadDef[0].KeyDef[DKEY_LEFT].JoyEvType = AXIS;
-    g.cfg.PadDef[0].KeyDef[DKEY_LEFT].J.Axis = -1;
+    g.cfg.PadDef[0].KeyDef[DKEY_START].J.Button = XBPAD_START;
     g.cfg.PadDef[0].KeyDef[DKEY_L2].JoyEvType = BUTTON;
     g.cfg.PadDef[0].KeyDef[DKEY_L2].J.Button = 4;
     g.cfg.PadDef[0].KeyDef[DKEY_L1].JoyEvType = BUTTON;
@@ -82,13 +74,36 @@ static void SetDefaultConfig() {
     g.cfg.PadDef[0].KeyDef[DKEY_R1].JoyEvType = BUTTON;
     g.cfg.PadDef[0].KeyDef[DKEY_R1].J.Button = 7;
     g.cfg.PadDef[0].KeyDef[DKEY_TRIANGLE].JoyEvType = BUTTON;
-    g.cfg.PadDef[0].KeyDef[DKEY_TRIANGLE].J.Button = 0;
+    g.cfg.PadDef[0].KeyDef[DKEY_TRIANGLE].J.Button = XBPAD_Y;
     g.cfg.PadDef[0].KeyDef[DKEY_CIRCLE].JoyEvType = BUTTON;
-    g.cfg.PadDef[0].KeyDef[DKEY_CIRCLE].J.Button = 1;
+    g.cfg.PadDef[0].KeyDef[DKEY_CIRCLE].J.Button = XBPAD_B;
     g.cfg.PadDef[0].KeyDef[DKEY_CROSS].JoyEvType = BUTTON;
-    g.cfg.PadDef[0].KeyDef[DKEY_CROSS].J.Button = 2;
+    g.cfg.PadDef[0].KeyDef[DKEY_CROSS].J.Button = XBPAD_A;
     g.cfg.PadDef[0].KeyDef[DKEY_SQUARE].JoyEvType = BUTTON;
-    g.cfg.PadDef[0].KeyDef[DKEY_SQUARE].J.Button = 3;
+    g.cfg.PadDef[0].KeyDef[DKEY_SQUARE].J.Button = XBPAD_X;
+    
+    // Standard
+    g.cfg.PadDef[0].KeyDef[DKEY_UP].JoyEvType = BUTTON;
+    g.cfg.PadDef[0].KeyDef[DKEY_UP].J.Button = XBPAD_UP;
+    g.cfg.PadDef[0].KeyDef[DKEY_RIGHT].JoyEvType = BUTTON;
+    g.cfg.PadDef[0].KeyDef[DKEY_RIGHT].J.Axis = XBPAD_RIGHT;
+    g.cfg.PadDef[0].KeyDef[DKEY_DOWN].JoyEvType = BUTTON;
+    g.cfg.PadDef[0].KeyDef[DKEY_DOWN].J.Axis = XBPAD_DOWN;
+    g.cfg.PadDef[0].KeyDef[DKEY_LEFT].JoyEvType = BUTTON;
+    g.cfg.PadDef[0].KeyDef[DKEY_LEFT].J.Axis = XBPAD_LEFT;
+    
+    // Analog
+/*
+    g.cfg.PadDef[0].KeyDef[DKEY_UP].JoyEvType = BUTTON;
+    g.cfg.PadDef[0].KeyDef[DKEY_UP].J.Button = XBPAD_UP;
+    g.cfg.PadDef[0].KeyDef[DKEY_RIGHT].JoyEvType = AXIS;
+    g.cfg.PadDef[0].KeyDef[DKEY_RIGHT].J.Axis = 1;
+    g.cfg.PadDef[0].KeyDef[DKEY_DOWN].JoyEvType = AXIS;
+    g.cfg.PadDef[0].KeyDef[DKEY_DOWN].J.Axis = 2;
+    g.cfg.PadDef[0].KeyDef[DKEY_LEFT].JoyEvType = AXIS;
+    g.cfg.PadDef[0].KeyDef[DKEY_LEFT].J.Axis = -1;
+*/
+    
 
     // Pad2 joystick
     g.cfg.PadDef[1].KeyDef[DKEY_SELECT].JoyEvType = BUTTON;
@@ -123,41 +138,30 @@ static void SetDefaultConfig() {
     // CUSTOM
     int current;
     for (current = 0; current < 2; current++) {
-        int b = AXIS;
-        int c = 0;
-        int a = 0;
+        
+        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_XP].JoyEvType = AXIS;
+        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_XP].J.Axis = -1; // abs-1 => 0
 
-        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_XP].Key = a;
-        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_XP].JoyEvType = b;
-        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_XP].J.d = -1;
+        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_XM].JoyEvType = AXIS;
+        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_XM].J.Axis = 1; // abs-1 => 0
 
-        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_XM].Key = a;
-        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_XM].JoyEvType = b;
-        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_XM].J.d = 1;
+        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_YP].JoyEvType = AXIS;
+        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_YP].J.Axis = -2; // abs-1 => 1
 
-        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_YP].Key = a;
-        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_YP].JoyEvType = b;
-        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_YP].J.d = -2;
+        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_YM].JoyEvType = AXIS;
+        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_YM].J.Axis = 2; // abs-1 => 1
 
-        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_YM].Key = a;
-        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_YM].JoyEvType = b;
-        g.cfg.PadDef[current].AnalogDef[ANALOG_LEFT][ANALOG_YM].J.d = 2;
+        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_XP].JoyEvType = AXIS;
+        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_XP].J.Axis = -3; // abs-1 => 2
 
-        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_XP].Key = a;
-        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_XP].JoyEvType = b;
-        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_XP].J.d = -3;
+        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_XM].JoyEvType = AXIS;
+        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_XM].J.Axis = 3; // abs-1 => 2
 
-        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_XM].Key = a;
-        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_XM].JoyEvType = b;
-        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_XM].J.d = 3;
+        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_YP].JoyEvType = AXIS;
+        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_YP].J.Axis = -4; // abs-1 => 3
 
-        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_YP].Key = a;
-        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_YP].JoyEvType = b;
-        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_YP].J.d = -4;
-
-        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_YM].Key = a;
-        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_YM].JoyEvType = b;
-        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_YM].J.d = 4;
+        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_YM].JoyEvType = AXIS;
+        g.cfg.PadDef[current].AnalogDef[ANALOG_RIGHT][ANALOG_YM].J.Axis = 4; // abs-1 => 3
     }
 
 }

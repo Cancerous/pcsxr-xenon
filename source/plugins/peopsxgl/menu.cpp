@@ -21,12 +21,10 @@
 #define _IN_MENU
 
 #include "externals.h"
-#include "draw.h"
 #include "menu.h"
-#include "gpu.h"
 
 
-void MakeDisplayLists(void)                            // MAKE FONT 
+void MakeDisplayLists(void) 
 {
     
 }

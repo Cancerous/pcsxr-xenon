@@ -27,20 +27,22 @@
 #include "plugins.h"
 
 #define SYMS_PER_LIB 32
+
 typedef struct {
-	char* lib;
-	int   numSyms;
-	struct {
-		char* sym;
-		void* pntr;
-	} syms[SYMS_PER_LIB];
+    char* lib;
+    int numSyms;
+
+    struct {
+        char* sym;
+        void* pntr;
+    } syms[SYMS_PER_LIB];
 } PluginTable;
 #define NUM_PLUGINS 8
 
 /* PAD */
 //typedef long (* PADopen)(unsigned long *);
 extern long PAD__init(long);
-extern long PAD__shutdown(void);	
+extern long PAD__shutdown(void);
 extern long PAD__open(void);
 extern long PAD__close(void);
 extern long PAD__readPort1(PadDataS*);
@@ -57,8 +59,8 @@ void NULL_SPUwriteRegister(unsigned long reg, unsigned short val);
 unsigned short NULL_SPUreadRegister(unsigned long reg);
 unsigned short NULL_SPUreadDMA(void);
 void NULL_SPUwriteDMA(unsigned short val);
-void NULL_SPUwriteDMAMem(unsigned short * pusPSXMem,int iSize);
-void NULL_SPUreadDMAMem(unsigned short * pusPSXMem,int iSize);
+void NULL_SPUwriteDMAMem(unsigned short * pusPSXMem, int iSize);
+void NULL_SPUreadDMAMem(unsigned short * pusPSXMem, int iSize);
 void NULL_SPUplayADPCMchannel(xa_decode_t *xap);
 long NULL_SPUinit(void);
 long NULL_SPUopen(void);
@@ -67,17 +69,17 @@ long NULL_SPUclose(void);
 long NULL_SPUshutdown(void);
 long NULL_SPUtest(void);
 void NULL_SPUregisterCallback(void (*callback)(void));
-void NULL_SPUregisterCDDAVolume(void (*CDDAVcallback)(unsigned short,unsigned short));
+void NULL_SPUregisterCDDAVolume(void (*CDDAVcallback)(unsigned short, unsigned short));
 char * NULL_SPUgetLibInfos(void);
 void NULL_SPUabout(void);
-long NULL_SPUfreeze(unsigned long ulFreezeMode,SPUFreeze_t *);
+long NULL_SPUfreeze(unsigned long ulFreezeMode, SPUFreeze_t *);
 
 /* SPU PEOPS 1.9 */
 //dma.c
 unsigned short CALLBACK PEOPS_SPUreadDMA(void);
-void CALLBACK PEOPS_SPUreadDMAMem(unsigned short * pusPSXMem,int iSize);
+void CALLBACK PEOPS_SPUreadDMAMem(unsigned short * pusPSXMem, int iSize);
 void CALLBACK PEOPS_SPUwriteDMA(unsigned short val);
-void CALLBACK PEOPS_SPUwriteDMAMem(unsigned short * pusPSXMem,int iSize);
+void CALLBACK PEOPS_SPUwriteDMAMem(unsigned short * pusPSXMem, int iSize);
 //PEOPSspu.c
 void CALLBACK PEOPS_SPUasync(unsigned long cycle);
 void CALLBACK PEOPS_SPUupdate(void);
@@ -91,14 +93,14 @@ long CALLBACK PEOPS_SPUtest(void);
 long CALLBACK PEOPS_SPUconfigure(void);
 void CALLBACK PEOPS_SPUabout(void);
 void CALLBACK PEOPS_SPUregisterCallback(void (CALLBACK *callback)(void));
-void CALLBACK PEOPS_SPUregisterCDDAVolume(void (CALLBACK *CDDAVcallback)(unsigned short,unsigned short));
+void CALLBACK PEOPS_SPUregisterCDDAVolume(void (CALLBACK *CDDAVcallback)(unsigned short, unsigned short));
 
 void CALLBACK PEOPS_SPUplayCDDAchannel(short *pcm, int nbytes);
 //registers.c
 void CALLBACK PEOPS_SPUwriteRegister(unsigned long reg, unsigned short val);
 unsigned short CALLBACK PEOPS_SPUreadRegister(unsigned long reg);
 //freeze.c
-long CALLBACK PEOPS_SPUfreeze(unsigned long ulFreezeMode,SPUFreeze_t * pF);
+long CALLBACK PEOPS_SPUfreeze(unsigned long ulFreezeMode, SPUFreeze_t * pF);
 
 /* CDR */
 long CDR__open(void);
@@ -107,14 +109,14 @@ long CDR__shutdown(void);
 long CDR__open(void);
 long CDR__close(void);
 long CDR__getTN(unsigned char *);
-long CDR__getTD(unsigned char , unsigned char *);
+long CDR__getTD(unsigned char, unsigned char *);
 long CDR__readTrack(unsigned char *);
 unsigned char *CDR__getBuffer(void);
 unsigned char *CDR__getBufferSub(void);
 
 /* NULL GPU */
 //typedef long (* GPUopen)(unsigned long *, char *, char *);
-long GPU__open(void);  
+long GPU__open(void);
 long GPU__init(void);
 long GPU__shutdown(void);
 long GPU__close(void);
@@ -122,11 +124,11 @@ void GPU__writeStatus(unsigned long);
 void GPU__writeData(unsigned long);
 unsigned long GPU__readStatus(void);
 unsigned long GPU__readData(void);
-long GPU__dmaChain(unsigned long *,unsigned long);
+long GPU__dmaChain(unsigned long *, unsigned long);
 void GPU__updateLace(void);
 
 /* PEOPS GPU */
-long PEOPS_GPUopen(unsigned long *, char *, char *); 
+long PEOPS_GPUopen(unsigned long *, char *, char *);
 long PEOPS_GPUinit(void);
 long PEOPS_GPUshutdown(void);
 long PEOPS_GPUclose(void);
@@ -136,10 +138,10 @@ void PEOPS_GPUwriteDataMem(unsigned long *, int);
 unsigned long PEOPS_GPUreadStatus(void);
 unsigned long PEOPS_GPUreadData(void);
 void PEOPS_GPUreadDataMem(unsigned long *, int);
-long PEOPS_GPUdmaChain(unsigned long *,unsigned long);
+long PEOPS_GPUdmaChain(unsigned long *, unsigned long);
 void PEOPS_GPUupdateLace(void);
 void PEOPS_GPUdisplayText(char *);
-long PEOPS_GPUfreeze(unsigned long,GPUFreeze_t *);
+long PEOPS_GPUfreeze(unsigned long, GPUFreeze_t *);
 void PEOPS_GPUvBlank(int val);
 void PEOPS_GPUvisualVibration(uint32_t iSmall, uint32_t iBig);
 void PEOPS_GPUmakeSnapshot(void);
@@ -147,7 +149,7 @@ void PEOPS_GPUcursor(int iPlayer, int x, int y);
 void PEOPS_GPUaddVertex(short sx, short sy, s64 fx, s64 fy, s64 fz);
 
 /* hw gpu plugins */
-long HW_GPUopen(unsigned long *, char *, char *); 
+long HW_GPUopen(unsigned long *, char *, char *);
 long HW_GPUinit(void);
 long HW_GPUshutdown(void);
 long HW_GPUclose(void);
@@ -157,10 +159,10 @@ void HW_GPUwriteDataMem(unsigned long *, int);
 unsigned long HW_GPUreadStatus(void);
 unsigned long HW_GPUreadData(void);
 void HW_GPUreadDataMem(unsigned long *, int);
-long HW_GPUdmaChain(unsigned long *,unsigned long);
+long HW_GPUdmaChain(unsigned long *, unsigned long);
 void HW_GPUupdateLace(void);
 void HW_GPUdisplayText(char *);
-long HW_GPUfreeze(unsigned long,GPUFreeze_t *);
+long HW_GPUfreeze(unsigned long, GPUFreeze_t *);
 void HW_GPUvBlank(int val);
 void HW_GPUvisualVibration(uint32_t iSmall, uint32_t iBig);
 void HW_GPUmakeSnapshot(void);
@@ -185,6 +187,7 @@ long INPUT_PADconfigure(void);
 void INPUT_PADabout(void);
 long INPUT_PADtest(void);
 void INPUT_PADregisterVibration(void (*callback)(uint32_t, uint32_t));
+
 void INPUT_PADsetMode(const int pad, const int mode);
 #define DF_PAD1_PLUGIN \
 	{ "/PAD1",      \
@@ -211,7 +214,7 @@ void INPUT_PADsetMode(const int pad, const int mode);
 	      INPUT_PADreadPort1} \
            } \
         } 
-	    
+
 #define DF_PAD2_PLUGIN \
 	{ "/PAD2",      \
 	  10,         \
@@ -246,31 +249,53 @@ void INPUT_PADsetMode(const int pad, const int mode);
 #if 0
 #define PAD1_PLUGIN \
 
-	{ "/PAD1",      \
+{
+    "/PAD1",      \
 	  10,         \
-	  { { "PADinit",  \
-	      PAD__init }, \
-	    { "PADshutdown",	\
-	      PAD__shutdown}, \
-	    { "PADopen", \
-	      PAD__open}, \
-	    { "PADclose", \
-	      PAD__close}, \
-            { "PADquery", \
-	      PAD__query}, \
-            { "PADpoll", \
-	      PAD__poll}, \
-            { "PADstartPoll", \
-	      PAD__startPoll}, \
-            { "PADsetMode", \
-	      PAD__setMode}, \
-            { "PADregisterVibration", \
-	      PAD__registerVibration}, \
-	    { "PADreadPort1", \
-	      PAD__readPort1} \
-           } \
-        } 
-	    
+	  {
+        {
+            "PADinit",  \
+	      PAD__init
+        }, \
+	    {
+            "PADshutdown",	\
+	      PAD__shutdown
+        }, \
+	    {
+            "PADopen", \
+	      PAD__open
+        }, \
+	    {
+            "PADclose", \
+	      PAD__close
+        }, \
+            {
+            "PADquery", \
+	      PAD__query
+        }, \
+            {
+            "PADpoll", \
+	      PAD__poll
+        }, \
+            {
+            "PADstartPoll", \
+	      PAD__startPoll
+        }, \
+            {
+            "PADsetMode", \
+	      PAD__setMode
+        }, \
+            {
+            "PADregisterVibration", \
+	      PAD__registerVibration
+        }, \
+	    {
+            "PADreadPort1", \
+	      PAD__readPort1
+        } \
+               } \
+        }
+
 #define PAD2_PLUGIN \
 	{ "/PAD2",      \
 	  10,         \
@@ -312,7 +337,7 @@ void INPUT_PADsetMode(const int pad, const int mode);
 	      PAD__readPort1} \
            } \
         } 
-	    
+
 #define PAD2_PLUGIN \
 	{ "/PAD2",      \
 	  5,         \
@@ -412,7 +437,7 @@ void INPUT_PADsetMode(const int pad, const int mode);
 	    { "SPUasync", \
 	      PEOPS_SPUasync} \
 	       } }
-      
+
 #define GPU_NULL_PLUGIN \
 	{ "/GPU",      \
 	  10,         \
@@ -589,7 +614,7 @@ void INPUT_PADsetMode(const int pad, const int mode);
 /*
 { "GPUaddVertex", \
 PEOPS_GPUaddVertex} \
-*/
+ */
 
 
 
@@ -643,16 +668,17 @@ void cdrcimg_set_fname(const char *fname);
 
 
 #define PLUGIN_SLOT_0 EMPTY_PLUGIN
-//#define PLUGIN_SLOT_1 DF_PAD1_PLUGIN
-//#define PLUGIN_SLOT_2 DF_PAD2_PLUGIN
-#define PLUGIN_SLOT_1 PAD1_PLUGIN
-#define PLUGIN_SLOT_2 PAD2_PLUGIN
+#define PLUGIN_SLOT_1 DF_PAD1_PLUGIN
+#define PLUGIN_SLOT_2 DF_PAD2_PLUGIN
+//#define PLUGIN_SLOT_1 PAD1_PLUGIN
+//#define PLUGIN_SLOT_2 PAD2_PLUGIN
 #define PLUGIN_SLOT_3 EMPTY_PLUGIN
 //#define PLUGIN_SLOT_3 EMPTY_PLUGIN
 //#define PLUGIN_SLOT_4 SPU_NULL_PLUGIN
 #define PLUGIN_SLOT_4 SPU_PEOPS_PLUGIN
 //#define PLUGIN_SLOT_5 GPU_NULL_PLUGIN
 #define PLUGIN_SLOT_5 GPU_HW_PEOPS_PLUGIN
+//#define PLUGIN_SLOT_5 GPU_PEOPS_PLUGIN
 #define PLUGIN_SLOT_6 EMPTY_PLUGIN
 #define PLUGIN_SLOT_7 CDRCIMG_PLUGIN
 

@@ -79,50 +79,17 @@ void InitSDLJoy() {
     g.PadState[1].JoyKeyStatus = 0xFFFF;
 
     for (i = 0; i < 2; i++) {
-        /*
-                if (g.cfg.PadDef[i].DevNum >= 0) {
-                    g.PadState[i].JoyDev = SDL_JoystickOpen(g.cfg.PadDef[i].DevNum);
-                } else {
-                    g.PadState[i].JoyDev = NULL;
-                }
-         */
-#if 0
-        g.PadState[i].VibrateDev = -1;
-        g.PadState[i].VibrateEffect = -1;
-#endif
         g.PadState[i].JoyDev = &controller_data[i];
     }
 
-#if 0
-    if (has_haptic) {
-        JoyInitHaptic();
-    }
-#endif
-
     memset(&controller_data[0], 0, sizeof (struct controller_data_s));
     memset(&controller_data[1], 0, sizeof (struct controller_data_s));
-
-    //SDL_JoystickEventState(SDL_IGNORE);
 
     InitAnalog();
 }
 
 void DestroySDLJoy() {
     uint8_t i;
-
-    //if (SDL_WasInit(SDL_INIT_JOYSTICK)) {
-    for (i = 0; i < 2; i++) {
-        if (g.PadState[i].JoyDev != NULL) {
-#if 0
-            if (g.PadState[i].haptic != NULL) {
-                SDL_HapticClose(g.PadState[i].haptic);
-                g.PadState[i].haptic = NULL;
-            }
-#endif
-            //            SDL_JoystickClose(g.PadState[i].JoyDev);
-        }
-    }
-    //}
 
     for (i = 0; i < 2; i++) {
         g.PadState[i].JoyDev = NULL;
@@ -148,71 +115,64 @@ static void bup(int pad, int bit) {
 }
 
 int SDL_JoystickGetButton(struct controller_data_s *joystick, int button) {
-    /*
-     From cfg:
-        DKEY_SELECT 8
-        DKEY_START 9
-        DKEY_L2 4
-        DKEY_L1 6
-        DKEY_R2 5
-        DKEY_R1 7
-        DKEY_TRIANGLE 0
-        DKEY_CIRCLE 1
-        DKEY_CROSS 2
-        DKEY_SQUARE 3
-     */
     switch (button) {
-        case 8:
+        case XBPAD_SELECT:
             return joystick->select;
-        case 9:
+        case XBPAD_START:
             return joystick->start;
-        case 4:
+        case XBPAD_LT:
             return joystick->lt;
-        case 6:
+        case XBPAD_LB:
             return joystick->lb;
-        case 5:
+        case XBPAD_RT:
             return joystick->rt;
-        case 7:
+        case XBPAD_RB:
             return joystick->rb;
-        case 0:
+        case XBPAD_Y:
             return joystick->y;
-        case 1:
+        case XBPAD_B:
             return joystick->b;
-        case 2:
+        case XBPAD_A:
             return joystick->a;
-        case 3:
+        case XBPAD_X:
             return joystick->x;
-        case 10:
+        case XBPAD_LOGO:
             return joystick->logo;
+        case XBPAD_UP:
+            return joystick->up;
+        case XBPAD_DOWN:
+            return joystick->down;
+        case XBPAD_LEFT:
+            return joystick->left;
+        case XBPAD_RIGHT:
+            return joystick->right;
     }
 
     return 0;
 }
 
 signed short SDL_JoystickGetAxis(struct controller_data_s *joystick, int axis) {
-    /*
-        g.cfg.PadDef[0].KeyDef[DKEY_UP].J.Axis = -2;    -> 1
-        g.cfg.PadDef[0].KeyDef[DKEY_RIGHT].J.Axis = 1;  -> 0
-        g.cfg.PadDef[0].KeyDef[DKEY_DOWN].J.Axis = 2;   -> 1
-        g.cfg.PadDef[0].KeyDef[DKEY_LEFT].J.Axis = -1;  -> 0
-        n = abs(g.cfg.PadDef[i].KeyDef[j].J.Axis) - 1;  -> 1
-     */
+    signed short axis_value = 0;
+
     switch (axis) {
         case 0:
-            return joystick->s1_x;
+            axis_value = ((signed short)joystick->s1_x);
         case 1:
-            return -joystick->s1_y;
+            axis_value = -((signed short)joystick->s1_y);
         case 2:
-            return joystick->s2_x;
+            axis_value = ((signed short)joystick->s2_x);
         case 3:
-            return -joystick->s2_y;
+            axis_value = -((signed short)joystick->s2_y);
     }
 
+    if((axis_value>=3000 )||(axis_value<=-3000 ))
+        return axis_value;
     return 0;
 }
 
 void SDL_JoystickUpdate(void) {
     //TR
+    usb_do_poll();
     get_controller_data(&controller_data[0], 0);
     get_controller_data(&controller_data[1], 1);
 }
@@ -223,12 +183,6 @@ void CheckJoy() {
     SDL_JoystickUpdate();
 
     for (i = 0; i < 2; i++) {
-        /*
-                if (g.PadState[i].JoyDev == NULL) {
-                    continue;
-                }
-         */
-
         for (j = 0; j < DKEY_TOTAL; j++) {
             switch (g.cfg.PadDef[i].KeyDef[j].JoyEvType) {
 

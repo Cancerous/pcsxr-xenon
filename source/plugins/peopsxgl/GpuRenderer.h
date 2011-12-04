@@ -8,7 +8,7 @@
 #ifndef GPURENDERER_H
 #define	GPURENDERER_H
 
-#include <xenos/xe.h>
+#include "gpu_types.h"
 
 #define XE_TEXF_POINT 0
 #define XE_TEXF_LINEAR 1
@@ -45,7 +45,7 @@ private:
     /**
      * packed to 32bytes
      */
-    typedef struct __attribute__((__packed__)) verticeformats {
+    typedef struct PACKED verticeformats {
         float x, y, z;
         float u, v;
         float u2, v2;
@@ -59,17 +59,25 @@ private:
     uint16_t * pCurrentIndice;
     uint16_t * pFirstIndice;
 
-    XenosVertexBuffer *pVb;
-    XenosIndexBuffer *pIb;
+    GpuVB *pVb;
+    GpuIB *pIb;
 
-    XenosSurface * pRenderSurface;
+    GpuTex * pRenderSurface;
 
-    XenosShader * g_pVertexShader;
-    XenosShader * g_pPixelShader;
+    GpuVS * g_pVertexShader;
+    GpuPS * g_pPixelShader;
 
-    XenosShader * g_pPixelShaderC;
-    XenosShader * g_pPixelShaderF;
-    XenosShader * g_pPixelShaderG;
+    GpuPS * g_pPixelShaderC;
+    GpuPS * g_pPixelShaderF;
+    GpuPS * g_pPixelShaderG;
+    
+    /**
+     * Post process 
+     */
+    GpuVB *pVbPost;
+    GpuVS * g_pVertexShaderPost;
+    GpuPS * g_pPixelShaderPost;
+    GpuTex * pPostRenderSurface;
 
     /**
      * Render states
@@ -80,7 +88,7 @@ private:
         // clear color
         uint32_t clearcolor;
         // z / depth
-        uint32_t z_func;
+        int32_t z_func;
         uint32_t z_write;
         uint32_t z_enable;
 
@@ -89,21 +97,21 @@ private:
         uint32_t fillmode_back;
 
         // blend
-        uint32_t blend_op;
-        uint32_t blend_src;
-        uint32_t blend_dst;
+        int32_t blend_op;
+        int32_t blend_src;
+        int32_t blend_dst;
 
         // alpha blend
-        uint32_t alpha_blend_op;
-        uint32_t alpha_blend_src;
-        uint32_t alpha_blend_dst;
+        int32_t alpha_blend_op;
+        int32_t alpha_blend_src;
+        int32_t alpha_blend_dst;
 
         // cull mode
         uint32_t cullmode;
 
         // alpha test
         uint32_t alpha_test_enable;
-        uint32_t alpha_test_func;
+        int32_t alpha_test_func;
         float alpha_test_ref;
 
         // stencil
@@ -132,16 +140,24 @@ private:
 
     void InitStates();
     void InitXe();
+    
+    /**
+     * Post process
+     */
+    void InitPostProcess();
+    void RenderPostProcess();
+    void BeginPostProcess();
+    void EndPostProcess();
 
     void Lock();
     void Unlock();
 public:
+    
 
     /**
      * texture
      */
-
-    void SetTexture(struct XenosSurface * s);
+    void SetTexture(GpuTex * s);
     void EnableTexture();
     void DisableTexture();
 
@@ -236,12 +252,14 @@ public:
     void SetOrtho(float l, float r, float b, float t, float zn, float zf);
 
     // textures
-    void DestroyTexture(XenosSurface *surf);
-    XenosSurface * CreateTexture(unsigned int width, unsigned int height, int format);
+    void DestroyTexture(GpuTex *surf);
+    GpuTex * CreateTexture(unsigned int width, unsigned int height, int format);
 
     void SetTextureFiltering(int filtering_mode) {
+#ifndef WIN32
         if (m_RenderStates.surface)
             m_RenderStates.surface->use_filtering = filtering_mode;
+#endif
     }
     
     void NextVertice();
@@ -252,7 +270,7 @@ extern GpuRenderer gpuRenderer;
 
 // tex
 void xeGfx_setTextureData(void * tex, void * buffer);
-void XeTexSubImage(struct XenosSurface * surf, int srcbpp, int dstbpp, int xoffset, int yoffset, int width, int height, const void * buffer);
+void XeTexSubImage(GpuTex * surf, int srcbpp, int dstbpp, int xoffset, int yoffset, int width, int height, const void * buffer);
 
 static inline void DoBufferSwap() {
     gpuRenderer.Render();

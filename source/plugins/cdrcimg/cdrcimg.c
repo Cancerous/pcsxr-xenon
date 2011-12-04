@@ -24,6 +24,8 @@
 
 #define CD_FRAMESIZE_RAW 2352
 
+#define TR {printf("[Trace] in function %s, line %d, file %s\n",__FUNCTION__,__LINE__,__FILE__);}
+
 enum {
     CDRC_ZLIB,
     CDRC_ZLIB2,
@@ -453,7 +455,7 @@ long CDRCIMGopen(void) {
     fseek(f, 0, SEEK_SET);
 
     if (table_size > 4 * 1024 * 1024) {
-        err(".table too large\n");
+        err(".table too large - %d\n",table_size);
         goto fail_table_io;
     }
 
@@ -471,8 +473,18 @@ long CDRCIMGopen(void) {
             //    2 bytes: the length of the compressed frame
             // .znx.table has 4 additional bytes (xa header??)
             u.znxtab_entry.dontcare = 0;
+            
+            // dump to usb
+            //FILE * fdump = fopen("uda:/dump.tmp","wb");
+            
             for (i = 0; i < cd_index_len; i++) {
+                memset(&u,0,tabentry_size);
                 ret = fread(&u, 1, tabentry_size, f);
+                
+                //fwrite(&u, 1, tabentry_size, fdump);
+                //printf("tabentry_size : %d\r\n",tabentry_size);
+                //buffer_dump(&u,tabentry_size);
+                //exit(0);
                 if (ret != tabentry_size) {
                     err(".table read failed on entry %d/%d\n", i, cd_index_len);
                     goto fail_table_io_read;
@@ -484,7 +496,10 @@ long CDRCIMGopen(void) {
                 cd_index_table[i] = u.ztab_entry.offset;
                 //if (u.znxtab_entry.dontcare != 0)
                 //	printf("znx %08x!\n", u.znxtab_entry.dontcare);
+                
             }
+            //fclose(fdump);
+            
             // fake entry, so that we know last compressed block size
             cd_index_table[i] = u.ztab_entry.offset + u.ztab_entry.size;
             cd_sectors_per_blk = 1;
@@ -529,5 +544,6 @@ fail_table_io:
 }
 
 void cdrcimg_set_fname(const char *fname) {
+    TR;
     cd_fname = fname;
 }

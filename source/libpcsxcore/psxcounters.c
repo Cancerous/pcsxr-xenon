@@ -108,7 +108,7 @@ void verboseLog( s32 level, const char *str, ... )
 }
 */
 
-#define verboseLog 
+#define verboseLog(...)
 
 /******************************************************************************/
 
