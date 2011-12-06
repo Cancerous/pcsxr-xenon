@@ -1,10 +1,12 @@
 // lzx.cpp : Defines the entry point for the application.
 //
 
-#ifdef LZX_GUI
+//#ifdef LZX_GUI
+#if 1
 
 extern "C" {
     int pcsxmain(const char * cdfile);
+    #include "psxcommon.h"
 }
 #include <iostream>
 #include <string>
@@ -82,144 +84,232 @@ xenon_smc_send_message(msg);
 //--------------------------------------------------------------------------
 //  Gui action
 //--------------------------------------------------------------------------
-static int xavalue = 0;
-static int spuvalue = 0;
-static char psxBios[256];
-static int selected_bios = 0;
-static int slowboot = 0;
-static int cpu = 0;
+lpBrowserActionEntry xa; // enable disable
+lpBrowserActionEntry slowboot; // enable disable
+lpBrowserActionEntry spuirq; // enable disable
+lpBrowserActionEntry cdda; // enable disable
 
-extern "C" int GetXaGui() {
-    return xavalue;
+lpBrowserActionEntry bios; // scph7502.bin ...
+lpBrowserActionEntry region; // auto pal ntsc
+
+
+lpBrowserActionEntry gpuplugin; // soft hw
+lpBrowserActionEntry spuplugin; // dfaudio shalma
+lpBrowserActionEntry inputplugin; // dfaudio shalma
+
+static int gpuplugins = 0;
+static int spuplugins = 0;
+static int inputplugins = 0;
+
+static int use_soft_gpu_plugin = 0;
+
+extern "C" int useGpuSoft(){
+    return use_soft_gpu_plugin;
 }
 
-extern "C" int GetSpuIrqGui() {
-    return spuvalue;
-}
-
-extern "C" const char * GetBiosGui() {
-    return psxBios;
-}
-
-extern "C" int GetSlowbootGui() {
-    return slowboot;
-}
-
-extern "C" int GetCpuGui() {
-    return cpu;
-}
-
-std::string cpuName(){
-    if(cpu)
-        return "Cpu: Interpreter";
+void setGpuPluginName(){
+    if(use_soft_gpu_plugin)
+        gpuplugin->name = "Soft Gpu plugin";
     else
-        return "Cpu: Dynarec";
+        gpuplugin->name = "HW Gpu plugin (W.I.P)";
 }
 
-std::string xaName(){
-    if(xavalue)
-        return "XA: Disabled";
+void gpu_action(void*p){
+    use_soft_gpu_plugin=!use_soft_gpu_plugin;
+    setGpuPluginName();
+}
+
+
+//xa
+void setXaName(){
+    if(Config.Xa)
+        xa->name="Xa disabled";
     else
-        return "XA: Enabled";
+        xa->name="Xa enabled";
 }
-std::string slowbootName(){
-    if(slowboot)
-        return "Slowboot: enabled";
+void xa_action(void* param){
+    Config.Xa = !Config.Xa;
+    setXaName();
+}
+
+// cdda
+void setCdName(){
+    if(Config.Cdda)
+        cdda->name="Cdda disabled";
     else
-        return "Slowboot: Disabled";
+        cdda->name="Cdda enabled";
 }
-std::string spuName(){
-    if(spuvalue)
-        return "Spu Irq not Always Enabled";
+void cdda_action(void*p){
+    Config.Cdda = !Config.Cdda;
+    setCdName();
+}
+
+// slowboot
+void setSbName(){
+    if(Config.SlowBoot)
+        slowboot->name="Slowboot enabled";
     else
-        return "Spu Irq Always Enabled";
+        slowboot->name="Slowboot disabled";
+}
+void slowboot_action(void*p){
+    Config.SlowBoot = !Config.SlowBoot;
+    setSbName();
 }
 
-
-void ToggleCpu(void* param){
-    lpBrowserActionEntry action = (lpBrowserActionEntry)param;
-    cpu = !cpu;
-    action->name = cpuName();
+// spuirq
+void setSIRQName(){
+    if(Config.SpuIrq)
+        spuirq->name="Spu Irq enabled";
+    else
+        spuirq->name="Spu Irq disabled";
 }
+void spuirq_action(void*p){
+    Config.SpuIrq = !Config.SpuIrq;
+    setSIRQName();
+}
+// bios
+static std::string bios_name[]={
+    "scph1001.bin",
+    "scph7502.bin" ,
+    "HLE (not working)"
+};
 
-void ToggleBios(void* param){
-    lpBrowserActionEntry action = (lpBrowserActionEntry)param;
-    if (selected_bios == 0) {
-        action->name = "Bios: scph1001.bin";
-        strcpy(psxBios, "scph1001.bin");
+static int sbios = 0;
 
-        selected_bios++;
-    } else {
-        action->name = "Bios: scph7502.bin";
-        strcpy(psxBios, "scph7502.bin");
+void setBios(){
+    sbios++;
+    
+    if(sbios==3)
+        sbios=0;
+    
+    switch(sbios){
+        case 0:
+            strcpy(Config.Bios,"scph1001.bin");
+            Config.HLE=0;
+            bios->name = "Bios: scph1001";
+            break;
 
-        selected_bios = 0;
+        case 1:
+            strcpy(Config.Bios,"scph7502.bin");
+            bios->name = "Bios: scph7502";
+            Config.HLE=0;
+            break;
+
+        case 2:
+            strcpy(Config.Bios,"");
+            bios->name = "Bios: HLE (not working)";
+            Config.HLE=1;
+            break;
     }
 }
 
-void ToggleXa(void* param){
-    lpBrowserActionEntry action = (lpBrowserActionEntry)param;
-    xavalue = !xavalue;
-    action->name = xaName();
+void bios_action(void*p){
+    setBios();
 }
 
-void ToggleSpuIrq(void* param){
-    lpBrowserActionEntry action = (lpBrowserActionEntry)param;
-    spuvalue=!spuvalue;
-    action->name = spuName();
+// Region
+static int region_s=0;
+
+void setRegion(){
+    region_s++;
+    if(region_s==3)
+        region_s=0;
+    
+    if(region_s==0) // region auto..
+    {
+        Config.PsxAuto = 1;
+    }
+    else
+    {
+        Config.PsxAuto = 0;
+        Config.PsxType = (region_s==1)?PSX_TYPE_NTSC:PSX_TYPE_PAL;
+    }
+    switch(region_s){
+        case 0:
+            region->name = "Region: Auto";
+            break;
+            
+        case 1:
+            region->name ="Region: Ntsc";
+            break;
+        case 2:
+            region->name = "Region: Pal";
+            break;
+    }
 }
 
-void ToggleSlowBoot(void* param) {
-    lpBrowserActionEntry action = (lpBrowserActionEntry)param;
-    slowboot = !slowboot;
-    action->name = slowbootName();
+void region_action(void*p){
+    setRegion();
 }
+
+void InitActionEntry(){
+    memset(&Config, 0, sizeof (PcsxConfig));
+    {
+        gpuplugin = new BrowserActionEntry;
+        gpuplugin->action = gpu_action;
+        setGpuPluginName();
+        App.AddAction(gpuplugin);
+    }
+    
+    {
+        xa = new BrowserActionEntry;
+        xa->action = xa_action;
+        setXaName();
+        App.AddAction(xa);
+    }
+    {
+        cdda = new BrowserActionEntry;
+        cdda->action = cdda_action;
+        setCdName();
+        App.AddAction(cdda);
+    }
+    {
+        slowboot = new BrowserActionEntry;
+        slowboot->action = slowboot_action;
+        setSbName();
+        App.AddAction(slowboot);
+    }
+    {
+        spuirq = new BrowserActionEntry;
+        spuirq->action = spuirq_action;
+        setSIRQName();
+        App.AddAction(spuirq);
+    }
+    
+    {
+        bios = new BrowserActionEntry;
+        bios->action = bios_action;
+        bios->name = "Bios: scph1001";
+        strcpy(Config.Bios,"scph1001.bin");
+        App.AddAction(bios);
+    }
+   
+    {
+        region = new BrowserActionEntry;
+        region->action = region_action;
+        region->name = "Region: Auto";
+        Config.PsxAuto = 1;
+        App.AddAction(region);
+    }
+
+}
+
+
 
 extern "C" void GuiAlert(const char *message) {
     App.Alert(message);
 }
 
 int main() {
+    xenos_init(VIDEO_MODE_AUTO);
+    
     Hw::SystemInit(INIT_SOUND|INIT_VIDEO|INIT_USB);
     closeTray();
     App.SetLaunchAction((void (*)(char*))pcsxmain);
-    strcpy(psxBios, "scph7502.bin");
     
-    {
-        lpBrowserActionEntry action = new BrowserActionEntry();
-        action->name = "Bios: scph7502.bin";
-        action->action = ToggleBios;
-        action->param = NULL;
-        App.AddAction(action);
-    }
-    {
-        lpBrowserActionEntry action = new BrowserActionEntry();
-        action->name = cpuName();
-        action->action = ToggleCpu;
-        action->param = NULL;
-        App.AddAction(action);
-    }
-    {
-        lpBrowserActionEntry action = new BrowserActionEntry();
-        action->name = xaName();
-        action->action = ToggleXa;
-        action->param = NULL;
-        App.AddAction(action);
-    }
-    {
-        lpBrowserActionEntry action = new BrowserActionEntry();
-        action->name = spuName();
-        action->action = ToggleSpuIrq;
-        action->param = NULL;
-        App.AddAction(action);
-    }
-    {
-        lpBrowserActionEntry action = new BrowserActionEntry();
-        action->name = slowbootName();
-        action->action = ToggleSlowBoot;
-        action->param = NULL;
-        App.AddAction(action);
-    }
+    
+    
+    InitActionEntry();
     
     
     App.Run("uda://pcsxr/");

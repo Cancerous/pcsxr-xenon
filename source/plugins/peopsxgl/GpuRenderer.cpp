@@ -76,6 +76,12 @@ extern "C" {
     void systemPoll(); // main.c
 }
 
+static int postprocessenabled = 0;
+
+extern "C" void enablePostProcess(int enable){
+    postprocessenabled = enable;
+}
+
 
 void GpuRenderer::BeginPostProcess(){
 //    Xe_SetIndices(xe, pIb);
@@ -88,30 +94,36 @@ void GpuRenderer::EndPostProcess(){
 };
 
 void GpuRenderer::RenderPostProcess(){
-//    Xe_Resolve(xe);
-//    Xe_Sync(xe);
-//
-//    Xe_InvalidateState(xe);
-//    
-//    EndPostProcess();
-//    
-//    Xe_SetCullMode(xe, XE_CULL_NONE);
-//    
-//    // set shaders
-//    Xe_SetShader(xe,SHADER_TYPE_PIXEL,g_pPixelShaderPost,0);
-//    Xe_SetShader(xe,SHADER_TYPE_VERTEX,g_pVertexShaderPost,0);
-//    // 
-//    Xe_SetTexture(xe,0,pPostRenderSurface);
-//     //Xe_SetTexture(xe,0,pRenderSurface);
-//    //
-//    Xe_SetStreamSource(xe, 0, pVbPost, 0, sizeof (fxaa_vb));
-//    Xe_SetIndices(xe, NULL);
-//    // draw 
-//    Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLELIST, 0, 1);
-//    // resolve
-//    Xe_Resolve(xe);
-//    Xe_Sync(xe); // wait for background render to finish !
-//    //Xe_InvalidateState(xe);
+    if(postprocessenabled){
+        //Xe_Resolve(xe);
+        Xe_ResolveInto(xe,pPostRenderSurface,XE_SOURCE_COLOR,XE_CLEAR_DS);
+        Xe_Sync(xe);
+
+        Xe_InvalidateState(xe);
+
+        EndPostProcess();
+
+        Xe_SetCullMode(xe, XE_CULL_NONE);
+
+        // set shaders
+        Xe_SetShader(xe,SHADER_TYPE_PIXEL,g_pPixelShaderPost,0);
+        Xe_SetShader(xe,SHADER_TYPE_VERTEX,g_pVertexShaderPost,0);
+        // 
+        Xe_SetTexture(xe,0,pPostRenderSurface);
+         //Xe_SetTexture(xe,0,pRenderSurface);
+        //
+        Xe_SetStreamSource(xe, 0, pVbPost, 0, sizeof (fxaa_vb));
+        Xe_SetIndices(xe, NULL);
+        // draw 
+        Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLELIST, 0, 1);
+        // resolve
+        //Xe_Resolve(xe);
+        //Xe_Sync(xe); // wait for background render to finish !
+        //Xe_InvalidateState(xe);
+
+        // restore shader
+        Xe_SetShader(xe, SHADER_TYPE_VERTEX, g_pVertexShader, 0);
+    }
 }
 
 void GpuRenderer::InitPostProcess(){
@@ -132,9 +144,12 @@ void GpuRenderer::InitPostProcess(){
     
     Xe_ShaderApplyVFetchPatches(xe, g_pVertexShaderPost, 0, &vbf);
     
+    printf("g_pPixelShaderPost = %p\r\n",g_pPixelShaderPost);
+    printf("g_pVertexShaderPost = %p\r\n",g_pVertexShaderPost);
+    
     // create render texture - all data will be rendering into
     pPostRenderSurface = Xe_CreateTexture(xe, pRenderSurface->width, pRenderSurface->height, 0, XE_FMT_8888 | XE_FMT_ARGB, 1);
-    pPostRenderSurface->use_filtering = 0;
+    pPostRenderSurface->use_filtering = 1;
     //Xe_SetRenderTarget(xe, pPostRenderSurface);
     
     // create post vb
@@ -184,6 +199,8 @@ void GpuRenderer::InitPostProcess(){
         }
     }
     Xe_VB_Unlock(xe, pVbPost);
+    
+    BeginPostProcess();
 }
 
 void GpuRenderer::StatesChanged() {
@@ -327,11 +344,11 @@ void GpuRenderer::InitXe() {
     edram_init(xe);
 
     for(int i=0;i<60;i++){
-        Xe_InvalidateState(xe);
         Xe_Resolve(xe);
         Xe_Sync(xe);
     }
     
+    Xe_InvalidateState(xe);
 }
 
 
@@ -547,7 +564,7 @@ void GpuRenderer::Init() {
     pIb = Xe_CreateIndexBuffer(xe, MAX_VERTEX_COUNT * sizeof (uint16_t), XE_FMT_INDEX16);
     
     
-//    InitPostProcess();
+    InitPostProcess();
     Lock();
 }
 
@@ -637,7 +654,7 @@ void GpuRenderer::Render() {
     Unlock();
 
     // Resolve in temporary surface
-    //RenderPostProcess();
+    RenderPostProcess();
     
     Xe_Resolve(xe);    
     Xe_Sync(xe); // wait for background render to finish !
@@ -751,7 +768,7 @@ void GpuRenderer::DestroyTexture(XenosSurface *surf) {
 };
 
 XenosSurface * GpuRenderer::CreateTexture(unsigned int width, unsigned int height, int format) {
-    return Xe_CreateTexture(xe, width, height, 1, format, 0);
+    return Xe_CreateTexture(xe, width, height, 0, format, 0);
 }
 
 /**

@@ -2,7 +2,7 @@
 #include "record.h"
 #include "externals.h"
 #include <stdio.h>
-
+#include <xetypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,8 +13,16 @@
 #include <byteswap.h>
 #include <time/time.h>
 
+unsigned long LastWrite = 0xffffffff;
+unsigned long LastPlay = 0;
+unsigned int LastPlayTotal;
+
 int output_channels = 2;
 int output_samplesize = 4;
+
+
+unsigned char mixer_playbuf[ SOUNDSIZE ];
+
 
 #define MAX_UNPLAYED 32768
 #define BUFFER_SIZE 65536
@@ -23,21 +31,6 @@ static char buffer[BUFFER_SIZE];
 static double freq_ratio;
 
 static int buffer_size = 1024;
-
-// Define types
-typedef int8_t s8;
-typedef int16_t s16;
-typedef int32_t s32;
-typedef int64_t s64;
-typedef intptr_t sptr;
-
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-typedef uintptr_t uptr;
-
-typedef uint8_t boolean;
 
 static s16 prevLastSample[2] = {0, 0};
 
@@ -96,6 +89,10 @@ static void inline add_to_buffer(void* stream, unsigned int length) {
  * SETUP SOUND
  */
 void SetupSound(void) {
+    LastPlayTotal = 0;
+    LastPlay = 0;
+    LastWrite = 0xffffffff;
+    
     freq_ratio = 48000.0f / 44100.0f;
 }
 
@@ -103,13 +100,25 @@ void SetupSound(void) {
  * REMOVE SOUND
  */
 void RemoveSound(void) {
+    LastWrite = 0xffffffff;
 }
 
 /*
  * GET BYTES BUFFERED
  */
 unsigned long SoundGetBytesBuffered(void) {
-    return xenon_sound_get_unplayed();
+    int size = xenon_sound_get_unplayed();
+    // edge boundaries
+    if( LastWrite == 0xffffffff ) return 0;
+    
+    if( LastPlay < LastWrite ) size = LastWrite - LastPlay;
+    else size = ( SOUNDSIZE - LastPlay ) + LastWrite;
+    
+    if( size > FULLMAX ) {
+        size = 0;
+    }
+    
+    return size;
 }
 
 /*
@@ -121,18 +130,6 @@ void SoundFeedStreamData(unsigned char* pSound, long lBytes) {
     add_to_buffer(pSound, lBytes);
 }
 
-void ResetSound()
-{
-    // fast-forward lag?
-    CDDAPlay  = CDDAStart;
-    CDDAFeed  = CDDAStart;
-
-    XAPlay  = XAStart;
-    XAFeed  = XAStart;
-
-}
-
-
 #if 0
 unsigned long timeGetTime() {
     /*
@@ -143,3 +140,39 @@ unsigned long timeGetTime() {
     return mftb()/(PPC_TIMEBASE_FREQ/100000);
 }
 #endif
+
+
+int SoundBufferReady()
+{
+    return 1;
+}
+
+int SoundGetSamplesBuffered()
+{
+	return SoundGetBytesBuffered() / output_samplesize;
+}
+
+
+void SoundPhantomPad()
+{
+
+}
+
+void SoundRecordStreamData(unsigned char* pSound,long lBytes)
+{
+
+}
+
+
+void ResetSound()
+{
+    // fast-forward lag?
+    CDDAPlay  = CDDAStart;
+    CDDAFeed  = CDDAStart;
+
+    XAPlay  = XAStart;
+    XAFeed  = XAStart;
+
+
+    LastWrite = 0xffffffff;
+}

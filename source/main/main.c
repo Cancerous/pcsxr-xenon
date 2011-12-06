@@ -11,6 +11,12 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include "gamecube_plugins.h"
+
+extern void httpd_start(void);
+
+extern PluginTable plugins[];
+
 #ifndef LZX_GUI
 // #define cdfile "uda:/psxisos/BREATH_OF_FIRE3.BIN"
 #define cdfile "uda:/psxisos/MEGAMAN8.BIN"
@@ -84,8 +90,11 @@
 //#define cdfile "sda:/hdd1/xenon/psx/Tekken 3 (USA)/Tekken 3 (USA) (Track 1).bin.Z"
 //#define cdfile "sda:/hdd1/xenon/psx/R4 - Ridge Racer Type 4 (USA).bin"
 //#define cdfile "uda:/CTR - Crash Team Racing (USA).bin"
-#define cdfile "uda:/Street Fighter Alpha - Warriors' Dreams (USA) (Track 01).bin"
+//#define cdfile "uda:/Street Fighter Alpha - Warriors' Dreams (USA) (Track 01).bin"
+// #define cdfile "uda:/Tekken 3 (USA) (Track 1).bin.Z"
 //
+#define cdfile "uda:/R4 - Ridge Racer Type 4 (USA).bin.Z"
+
 #endif
 void printConfigInfo() {
 
@@ -146,16 +155,17 @@ void SetIso(const char * fname){
     //exit(0);
 }
 
-extern void httpd_start(void);
+
+
 
 #ifndef LZX_GUI
 int main() {
     
     xenon_make_it_faster(XENON_SPEED_FULL);
-    xenos_init(VIDEO_MODE_AUTO);
+    
     xenon_sound_init();
     //xenos_init(VIDEO_MODE_YUV_720P);
-    console_init();
+    //console_init();
     
     
     
@@ -166,6 +176,7 @@ int main() {
     //xenon_ata_init();
 
 //    xenon_atapi_init();
+    memset(&Config, 0, sizeof (PcsxConfig));
     
 #else
 int pcsxmain(const char * cdfile) {
@@ -181,7 +192,7 @@ int pcsxmain(const char * cdfile) {
     //network_init();
     //network_print_config();
     
-    console_close();
+    //console_close();
     
     xenon_smc_start_bootanim(); // tell me that telent or http are ready
     
@@ -193,7 +204,7 @@ int pcsxmain(const char * cdfile) {
     // uart speed patch 115200 - jtag/freeboot
     // *(volatile uint32_t*)(0xea001000+0x1c) = 0xe6010000;
 
-    memset(&Config, 0, sizeof (PcsxConfig));
+    //memset(&Config, 0, sizeof (PcsxConfig));
     strcpy(Config.Net, "Disabled");
     strcpy(Config.Cdr, "CDR");
     strcpy(Config.Gpu, "GPU");
@@ -216,19 +227,14 @@ int pcsxmain(const char * cdfile) {
     Config.Cdda = 0; // Disable Cd audio
     Config.PsxAuto = 1; // autodetect system
     //Config.PsxType = PSX_TYPE_NTSC;
-#else
-    Config.SpuIrq = GetSpuIrqGui(); // Spu Irq Always Enabled
-    Config.Xa = GetXaGui(); // Disable Xa Decoding
-    Config.SlowBoot = GetSlowbootGui();
-    Config.Cpu = GetCpuGui();
-    strcpy(Config.Bios, GetBiosGui());
-   // strcpy(Config.Bios, "scph7502.bin");
-#endif
     Config.Cpu = CPU_DYNAREC;
-    //Config.RCntFix = 1;// parasite eve fix ?
-   // Config.Cpu = CPU_INTERPRETER;
-//    Config.SlowBoot = 0; // Active bios
+#else
 
+    if(useGpuSoft()){
+        PluginTable softGpu = GPU_PEOPS_PLUGIN;
+        plugins[5] = softGpu;
+    }
+#endif
     strcpy(Config.Mcd1, "uda:/pcsxr/memcards/card1.mcd");
     strcpy(Config.Mcd2, "uda:/pcsxr/memcards/card2.mcd");
 
