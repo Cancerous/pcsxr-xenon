@@ -54,7 +54,7 @@ using namespace xegpu;
 static char * pCaptionText = NULL;
 
 #define Xe_Resolve
-#define Xe_SetScissor
+#define Xe_SetScissor(...)
 #define Xe_Clear
 
 
@@ -67,8 +67,6 @@ namespace xegpu{
     const unsigned char revision = 1;
     const unsigned char build = 78;
 
-    static char * libraryName = (char*)"libxenon driver based on PEOPSXGL";
-    static char * libraryInfo = (char*)"Based on P.E.Op.S. MesaGL Driver V1.78\nCoded by Pete Bernert\n";
 
     ////////////////////////////////////////////////////////////////////////
     // memory image of the PSX vram
@@ -165,7 +163,7 @@ namespace xegpu{
 ////////////////////////////////////////////////////////////////////////
 
 EXTERN char * CALLBACK PSEgetLibName(void) {
-    return libraryName;
+    return (char*)"libxenon driver based on PEOPSXGL";
 }
 
 EXTERN unsigned long CALLBACK PSEgetLibType(void) {
@@ -177,7 +175,7 @@ EXTERN unsigned long CALLBACK PSEgetLibVersion(void) {
 }
 
 char * GPUgetLibInfos(void) {
-    return libraryInfo;
+    return (char*)"Based on P.E.Op.S. MesaGL Driver V1.78\nCoded by Pete Bernert\n";
 }
 
 ////////////////////////////////////////////////////////////////////////

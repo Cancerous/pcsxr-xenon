@@ -165,7 +165,8 @@ public:
      * Clear
      */
     void Clear(uint32_t flags);
-    void ClearColor(float a, float r, float g, float b);
+    // void ClearColor(float a, float r, float g, float b);
+    void ClearColor(uint8_t a, uint8_t r, uint8_t g, uint8_t b);
     // fillmode
 
     /**

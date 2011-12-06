@@ -76,7 +76,7 @@ using namespace xegpu;
 #define ST_OFFSET          0.5f;
 
 #endif
-#define Xe_SetScissor
+#define Xe_SetScissor(...)
 ////////////////////////////////////////////////////////////////////////////////////
 // draw globals; most will be initialized again later (by config or checks)
 namespace xegpu {
@@ -525,7 +525,7 @@ int GLinitialize() {
 
     //glClearColor(0.0f, 0.0f, 0.0f, 0.0f); // first buffer clear
     //glClear(uiBufferBits);
-    gpuRenderer.ClearColor(0.0f, 0.0f, 0.0f, 0.0f); // first buffer clear
+    gpuRenderer.ClearColor(0, 0, 0, 0); // first buffer clear
     gpuRenderer.Clear(uiBufferBits);
 
     if (bUseLines) // funny lines

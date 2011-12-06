@@ -1985,13 +1985,13 @@ static void primBlkFill(unsigned char * baseAddr) {
                 (ly0 <= pd->DisplayPosition.y + 16) &&
                 (lx2 >= pd->DisplayEnd.x - 16) &&
                 (ly2 >= pd->DisplayEnd.y - 16)) {
-            GLclampf g, b, r;
-            g = ((GLclampf) GREEN(GETLE32(&gpuData[0]))) / 255.0f;
-            b = ((GLclampf) BLUE(GETLE32(&gpuData[0]))) / 255.0f;
-            r = ((GLclampf) RED(GETLE32(&gpuData[0]))) / 255.0f;
+            uint8_t g, b, r;
+            g = GREEN(GETLE32(&gpuData[0]));
+            b = BLUE(GETLE32(&gpuData[0]));
+            r = RED(GETLE32(&gpuData[0]));
 
             //glDisable(GL_SCISSOR_TEST);
-            gpuRenderer.ClearColor(r, g, b, 1.0f);
+            gpuRenderer.ClearColor(r, g, b, 255);
             gpuRenderer.Clear(uiBufferBits);
             gl_z = 0.0f;
 
