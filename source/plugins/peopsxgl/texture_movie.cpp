@@ -17,50 +17,47 @@ using namespace xegpu;
 #define XMRED(x)   ((x<<8)  & 0xf800)
 #define XMBLUE(x)  ((x>>18) & 0x003e)
 
-void DefineTextureMovie(void) {
+#define G_H     1024
+#define G_W     1024
 
-    if (gTexMovieName == 0) {
+static GpuTex * movie_surf = NULL;
 
-        gTexMovieName =gpuRenderer.CreateTexture(256, 256, FMT_A8R8G8B8);
-
-        xeGfx_setTextureData(gTexMovieName, texturepart);
-#ifndef WIN32
-        gTexMovieName->u_addressing = iClampType;
-        gTexMovieName->v_addressing = iClampType;
+GpuTex * XeDefineTextureMovie(void) {
+    if (movie_surf == 0) {
+        movie_surf = gpuRenderer.CreateTexture(G_W, G_H, FMT_A8R8G8B8);
+        
+        movie_surf->u_addressing = iClampType;
+        movie_surf->v_addressing = iClampType;
 
         if (!bUseFastMdec) {
-            gTexMovieName->use_filtering = XE_TEXF_LINEAR;
+            movie_surf->use_filtering = XE_TEXF_LINEAR;
         } else {
-            gTexMovieName->use_filtering = XE_TEXF_POINT;
+            movie_surf->use_filtering = XE_TEXF_POINT;
         }
-#endif
-        gTexName = gTexMovieName;
-    } else {
-        gTexName = gTexMovieName;
     }
-
-    XeTexSubImage(gTexName, 4, 4, 0, 0, (xrMovieArea.x1 - xrMovieArea.x0), (xrMovieArea.y1 - xrMovieArea.y0), texturepart);
+    return movie_surf;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // movie texture: load
 ////////////////////////////////////////////////////////////////////////
-unsigned char * LoadDirectMovieFast(void) {
+void XeLoadDirectMovieFast(void) {
     int row, column;
     unsigned int startxy;
 
-    uint32_t *ta = (uint32_t *) texturepart;
-
+    uint32_t * dest = (uint32_t *)gpuRenderer.TextureLock(movie_surf);
+    uint32_t * ta = dest; 
+    
     if (PSXDisplay.RGB24) {
         unsigned char * pD;
 
         startxy = ((1024) * xrMovieArea.y0) + xrMovieArea.x0;
 
-        for (column = xrMovieArea.y0; column < xrMovieArea.y1; column++, startxy += 1024) {
+        for (column = xrMovieArea.y0; column < xrMovieArea.y1; column++, startxy += 1024, ta+=(movie_surf->wpitch/4)) {
             pD = (unsigned char *) &psxVuw[startxy];
             for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++) {
                 uint32_t lu = *((uint32_t *) pD);
-                *ta++ = 0xff000000 | (RED(lu) << 16) | (BLUE(lu) << 8) | (GREEN(lu));
+                ta[row-xrMovieArea.x0]=0xff000000 | (RED(lu) << 16) | (BLUE(lu) << 8) | (GREEN(lu));
                 pD += 3;
             }
         }
@@ -71,22 +68,24 @@ unsigned char * LoadDirectMovieFast(void) {
 
         ubOpaqueDraw = 0;
 
-        for (column = xrMovieArea.y0; column < xrMovieArea.y1; column++) {
+        for (column = xrMovieArea.y0; column < xrMovieArea.y1; column++, ta+=(movie_surf->wpitch/4)) {
             startxy = ((1024) * column) + xrMovieArea.x0;
-            for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++)
-                *ta++ = LTCOL( bswap_32(psxVuw[startxy++] | 0x8000));
+            for (row = xrMovieArea.x0; row < xrMovieArea.x1; row++){
+                ta[row-xrMovieArea.x0]=LTCOL( bswap_32(psxVuw[startxy++] | 0x8000));
+            }
         }
     }
-
-    return texturepart;
+    
+    gpuRenderer.TextureUnlock(movie_surf);
 }
 
 ////////////////////////////////////////////////////////////////////////
 
 GpuTex * LoadTextureMovieFast(void) {
-    LoadDirectMovieFast();
-    DefineTextureMovie();
-    return gTexName;
+    XeDefineTextureMovie();
+    XeLoadDirectMovieFast();
+
+    return movie_surf;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -94,3 +93,4 @@ GpuTex * LoadTextureMovieFast(void) {
 GpuTex * LoadTextureMovie(void) {
     return LoadTextureMovieFast();
 }
+

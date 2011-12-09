@@ -1111,7 +1111,8 @@ GpuTex * BlackFake15BitTexture(void) {
     int pmult;
     short x1, x2, y1, y2;
 
-    if (PSXDisplay.InterlacedTest) return 0;
+    if (PSXDisplay.InterlacedTest) 
+        return 0;
 
     pmult = GlobalTexturePage / 16;
     x1 = gl_ux[7];
@@ -1130,46 +1131,21 @@ GpuTex * BlackFake15BitTexture(void) {
     if (FastCheckAgainstFrontScreen(x1, y1, x2, y2)
             || FastCheckAgainstScreen(x1, y1, x2, y2)) {
         if (!gTexFrameName) {
-            /*
-                 glGenTextures(1, &gTexFrameName);
-                 gTexName=gTexFrameName;
-                 glBindTexture(GL_TEXTURE_2D, gTexName);
 
-                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, iClampType);
-                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, iClampType);
-                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-             */
+            gTexFrameName = gpuRenderer.CreateTexture(4, 4, FMT_A8R8G8B8);
+            gTexFrameName->u_addressing = iClampType;
+            gTexFrameName->v_addressing = iClampType;
+            
 
-            if (bGLExt) {
-                unsigned short s;
-                unsigned short * ta;
+            uint32_t *ta = (uint32_t *) texturepart;
+            for (y1 = 0; y1 <= 4; y1++)
+                for (x1 = 0; x1 <= 4; x1++)
+                    *ta++ = 0xff000000;
 
-                /*
-                       if(giWantedTYPE==GL_UNSIGNED_SHORT_4_4_4_4_EXT)
-                            s=0x000f;
-                       else
-                 */
-                s = 0x0001;
-
-                ta = (unsigned short *) texturepart;
-                for (y1 = 0; y1 <= 4; y1++)
-                    for (x1 = 0; x1 <= 4; x1++)
-                        *ta++ = s;
-            } else {
-                uint32_t *ta = (uint32_t *) texturepart;
-                for (y1 = 0; y1 <= 4; y1++)
-                    for (x1 = 0; x1 <= 4; x1++)
-                        *ta++ = 0xff000000;
-            }
-            /*
-                 glTexImage2D(GL_TEXTURE_2D, 0, giWantedRGBA, 4, 4, 0, GL_RGBA, GL_UNSIGNED_BYTE, texturepart);
-             */
-        } else {
-            /*
-                 gTexName=gTexFrameName;
-                 glBindTexture(GL_TEXTURE_2D, gTexName);
-             */
+            xeGfx_setTextureData(gTexFrameName, texturepart);
+        } 
+        else {
+            gTexName=gTexFrameName;
         }
 
         ubOpaqueDraw = 0;
@@ -1181,6 +1157,7 @@ GpuTex * BlackFake15BitTexture(void) {
 
 /////////////////////////////////////////////////////////////////////////////
 GpuTex * Fake15BitTexture(void) {
+    return NULL;
     int pmult;
     short x1, x2, y1, y2;
     int iYAdjust;
@@ -1224,38 +1201,26 @@ GpuTex * Fake15BitTexture(void) {
 
     bDrawMultiPass = FALSE;
 
-    if (!gTexFrameName) {
-        char * p;
+    if (!gTexFrameName)
+    {
+        void * p;
 
         if (iResX > 1280 || iResY > 1024) iFTex = 2048;
         else
             if (iResX > 640 || iResY > 480) iFTex = 1024;
         else iFTex = 512;
 
-        /*
-           glGenTextures(1, &gTexFrameName);
-           gTexName=gTexFrameName;
-           glBindTexture(GL_TEXTURE_2D, gTexName);
-
-           glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, iClampType);
-           glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, iClampType);
-           glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-           glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-         */
-
-        p = (char *) malloc(iFTex * iFTex * 4);
+        gTexFrameName = gpuRenderer.CreateTexture(iFTex, iFTex, FMT_A8R8G8B8);
+        gTexFrameName->u_addressing = iClampType;
+        gTexFrameName->v_addressing = iClampType;
+        
+        p = Xe_Surface_LockRect(xe, gTexFrameName, 0, 0, 0, 0, XE_LOCK_WRITE);
         memset(p, 0, iFTex * iFTex * 4);
-        /*
-           glTexImage2D(GL_TEXTURE_2D, 0, 3, iFTex, iFTex, 0, GL_RGB, GL_UNSIGNED_BYTE, p);
-         */
-        free(p);
-
-        glGetError();
-    } else {
+        Xe_Surface_Unlock(xe, gTexFrameName);
+    } 
+    else 
+    {
         gTexName = gTexFrameName;
-        /*
-           glBindTexture(GL_TEXTURE_2D, gTexName);
-         */
     }
 
     x1 += PreviousPSXDisplay.Range.x0;
@@ -1352,6 +1317,9 @@ GpuTex * Fake15BitTexture(void) {
      if(bFakeFrontBuffer)
       {glReadBuffer(GL_BACK);bIgnoreNextTile=TRUE;}
      */
+    
+    bIgnoreNextTile=TRUE;
+    
     ubOpaqueDraw = 0;
 
     if (iSpriteTex) {

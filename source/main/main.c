@@ -91,9 +91,10 @@ extern PluginTable plugins[];
 //#define cdfile "sda:/hdd1/xenon/psx/R4 - Ridge Racer Type 4 (USA).bin"
 //#define cdfile "uda:/CTR - Crash Team Racing (USA).bin"
 //#define cdfile "uda:/Street Fighter Alpha - Warriors' Dreams (USA) (Track 01).bin"
-// #define cdfile "uda:/Tekken 3 (USA) (Track 1).bin.Z"
+//#define cdfile "uda:/Tekken 3 (USA) (Track 1).bin.Z"
 //
-#define cdfile "uda:/R4 - Ridge Racer Type 4 (USA).bin.Z"
+//#define cdfile "uda:/R4 - Ridge Racer Type 4 (USA).bin.Z"
+#define cdfile "uda:/Final Fantasy VII (USA) (Disc 1).bin"
 
 #endif
 void printConfigInfo() {
@@ -141,7 +142,6 @@ void SetIso(const char * fname){
     buffer_dump(header,0x10);
     
     if(header[0]==0x78 && header[1]==0xDA){
-    //if(1){
         printf("Use CDRCIMG for  %s\r\n",fname);
         strcpy(Config.Cdr, "CDRCIMG");
         cdrcimg_set_fname(fname);
@@ -151,31 +151,23 @@ void SetIso(const char * fname){
     }
     
     fclose(fd);
-    
-    //exit(0);
 }
-
-
-
 
 #ifndef LZX_GUI
 int main() {
-    
+    xenos_init(VIDEO_MODE_AUTO);
     xenon_make_it_faster(XENON_SPEED_FULL);
     
     xenon_sound_init();
     //xenos_init(VIDEO_MODE_YUV_720P);
     //console_init();
-    
-    
-    
     usb_init();
-    
     usb_do_poll();
     
-    //xenon_ata_init();
-
-//    xenon_atapi_init();
+/*
+xenon_ata_init();
+xenon_atapi_init();
+*/
     memset(&Config, 0, sizeof (PcsxConfig));
     
 #else
@@ -194,7 +186,7 @@ int pcsxmain(const char * cdfile) {
     
     //console_close();
     
-    xenon_smc_start_bootanim(); // tell me that telent or http are ready
+    xenon_smc_start_bootanim(); // tell me that telnet or http are ready
     
     // telnet_console_init();
     // mdelay(5000);
@@ -218,7 +210,7 @@ int pcsxmain(const char * cdfile) {
 /*
     strcpy(Config.BiosDir, "sda:/hdd1/xenon/bios");
 */
-#ifndef LZX_GUI
+
     strcpy(Config.Bios, "scph7502.bin");
     Config.PsxOut = 0; // Enable Console Output 
     Config.SpuIrq = 0; // Spu Irq Always Enabled
@@ -228,13 +220,14 @@ int pcsxmain(const char * cdfile) {
     Config.PsxAuto = 1; // autodetect system
     //Config.PsxType = PSX_TYPE_NTSC;
     Config.Cpu = CPU_DYNAREC;
-#else
-
+    
+#ifdef LZX_GUI
     if(useGpuSoft()){
         PluginTable softGpu = GPU_PEOPS_PLUGIN;
         plugins[5] = softGpu;
     }
 #endif
+    
     strcpy(Config.Mcd1, "uda:/pcsxr/memcards/card1.mcd");
     strcpy(Config.Mcd2, "uda:/pcsxr/memcards/card2.mcd");
 
@@ -243,16 +236,6 @@ int pcsxmain(const char * cdfile) {
     strcpy(Config.Mcd2, "sda:/hdd1/xenon/memcards/card2.mcd");
 */
 
-    
-    //SysPrintf("Init ...");
-#ifndef PCSXDF
-/*
-    SetIsoFile(cdfile);// disable use of cdrplugins...
-    strcpy(Config.Cdr, "CDRCIMG");
-    //cdrcimg_set_fname("uda:/psxisos/Street Fighter Alpha 2 (USA)/Street Fighter Alpha 2 (USA) (Track 1).bin.z");
-    cdrcimg_set_fname("uda:/psxisos/Tekken 3 (USA)/Tekken 3 (USA) (Track 1).bin.z");
-*/
-#endif
     SetIso(cdfile);
     if (LoadPlugins() == 0) {
         if (OpenPlugins() == 0) {
@@ -275,7 +258,6 @@ int pcsxmain(const char * cdfile) {
             int ret = CheckCdrom();
             if (CheckCdrom() != 0)
             {
-                SysPrintf("CheckCdrom: %08x\r\n", ret);
 #ifdef LZX_GUI
                 void GuiAlert(const char *message);
                 GuiAlert("Can't continue ... invalide cd-image detected ...");
@@ -285,7 +267,6 @@ int pcsxmain(const char * cdfile) {
             ret = LoadCdrom();
             if (ret != 0)
             {
-                SysPrintf("LoadCdrom: %08x\r\n", ret);
 #ifdef LZX_GUI
                 void GuiAlert(const char *message);
                 GuiAlert("Can't continue ... no executable found ...");

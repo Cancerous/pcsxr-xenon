@@ -20,8 +20,8 @@
 #include "stdafx.h"
 #include "externals.h"
 
-//extern BOOL bGteAccuracy;
-static BOOL bGteAccuracy = TRUE;
+extern BOOL bGteAccuracy;
+//BOOL bGteAccuracy = TRUE;
 //float ***gteCoords = NULL;
 
 typedef float (*gteCoords_t)[0x800 * 2][2];

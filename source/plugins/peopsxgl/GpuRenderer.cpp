@@ -23,6 +23,9 @@
 #endif
 #include "GpuRenderer.h"
 
+// instance
+GpuRenderer gpuRenderer;
+
 typedef unsigned int DWORD;
 #include "psx.ps.h"
 #include "psx.ps.f.h"
@@ -36,9 +39,6 @@ typedef unsigned int DWORD;
 #define MAX_VERTEX_COUNT 65536
 #define MAX_INDICE_COUNT 65536
 
-
-#define BUFF_VB
-
 static int nb_vertices = 0;
 static int nb_indices = 0;
 
@@ -47,23 +47,22 @@ static XenosDevice _xe;
 
 static int16_t indices_strip[] = {0, 1, 2, 2, 1, 3};
 static int16_t indices_quad[] = {0, 1, 2, 0, 2, 3};
-// instance
-GpuRenderer gpuRenderer;
 
-int vbBaseVertexIndex = 0;
+static int vbBaseVertexIndex = 0;
 
 
 struct fxaa_vb{
     float x, y, z, w; // pos
     float u, v; //tex coord
 };
+
 enum {
     UvBottom = 0,
     UvTop,
     UvLeft,
     UvRight
 };
-float ScreenUv[4] = {0.f, 1.0f, 1.0f, 0.f};
+static float ScreenUv[4] = {0.f, 1.0f, 1.0f, 0.f};
 
 #ifdef LZX_GUI
 extern "C" {
@@ -93,6 +92,9 @@ void GpuRenderer::EndPostProcess(){
     //Xe_SetRenderTarget(xe, pRenderSurface);
 };
 
+/**
+ * Slow
+ */
 void GpuRenderer::RenderPostProcess(){
     if(postprocessenabled){
         //Xe_Resolve(xe);
@@ -208,12 +210,13 @@ void GpuRenderer::StatesChanged() {
 }
 
 void GpuRenderer::UpdatesStates() {
-    if (b_StatesChanged) {
-/**
- * HACK
- */    
+    //if (b_StatesChanged) 
+    {
         if(m_RenderStates.surface){
-            m_RenderStates.surface->use_filtering = XE_TEXF_POINT;
+            
+            //m_RenderStates.surface->use_filtering = XE_TEXF_POINT;
+            if(postprocessenabled)
+                m_RenderStates.surface->use_filtering = XE_TEXF_LINEAR;
         }
         Xe_SetTexture(xe, 0, m_RenderStates.surface);
 
@@ -233,14 +236,19 @@ void GpuRenderer::UpdatesStates() {
         Xe_SetZWrite(xe, m_RenderStates.z_enable);
         Xe_SetZFunc(xe, m_RenderStates.z_func);
         
+        //nw
+        Xe_SetStencilEnable(xe,1);
+        Xe_SetStencilFunc(xe,3,XE_CMP_ALWAYS);
+        Xe_SetStencilWriteMask(xe,3,2);
+        Xe_SetStencilOp(xe,3,-1,XE_STENCILOP_INCR,XE_STENCILOP_ZERO);
         
         Xe_SetClearColor(xe, m_RenderStates.clearcolor);
 
-        if (m_RenderStates.surface == NULL) {
-            Xe_SetShader(xe, SHADER_TYPE_PIXEL, g_pPixelShaderC, 0);
-        } else {
-            Xe_SetShader(xe, SHADER_TYPE_PIXEL, g_pPixelShaderG, 0);
-        }
+//        if (m_RenderStates.surface == NULL) {
+//            Xe_SetShader(xe, SHADER_TYPE_PIXEL, g_pPixelShaderC, 0);
+//        } else {
+//            Xe_SetShader(xe, SHADER_TYPE_PIXEL, g_pPixelShaderG, 0);
+//        }
     }
 }
 
@@ -289,7 +297,7 @@ void GpuRenderer::InitStates() {
     m_RenderStates.stencil_op = 0;
     m_RenderStates.stencil_ref = 0;
     m_RenderStates.stencil_writemask = 0;
-
+    
     m_RenderStates.surface = NULL;
 
     m_RenderStates.z_enable = 0;
@@ -384,19 +392,21 @@ void GpuRenderer::EnableTexture() {
     // restore saved textures
 //    Xe_SetTexture(xe, 0, m_RenderStates.surface);
 //    StatesChanged();
+    Xe_SetShader(xe, SHADER_TYPE_PIXEL, g_pPixelShaderG, 0);
 }
 
 void GpuRenderer::DisableTexture() {
-    if (m_RenderStates.surface) {
-        SetTexture(NULL);
-    }
+//    if (m_RenderStates.surface) {
+//        SetTexture(NULL);
+//    }
+    Xe_SetShader(xe, SHADER_TYPE_PIXEL, g_pPixelShaderC, 0);
 }
 
 /**
  * Clear
  */
 void GpuRenderer::Clear(uint32_t flags) {
-    // Xe_Clear(xe, ~0);
+    //Xe_Clear(xe, flags);
     // Xe_Resolve(xe);
     StatesChanged();
 }
@@ -634,20 +644,21 @@ void GpuRenderer::SetOrtho(float l, float r, float b, float t, float zn, float z
 
 
     // dump it ...
-    printf("Dump ..\r\n");
-    for (int i = 0; i < 4; i++) {
-        printf("[%0.2f][%0.2f][%0.2f][%0.2f]\r\n", mwp[i][0], mwp[i][1], mwp[i][2], mwp[i][3]);
-    }
+//    printf("Dump ..\r\n");
+//    for (int i = 0; i < 4; i++) {
+//        printf("[%0.2f][%0.2f][%0.2f][%0.2f]\r\n", mwp[i][0], mwp[i][1], mwp[i][2], mwp[i][3]);
+//    }
 
     screen[0] = r;
     screen[1] = b;
-    printf("setOrtho => %f - %f \r\n", r, b);
+//    printf("setOrtho => %f - %f \r\n", r, b);
 
     Xe_SetVertexShaderConstantF(xe, 0, (float*) mwp, 4);
     Xe_SetVertexShaderConstantF(xe, 1, (float*) screen, 1);
 }
 
 void GpuRenderer::SetViewPort(int left, int top, int right, int bottom) {
+/*    
     TR
 
     // identity
@@ -658,7 +669,7 @@ void GpuRenderer::SetViewPort(int left, int top, int right, int bottom) {
     for (int i = 0; i < 4; i++) {
         printf("[%0.2f][%0.2f][%0.2f][%0.2f]\r\n", mwp[i][0], mwp[i][1], mwp[i][2], mwp[i][3]);
     }
-
+*/
     //Xe_SetVertexShaderConstantF(xe, 0, (float*) mwp, 4);
 }
 
@@ -668,7 +679,7 @@ void GpuRenderer::SetViewPort(int left, int top, int right, int bottom) {
 void GpuRenderer::Render() {
     // Submit last batch of vertices
     // SubmitVertices();
-
+    
     Unlock();
 
     // Resolve in temporary surface
@@ -866,3 +877,10 @@ void xeGfx_setTextureData(void * tex, void * buffer) {
      // texture modded
     gpuRenderer.StatesChanged();
 }
+
+void * GpuRenderer::TextureLock(GpuTex *surf){
+    return Xe_Surface_LockRect(xe, surf, 0, 0, 0, 0, XE_LOCK_WRITE);
+};
+void GpuRenderer::TextureUnlock(GpuTex *surf){
+    Xe_Surface_Unlock(xe, surf);
+};

@@ -2,7 +2,7 @@
 //
 
 //#ifdef LZX_GUI
-#if 1
+#if 0
 
 extern "C" {
     int pcsxmain(const char * cdfile);

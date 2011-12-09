@@ -281,7 +281,6 @@ extern BOOL           bOpaquePass;
 extern BOOL           bAdvancedBlend;
 extern BOOL           bUseLines;
 extern int            iTexQuality;
-extern BOOL           bUseAntiAlias;
 extern BOOL           bGLExt;
 extern BOOL           bGLFastMovie;
 extern BOOL           bGLSoft;

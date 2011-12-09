@@ -58,7 +58,7 @@ static char * pCaptionText = NULL;
 #define Xe_Clear
 
 
-namespace xegpu{
+namespace xegpu {
     ////////////////////////////////////////////////////////////////////////
     // PPDK developer must change libraryName field and can change revision and build
     ////////////////////////////////////////////////////////////////////////
@@ -82,7 +82,7 @@ namespace xegpu{
     signed int *psxVsl;
 
     // macro for easy access to packet information
-    #define GPUCOMMAND(x) ((x>>24) & 0xff)
+#define GPUCOMMAND(x) ((x>>24) & 0xff)
 
     GLfloat gl_z = 0.0f;
     BOOL bNeedInterlaceUpdate = FALSE;
@@ -146,13 +146,13 @@ namespace xegpu{
     // missing ...
     char * pConfigFile = NULL;
     unsigned short usCursorActive = 0;
-    GLuint         gTexPicName;
+    GLuint gTexPicName;
     PSXPoint_t ptCursorPoint[8];
-    
+
 
     BOOL bNeedWriteUpload = FALSE;
 
-    
+
     int iLastRGB24 = 0; // special vars for checking when to skip two display updates
     int iSkipTwo = 0;
 }
@@ -163,7 +163,7 @@ namespace xegpu{
 ////////////////////////////////////////////////////////////////////////
 
 EXTERN char * CALLBACK PSEgetLibName(void) {
-    return (char*)"libxenon driver based on PEOPSXGL";
+    return (char*) "libxenon driver based on PEOPSXGL";
 }
 
 EXTERN unsigned long CALLBACK PSEgetLibType(void) {
@@ -175,7 +175,7 @@ EXTERN unsigned long CALLBACK PSEgetLibVersion(void) {
 }
 
 char * GPUgetLibInfos(void) {
-    return (char*)"Based on P.E.Op.S. MesaGL Driver V1.78\nCoded by Pete Bernert\n";
+    return (char*) "Based on P.E.Op.S. MesaGL Driver V1.78\nCoded by Pete Bernert\n";
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -435,7 +435,7 @@ void updateDisplay(void) // UPDATE DISPLAY
                 glEnable(GL_SCISSOR_TEST);
          */
         gpuRenderer.DisableScissor();
-        gpuRenderer.ClearColor(0,0,0,128);
+        gpuRenderer.ClearColor(0, 0, 0, 128);
         gpuRenderer.Clear(uiBufferBits);
         gpuRenderer.EnableScissor();
 
@@ -504,34 +504,34 @@ void updateDisplay(void) // UPDATE DISPLAY
 
     if (lClearOnSwap) // clear buffer after swap?
     {
-        
+
 
         if (bDisplayNotSet) // -> set new vals
             SetOGLDisplaySettings(1);
 
 
 
-/*
- * GLclampf g, b, r;
-g = ((GLclampf) GREEN(lClearOnSwapColor)) / 255.0f; // -> get col
-b = ((GLclampf) BLUE(lClearOnSwapColor)) / 255.0f;
-r = ((GLclampf) RED(lClearOnSwapColor)) / 255.0f;
+        /*
+         * GLclampf g, b, r;
+        g = ((GLclampf) GREEN(lClearOnSwapColor)) / 255.0f; // -> get col
+        b = ((GLclampf) BLUE(lClearOnSwapColor)) / 255.0f;
+        r = ((GLclampf) RED(lClearOnSwapColor)) / 255.0f;
 
-glDisable(GL_SCISSOR_TEST);
-glClearColor(r,g,b,128);                            // -> clear
-glClear(uiBufferBits);
-glEnable(GL_SCISSOR_TEST);
-*/
+        glDisable(GL_SCISSOR_TEST);
+        glClearColor(r,g,b,128);                            // -> clear
+        glClear(uiBufferBits);
+        glEnable(GL_SCISSOR_TEST);
+         */
 
         XeColor xeclearcolor;
-        xeclearcolor.color=0;
+        xeclearcolor.color = 0;
         xeclearcolor.a = 128;
         xeclearcolor.r = RED(lClearOnSwapColor);
         xeclearcolor.g = BLUE(lClearOnSwapColor);
         xeclearcolor.b = GREEN(lClearOnSwapColor);
-        
+
         gpuRenderer.DisableScissor();
-        gpuRenderer.ClearColor(xeclearcolor.r,xeclearcolor.g,xeclearcolor.b,xeclearcolor.a);
+        gpuRenderer.ClearColor(xeclearcolor.r, xeclearcolor.g, xeclearcolor.b, xeclearcolor.a);
         gpuRenderer.Clear(uiBufferBits);
         gpuRenderer.EnableScissor();
 
@@ -710,6 +710,7 @@ void ChangeDispOffsetsY(void) // CENTER Y
 ////////////////////////////////////////////////////////////////////////
 // Aspect ratio of ogl screen: simply adjusting ogl view port
 ////////////////////////////////////////////////////////////////////////
+
 void SetAspectRatio(void) {
     float xs, ys, s;
     RECT r;
@@ -736,10 +737,10 @@ void SetAspectRatio(void) {
         RECT rC;
         //glClearColor(0, 0, 0, 128);
         XeColor xeclearcolor;
-        xeclearcolor.color=0;
+        xeclearcolor.color = 0;
         xeclearcolor.a = 128;
         //Xe_SetClearColor(xe,xeclearcolor.color);
-        gpuRenderer.ClearColor(xeclearcolor.r,xeclearcolor.g,xeclearcolor.b,xeclearcolor.a);
+        gpuRenderer.ClearColor(xeclearcolor.r, xeclearcolor.g, xeclearcolor.b, xeclearcolor.a);
 
         if (r.right < rRatioRect.right) {
             rC.left = 0;
@@ -747,11 +748,11 @@ void SetAspectRatio(void) {
             rC.right = r.left;
             rC.bottom = iResY;
             //glScissor(rC.left, rC.top, rC.right, rC.bottom);
-            Xe_SetScissor(xe,1,rC.left, rC.top, rC.right, rC.bottom);
+            Xe_SetScissor(xe, 1, rC.left, rC.top, rC.right, rC.bottom);
             gpuRenderer.Clear(uiBufferBits);
             rC.left = iResX - rC.right;
             //glScissor(rC.left, rC.top, rC.right, rC.bottom);
-            Xe_SetScissor(xe,1,rC.left, rC.top, rC.right, rC.bottom);
+            Xe_SetScissor(xe, 1, rC.left, rC.top, rC.right, rC.bottom);
             gpuRenderer.Clear(uiBufferBits);
         }
 
@@ -761,11 +762,11 @@ void SetAspectRatio(void) {
             rC.right = iResX;
             rC.bottom = r.top;
             //glScissor(rC.left, rC.top, rC.right, rC.bottom);
-            Xe_SetScissor(xe,1,rC.left, rC.top, rC.right, rC.bottom);
+            Xe_SetScissor(xe, 1, rC.left, rC.top, rC.right, rC.bottom);
             gpuRenderer.Clear(uiBufferBits);
             rC.top = iResY - rC.bottom;
             //glScissor(rC.left, rC.top, rC.right, rC.bottom);
-            Xe_SetScissor(xe,1,rC.left, rC.top, rC.right, rC.bottom);
+            Xe_SetScissor(xe, 1, rC.left, rC.top, rC.right, rC.bottom);
             gpuRenderer.Clear(uiBufferBits);
         }
 
@@ -777,11 +778,11 @@ void SetAspectRatio(void) {
 
     TR
     gpuRenderer.SetViewPort(
-        rRatioRect.left,
-        iResY - (rRatioRect.top + rRatioRect.bottom),
-        rRatioRect.right,
-        rRatioRect.bottom
-    ); // init viewport
+            rRatioRect.left,
+            iResY - (rRatioRect.top + rRatioRect.bottom),
+            rRatioRect.right,
+            rRatioRect.bottom
+            ); // init viewport
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -799,11 +800,11 @@ void updateDisplayIfChanged(void) {
     } else // some res change?
     {
         //glLoadIdentity();
-/*
+        /*
 
-        glOrtho(0, PSXDisplay.DisplayModeNew.x, // -> new psx resolution
-                PSXDisplay.DisplayModeNew.y, 0, -1, 1);
-*/
+                glOrtho(0, PSXDisplay.DisplayModeNew.x, // -> new psx resolution
+                        PSXDisplay.DisplayModeNew.y, 0, -1, 1);
+         */
         gpuRenderer.SetOrtho(0, PSXDisplay.DisplayModeNew.x, // -> new psx resolution
                 PSXDisplay.DisplayModeNew.y, 0, -1, 1);
         if (bKeepRatio) SetAspectRatio();
@@ -1300,7 +1301,6 @@ __inline void FinishedVRAMRead(void) {
 ////////////////////////////////////////////////////////////////////////
 
 void CheckVRamReadEx(int x, int y, int dx, int dy) {
-#if 0
     unsigned short sArea;
     int ux, uy, udx, udy, wx, wy;
     unsigned short * p1, *p2;
@@ -1400,7 +1400,7 @@ void CheckVRamReadEx(int x, int y, int dx, int dy) {
 
     if (y < 0) y = 0;
     if ((y + dy) > iResY) dy = iResY - y;
-
+#if 0
     if (!pGfxCardScreen) {
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         pGfxCardScreen = (unsigned char *) malloc(iResX * iResY * 4);
@@ -1453,7 +1453,7 @@ void CheckVRamReadEx(int x, int y, int dx, int dy) {
 ////////////////////////////////////////////////////////////////////////
 
 void CheckVRamRead(int x, int y, int dx, int dy, BOOL bFront) {
-#if 0
+
     unsigned short sArea;
     unsigned short * p;
     int ux, uy, udx, udy, wx, wy;
@@ -1562,7 +1562,7 @@ void CheckVRamRead(int x, int y, int dx, int dy, BOOL bFront) {
 
     if (y < 0) y = 0;
     if ((y + dy) > iResY) dy = iResY - y;
-
+#if 0
     if (!pGfxCardScreen) {
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         pGfxCardScreen = (unsigned char *) malloc(iResX * iResY * 4);
@@ -1882,6 +1882,7 @@ EXTERN void CALLBACK GPUwriteData(uint32_t gdata) {
 ////////////////////////////////////////////////////////////////////////
 // call config dlg
 ////////////////////////////////////////////////////////////////////////
+
 long CALLBACK GPUconfigure(void) {
     return 0;
 }
@@ -2068,6 +2069,7 @@ EXTERN void CALLBACK GPUdisplayFlags(uint32_t dwFlags) {
 EXTERN void CALLBACK GPUvBlank(int val) {
     vBlank = val;
 }
+
 EXTERN void CALLBACK GPUdisplayText(char * pText) // some debug func
 {
     printf(pText);

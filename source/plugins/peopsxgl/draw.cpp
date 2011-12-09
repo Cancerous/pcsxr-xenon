@@ -80,66 +80,65 @@ using namespace xegpu;
 ////////////////////////////////////////////////////////////////////////////////////
 // draw globals; most will be initialized again later (by config or checks)
 namespace xegpu {
-BOOL bIsFirstFrame = TRUE;
+    BOOL bIsFirstFrame = TRUE;
 
-// resolution/ratio vars
+    // resolution/ratio vars
 
-int iResX;
-int iResY;
-BOOL bKeepRatio = FALSE;
-RECT rRatioRect;
+    int iResX;
+    int iResY;
+    BOOL bKeepRatio = FALSE;
+    RECT rRatioRect;
 
-// psx mask related vars
+    // psx mask related vars
 
-BOOL bCheckMask = FALSE;
-int iUseMask = 0;
-int iSetMask = 0;
-unsigned short sSetMask = 0;
-uint32_t lSetMask = 0;
+    BOOL bCheckMask = FALSE;
+    int iUseMask = 0;
+    int iSetMask = 0;
+    unsigned short sSetMask = 0;
+    uint32_t lSetMask = 0;
 
-// drawing/coord vars
+    // drawing/coord vars
 
-OGLVertex vertex[4];
-GLubyte gl_ux[8];
-GLubyte gl_vy[8];
-short sprtY, sprtX, sprtH, sprtW;
+    OGLVertex vertex[4];
+    GLubyte gl_ux[8];
+    GLubyte gl_vy[8];
+    short sprtY, sprtX, sprtH, sprtW;
 
-// drawing options
+    // drawing options
 
-BOOL bOpaquePass;
-BOOL bUseLines;
-BOOL bUseAntiAlias;
-int iTexQuality;
-int iUsePalTextures = 1;
-BOOL bSnapShot = FALSE;
-BOOL bSmallAlpha = FALSE;
-int iShowFPS = 0;
-BOOL bAdvancedBlend;
+    BOOL bOpaquePass;
+    BOOL bUseLines;
+    int iTexQuality;
+    int iUsePalTextures = 1;
+    BOOL bSnapShot = FALSE;
+    BOOL bSmallAlpha = FALSE;
+    int iShowFPS = 0;
+    BOOL bAdvancedBlend;
 
-// OGL extension support
+    // OGL extension support
 
-int iUseExts = 0;
-BOOL bGLExt;
-BOOL bGLFastMovie = FALSE;
-BOOL bGLSoft;
-BOOL bGLBlend;
+    int iUseExts = 0;
+    BOOL bGLExt;
+    BOOL bGLFastMovie = FALSE;
+    BOOL bGLSoft;
+    BOOL bGLBlend;
 
-/*
-PFNGLBLENDEQU glBlendEquationEXTEx = NULL;
-PFNGLCOLORTABLEEXT glColorTableEXTEx = NULL;
- */
-// gfx card buffer infos
+    /*
+    PFNGLBLENDEQU glBlendEquationEXTEx = NULL;
+    PFNGLCOLORTABLEEXT glColorTableEXTEx = NULL;
+     */
+    // gfx card buffer infos
 
-int iDepthFunc = 0;
-int iZBufferDepth = 0;
-GLbitfield uiBufferBits = XE_CLEAR_DS;
+    int iDepthFunc = 0;
+    int iZBufferDepth = 0;
+    GLbitfield uiBufferBits = XE_CLEAR_DS;
 
 #ifndef _WINDOWS
 #define EqualRect(pr1,pr2) ((pr1)->left==(pr2)->left && (pr1)->top==(pr2)->top && (pr1)->right==(pr2)->right && (pr1)->bottom==(pr2)->bottom)
 #endif
-GpuTex * gLastTex = NULL;
-GLuint gLastFMode = (GLuint) - 1;
-BOOL bSetClip = FALSE;
+    GpuTex * gLastTex = NULL;
+    GLuint gLastFMode = (GLuint) - 1;
+    BOOL bSetClip = FALSE;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -160,53 +159,6 @@ void GetExtInfos(void) {
     bPacked = FALSE;
 
     iClampType = XE_TEXADDR_CLAMP;
-#if 0
-    if (strstr((char *) glGetString(GL_EXTENSIONS), // packed pixels available?
-            "GL_EXT_packed_pixels"))
-        bPacked = TRUE; // -> ok
-
-    if (bPacked && bUse15bitMdec) // packed available and 15bit mdec wanted?
-        bGLFastMovie = TRUE; // -> ok
-
-    if (bPacked && (iTexQuality == 1 || iTexQuality == 2)) // packed available and 16 bit texture format?
-    {
-        bGLFastMovie = TRUE; // -> ok
-        bGLExt = TRUE;
-    }
-
-    if (iUseExts && // extension support wanted?
-            (strstr((char *) glGetString(GL_EXTENSIONS),
-            "GL_EXT_texture_edge_clamp") ||
-            strstr((char *) glGetString(GL_EXTENSIONS), // -> check clamp support, if yes: use it
-            "GL_SGIS_texture_edge_clamp")))
-        iClampType = GL_TO_EDGE_CLAMP;
-    else iClampType = GL_CLAMP;
-
-#if !defined (_MACGL) // OSX > 10.4.3 defines this
-    glColorTableEXTEx = (PFNGLCOLORTABLEEXT) NULL; // init ogl palette func pointer
-#endif
-
-#ifndef __sun
-    if (iGPUHeight != 1024 && // no pal textures in ZN mode (height=1024)!
-            strstr((char *) glGetString(GL_EXTENSIONS), // otherwise: check ogl support
-            "GL_EXT_paletted_texture")) {
-        iUsePalTextures = 1; // -> wow, supported, get func pointer
-
-#ifdef _WINDOWS
-        glColorTableEXTEx = (PFNGLCOLORTABLEEXT) wglGetProcAddress("glColorTableEXT");
-#elif defined (_MACGL)
-        // no prob, done already in OSX > 10.4.3
-#else
-        glColorTableEXTEx = (PFNGLCOLORTABLEEXT) glXGetProcAddress("glColorTableEXT");
-#endif
-
-        if (glColorTableEXTEx == NULL) iUsePalTextures = 0; // -> ha, cheater... no func, no support
-
-    } else iUsePalTextures = 0;
-#else
-    iUsePalTextures = 0;
-#endif
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -222,23 +174,23 @@ void SetExtGLFuncs(void) {
     gpuRenderer.SetBlendOp(XE_BLENDOP_ADD);
 
     //iUseExts = bAdvancedBlend = 1;
-    
+
     //----------------------------------------------------//
-    if (iUseExts && bAdvancedBlend ) { // advanced blending wanted ?
+    if (iUseExts && bAdvancedBlend) { // advanced blending wanted ?
         bUseMultiPass = FALSE;
         bGLBlend = TRUE; // -> no need for 2 passes, perfect
 
         printf("bGLBlend = TRUE; bUseMultiPass = FALSE;\r\n");
-        
-//        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, COMBINE_EXT);
-//        glTexEnvf(GL_TEXTURE_ENV, COMBINE_RGB_EXT, GL_MODULATE);
-//        glTexEnvf(GL_TEXTURE_ENV, COMBINE_ALPHA_EXT, GL_MODULATE);
-//        glTexEnvf(GL_TEXTURE_ENV, RGB_SCALE_EXT, 2.0f);
+
+        //        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, COMBINE_EXT);
+        //        glTexEnvf(GL_TEXTURE_ENV, COMBINE_RGB_EXT, GL_MODULATE);
+        //        glTexEnvf(GL_TEXTURE_ENV, COMBINE_ALPHA_EXT, GL_MODULATE);
+        //        glTexEnvf(GL_TEXTURE_ENV, RGB_SCALE_EXT, 2.0f);
         //gpuRenderer.TextEnv(TEXTURE_ENV_MODE, COMBINE_EXT);
         //gpuRenderer.TextEnv(COMBINE_RGB_EXT, MODULATE);
         //gpuRenderer.TextEnv(COMBINE_ALPHA_EXT, MODULATE);
         gpuRenderer.TextEnv(RGB_SCALE_EXT, 2.0f);
-        
+
     } else // no advanced blending wanted/available:
     {
         if (bAdvancedBlend) bUseMultiPass = TRUE; // -> pseudo-advanced with 2 passes
@@ -248,8 +200,6 @@ void SetExtGLFuncs(void) {
         //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
         //gpuRenderer.TextEnv(TEXTURE_ENV_MODE, MODULATE);
     }
-
-
 
     //----------------------------------------------------//
     // init standard tex quality 0-2, and big alpha mode 3
@@ -269,7 +219,8 @@ void SetExtGLFuncs(void) {
         }
 
         TCF[1] = XP8RGBA_1;
-       gpuRenderer.SetAlphaFunc(XE_CMP_GREATER, 0.49f);
+        //gpuRenderer.SetAlphaFunc(XE_CMP_GREATER, 0.49f);
+        gpuRenderer.SetAlphaFunc(XE_CMP_LESS, 0.49f);
     } else // no opaque mode?
     {
         TCF[0] = TCF[1] = P8RGBA;
@@ -403,10 +354,10 @@ void SetExtGLFuncs(void) {
     bBlendEnable = FALSE; // init blending: off
     gpuRenderer.DisableBlend();
 
-    SetScanTrans(); // init scan lines (if wanted)
+    bSmallAlpha = TRUE;
 
 
-    bSmallAlpha = FALSE;
+    printf("iUseExts = %d;\r\n bAdvancedBlend = %d;\r\nbUseMultiPass=%d\r\nubOpaqueDraw=%d\r\nbSmallAlpha=%d\r\n", iUseExts, bAdvancedBlend, bUseMultiPass, ubOpaqueDraw,bSmallAlpha);
 }
 
 void XeSetExtGLFuncs(void) {
@@ -448,7 +399,8 @@ void XeSetExtGLFuncs(void) {
         TCF[1] = XP8BGRA_1;
 #endif
 
-        gpuRenderer.SetAlphaFunc(XE_CMP_GREATER, 0.49f);
+        //gpuRenderer.SetAlphaFunc(XE_CMP_GREATER, 0.49f);
+        gpuRenderer.SetAlphaFunc(XE_CMP_LESS, 0.49f);
 
         TR;
     } else // no opaque mode?
@@ -462,7 +414,7 @@ void XeSetExtGLFuncs(void) {
         PalTexturedColourFn = P8RGBA; // -> init col func
 #endif
         gpuRenderer.SetAlphaFunc(XE_CMP_NOTEQUAL, 0); // --> set alpha func
-        
+
 
         TR;
     }
@@ -494,11 +446,11 @@ int GLinitialize() {
     Xe_SetScissor(xe, 1, 0, 0, iResX, iResY);
 
 #ifndef OWNSCALE
-/*
-    glMatrixMode(GL_TEXTURE); // init psx tex sow and tow if not "ownscale"
-    glLoadIdentity();
-    glScalef(1.0f / 255.99f, 1.0f / 255.99f, 1.0f); // geforce precision hack
-*/
+    /*
+        glMatrixMode(GL_TEXTURE); // init psx tex sow and tow if not "ownscale"
+        glLoadIdentity();
+        glScalef(1.0f / 255.99f, 1.0f / 255.99f, 1.0f); // geforce precision hack
+     */
 #endif
     TR
     //glMatrixMode(GL_PROJECTION); // init projection with psx resolution
@@ -544,26 +496,6 @@ int GLinitialize() {
 
     // glEnable(GL_ALPHA_TEST); // wanna alpha test
     gpuRenderer.EnableAlphaTest();
-
-    if (!bUseAntiAlias) // no anti-alias (default)
-    {
-        /*
-                glDisable(GL_LINE_SMOOTH);
-                glDisable(GL_POLYGON_SMOOTH);
-                glDisable(GL_POINT_SMOOTH);
-         */
-    } else // wanna try it? glitches galore...
-    {
-        /*
-                glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-                glEnable(GL_LINE_SMOOTH);
-                glEnable(GL_POLYGON_SMOOTH);
-                glEnable(GL_POINT_SMOOTH);
-                glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-                glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
-                glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-         */
-    }
 
     ubGloAlpha = 127; // init some drawing vars
     ubGloColAlpha = 127;
@@ -931,7 +863,7 @@ BOOL offset2(void) {
 BOOL offset3(void) {
     if (bDisplayNotSet)
         SetOGLDisplaySettings(1);
-    
+
     if (!(dwActFixes & 16)) {
         lx0 = (short) (((int) lx0 << SIGNSHIFT) >> SIGNSHIFT);
         lx1 = (short) (((int) lx1 << SIGNSHIFT) >> SIGNSHIFT);
@@ -1002,14 +934,14 @@ BOOL offset4(void) {
         vertex[3].y = ly3;
     }
 
-    vertex[0].x +=  PSXDisplay.CumulOffset.x;
-    vertex[1].x +=  PSXDisplay.CumulOffset.x;
-    vertex[2].x +=  PSXDisplay.CumulOffset.x;
-    vertex[3].x +=  PSXDisplay.CumulOffset.x;
-    vertex[0].y +=  PSXDisplay.CumulOffset.y;
-    vertex[1].y +=  PSXDisplay.CumulOffset.y;
-    vertex[2].y +=  PSXDisplay.CumulOffset.y;
-    vertex[3].y +=  PSXDisplay.CumulOffset.y;
+    vertex[0].x += PSXDisplay.CumulOffset.x;
+    vertex[1].x += PSXDisplay.CumulOffset.x;
+    vertex[2].x += PSXDisplay.CumulOffset.x;
+    vertex[3].x += PSXDisplay.CumulOffset.x;
+    vertex[0].y += PSXDisplay.CumulOffset.y;
+    vertex[1].y += PSXDisplay.CumulOffset.y;
+    vertex[2].y += PSXDisplay.CumulOffset.y;
+    vertex[3].y += PSXDisplay.CumulOffset.y;
 
     return FALSE;
 }
@@ -1392,8 +1324,6 @@ void assignTexture4(void) {
 ////////////////////////////////////////////////////////////////////////
 // SetDisplaySettings: "simply" calcs the new drawing area and updates
 //                     the ogl clipping (scissor)
-
-
 
 void SetOGLDisplaySettings(BOOL DisplaySet) {
     static RECT rprev = {0, 0, 0, 0};

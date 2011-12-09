@@ -35,7 +35,9 @@ using namespace xegpu;
 ////////////////////////////////////////////////////////////////////////
 
 #define DEFOPAQUEON  gpuRenderer.SetAlphaFunc(XE_CMP_EQUAL,0.0f);bBlendEnable=FALSE;gpuRenderer.DisableBlend();
-#define DEFOPAQUEOFF gpuRenderer.SetAlphaFunc(XE_CMP_GREATER,0.49f);
+//#define DEFOPAQUEOFF gpuRenderer.SetAlphaFunc(XE_CMP_GREATER,0.49f);
+//#define DEFOPAQUEOFF gpuRenderer.SetAlphaFunc(XE_CMP_LESS,0.51f);
+#define DEFOPAQUEOFF gpuRenderer.SetAlphaFunc(XE_CMP_LESS,0.49f);
 
 namespace xegpu {
     ////////////////////////////////////////////////////////////////////////
@@ -85,6 +87,10 @@ namespace xegpu {
     int drawX, drawY, drawW, drawH; // offscreen drawing checkers
     short sxmin, sxmax, symin, symax;
 }
+
+
+/*
+ */
 static void __dump() {
     // textures gl_uv
     int i;
@@ -111,24 +117,8 @@ static void __dump() {
 static __inline void UpdateGlobalTP(unsigned short gdata) {
     GlobalTextAddrX = (gdata << 6) & 0x3c0; // texture addr
 
-    if (iGPUHeight == 1024) // ZN mode
-    {
-        if (dwGPUVersion == 2) // very special zn gpu
-        {
-            GlobalTextAddrY = ((gdata & 0x60) << 3);
-            GlobalTextIL = (gdata & 0x2000) >> 13;
-            GlobalTextABR = (unsigned short) ((gdata >> 7) & 0x3);
-            GlobalTextTP = (gdata >> 9) & 0x3;
-            if (GlobalTextTP == 3) GlobalTextTP = 2;
-            GlobalTexturePage = (GlobalTextAddrX >> 6)+(GlobalTextAddrY >> 4);
-            usMirror = 0;
-            STATUSREG = (STATUSREG & 0xffffe000) | (gdata & 0x1fff);
-            return;
-        } else // "enhanced" psx gpu
-        {
-            GlobalTextAddrY = (unsigned short) (((gdata << 4) & 0x100) | ((gdata >> 2) & 0x200));
-        }
-    } else GlobalTextAddrY = (gdata << 4) & 0x100; // "normal" psx gpu
+        
+    GlobalTextAddrY = (gdata << 4) & 0x100; // "normal" psx gpu
 
     usMirror = gdata & 0x3000;
 
@@ -150,51 +140,7 @@ static __inline void UpdateGlobalTP(unsigned short gdata) {
 
 
 static __inline void primUpdateGlobalTP(unsigned short gdata) {
-    
-    printf("primUpdateGlobalTP : %08x\r\n",gdata);
-    
-    GlobalTextAddrX = (gdata << 6) & 0x3c0; // texture addr
-
-    if (iGPUHeight == 1024) // ZN mode
-    {
-        TR;
-        if (dwGPUVersion == 2) // very special zn gpu
-        {
-            TR;
-            GlobalTextAddrY = ((gdata & 0x60) << 3);
-            GlobalTextIL = (gdata & 0x2000) >> 13;
-            GlobalTextABR = (unsigned short) ((gdata >> 7) & 0x3);
-            GlobalTextTP = (gdata >> 9) & 0x3;
-            if (GlobalTextTP == 3) GlobalTextTP = 2;
-            GlobalTexturePage = (GlobalTextAddrX >> 6)+(GlobalTextAddrY >> 4);
-            usMirror = 0;
-            STATUSREG = (STATUSREG & 0xffffe000) | (gdata & 0x1fff);
-            return;
-        } 
-        else // "enhanced" psx gpu
-        {
-            TR;
-            GlobalTextAddrY = (unsigned short) (((gdata << 4) & 0x100) | ((gdata >> 2) & 0x200));
-        }
-    } else {
-        GlobalTextAddrY = (gdata << 4) & 0x100; // "normal" psx gpu
-    }
-    usMirror = gdata & 0x3000;
-
-    GlobalTextTP = (gdata >> 7) & 0x3; // tex mode (4,8,15)
-    if (GlobalTextTP == 3) GlobalTextTP = 2; // seen in Wild9 :(
-    GlobalTextABR = (gdata >> 5) & 0x3; // blend mode
-
-    GlobalTexturePage = (GlobalTextAddrX >> 6)+(GlobalTextAddrY >> 4);
-    
-    //printf("GlobalTexturePage : %08x\r\n",GlobalTexturePage);
-#if 0
-    STATUSREG &= ~0x07ff; // Clear the necessary bits
-    STATUSREG |= (gdata & 0x07ff); // set the necessary bits
-#else
-    STATUSREG &= ~0x000001ff; // Clear the necessary bits
-    STATUSREG |= (gdata & 0x01ff); // set the necessary bits
-#endif
+    UpdateGlobalTP(gdata);
 }
 
 
@@ -403,9 +349,6 @@ static __inline void PRIMdrawQuad(OGLVertex* vertex1, OGLVertex* vertex2,
 // Transparent blending settings
 ////////////////////////////////////////////////////////////////////////
 
-static GLenum obm1 = XE_BLEND_ZERO;
-static GLenum obm2 = XE_BLEND_ZERO;
-
 typedef struct SEMITRANSTAG {
     uint32_t srcFac;
     uint32_t dstFac;
@@ -414,6 +357,11 @@ typedef struct SEMITRANSTAG {
     int blendop;
 } SemiTransParams;
 
+extern "C"{
+    int g_lb();
+    int g_rb();
+}
+
 //SemiTransParams TransSets[4]=
 //{
 // {XE_BLEND_SRCALPHA,    XE_BLEND_SRCALPHA,          127},
@@ -421,16 +369,52 @@ typedef struct SEMITRANSTAG {
 // {XE_BLEND_ZERO,        XE_BLEND_INVSRCCOLOR,255},
 // {XE_BLEND_INVSRCALPHA,XE_BLEND_ONE,      192}
 //};
+/*
 SemiTransParams TransSets[4] = {
-    {XE_BLEND_SRCALPHA, XE_BLEND_SRCALPHA, 127, XE_BLENDOP_ADD},
+//    {XE_BLEND_SRCALPHA, XE_BLEND_ZERO, 127, XE_BLENDOP_ADD},
+     {XE_BLEND_ONE,    XE_BLEND_SRCALPHA,          127,XE_BLENDOP_ADD},
     {XE_BLEND_ONE, XE_BLEND_ONE, 255, XE_BLENDOP_ADD},
-    {XE_BLEND_ZERO, XE_BLEND_INVSRCCOLOR, 255, XE_BLENDOP_ADD},
-    {XE_BLEND_INVSRCALPHA, XE_BLEND_ONE, 192, XE_BLENDOP_REVSUBTRACT}
+    {XE_BLEND_ZERO, XE_BLEND_INVSRCCOLOR, 255, XE_BLENDOP_REVSUBTRACT},
+   // {XE_BLEND_INVSRCALPHA, XE_BLEND_ONE, 192, XE_BLENDOP_REVSUBTRACT}
+     {XE_BLEND_ONE, XE_BLEND_ONE, 192, XE_BLENDOP_ADD}
 };
+SemiTransParams TransTex[4] = {
+    {XE_BLEND_SRCALPHA, XE_BLEND_ZERO, 127, XE_BLENDOP_ADD},
+//     {XE_BLEND_ONE,    XE_BLEND_SRCALPHA,          127,XE_BLENDOP_ADD},
+    {XE_BLEND_ONE, XE_BLEND_ONE, 255, XE_BLENDOP_ADD},
+    {XE_BLEND_ZERO, XE_BLEND_INVSRCCOLOR, 255, XE_BLENDOP_REVSUBTRACT},
+     {XE_BLEND_ONE, XE_BLEND_ONE, 192, XE_BLENDOP_ADD}
+};
+ */ 
 
+SemiTransParams TransSets[4]=
+{
+//    {XE_BLEND_SRCALPHA, XE_BLEND_ZERO, 127, XE_BLENDOP_ADD},
+     {XE_BLEND_ONE,    XE_BLEND_SRCALPHA,          127,XE_BLENDOP_ADD},
+    {XE_BLEND_ONE, XE_BLEND_ONE, 255, XE_BLENDOP_ADD},
+    {XE_BLEND_ONE, XE_BLEND_ONE, 255, XE_BLENDOP_REVSUBTRACT},
+   // {XE_BLEND_INVSRCALPHA, XE_BLEND_ONE, 192, XE_BLENDOP_REVSUBTRACT}
+     {XE_BLEND_ONE, XE_BLEND_ONE, 192, XE_BLENDOP_ADD}
+};
 ////////////////////////////////////////////////////////////////////////
 
+void dumpABR() {
+    static int oABR = 0;
+    static int oDrawSemiTrans = 0;
+    if (GlobalTextABR != oABR) {
+        printf("GlobalTextABR changed =>%d\r\n", GlobalTextABR);
+    }
+    if (oDrawSemiTrans != DrawSemiTrans) {
+        printf("DrawSemiTrans changed =>%d\r\n", DrawSemiTrans);
+    }
+    oABR = GlobalTextABR;
+    oDrawSemiTrans = DrawSemiTrans;
+}
+
 static void SetSemiTrans(void) {
+//    TransSets[2].dstFac=g_lb();
+//    TransSets[2].srcFac=g_rb();
+    //TR;
     /*
      * 0.5 x B + 0.5 x F
      * 1.0 x B + 1.0 x F
@@ -438,152 +422,22 @@ static void SetSemiTrans(void) {
      * 1.0 x B +0.25 x F
      */
 
+    //dumpABR();
+    
     if (!DrawSemiTrans) // no semi trans at all?
     {
-        if (bBlendEnable) {
-            gpuRenderer.DisableBlend();
-            bBlendEnable = FALSE;
-        } // -> don't wanna blend
+        gpuRenderer.DisableBlend();
+        // -> don't wanna blend
         ubGloAlpha = ubGloColAlpha = 255; // -> full alpha
         return; // -> and bye
     }
 
     ubGloAlpha = ubGloColAlpha = TransSets[GlobalTextABR].alpha;
 
-    if (!bBlendEnable) {
-        gpuRenderer.EnableBlend();
-        bBlendEnable = TRUE;
-    } // wanna blend
+    //gpuRenderer.EnableBlend();
 
     gpuRenderer.SetBlendFunc(TransSets[GlobalTextABR].srcFac, TransSets[GlobalTextABR].dstFac);
     gpuRenderer.SetBlendOp(TransSets[GlobalTextABR].blendop);
-    
-#if 0
-    
-    if (TransSets[GlobalTextABR].srcFac != obm1 ||
-            TransSets[GlobalTextABR].dstFac != obm2) {
-        //if(glBlendEquationEXTEx==NULL)
-        if (0) {
-            obm1 = TransSets[GlobalTextABR].srcFac;
-            obm2 = TransSets[GlobalTextABR].dstFac;
-            gpuRenderer.SetBlendFunc(obm1, obm2); // set blend func
-        } else
-            if (TransSets[GlobalTextABR].dstFac != XE_BLEND_INVSRCCOLOR) {
-            if (obm2 == XE_BLEND_INVSRCCOLOR)
-                gpuRenderer.SetBlendOp(XE_BLENDOP_ADD); //glBlendEquationEXTEx(FUNC_ADD_EXT);
-
-            obm1 = TransSets[GlobalTextABR].srcFac;
-            obm2 = TransSets[GlobalTextABR].dstFac;
-            gpuRenderer.SetBlendFunc(obm1, obm2); // set blend func
-        } else {
-            gpuRenderer.SetBlendOp(XE_BLENDOP_REVSUBTRACT); //glBlendEquationEXTEx(FUNC_REVERSESUBTRACT_EXT);
-            obm1 = TransSets[GlobalTextABR].srcFac;
-            obm2 = TransSets[GlobalTextABR].dstFac;
-            gpuRenderer.SetBlendFunc(XE_BLEND_ONE, XE_BLEND_ONE); // set blend func
-        }
-    }
-#endif
-}
-
-void SetScanTrans(void) // blending for scan lines
-{
-   
-}
-
-static void SetScanTexTrans(void) // blending for scan mask texture
-{
-
-}
-
-////////////////////////////////////////////////////////////////////////
-// multi pass in old 'Advanced blending' mode... got it from Lewpy :)
-////////////////////////////////////////////////////////////////////////
-
-SemiTransParams MultiTexTransSets[4][2] = {
-    {
-        {XE_BLEND_ONE, XE_BLEND_SRCALPHA, 127, XE_BLENDOP_ADD},
-        {XE_BLEND_SRCALPHA, XE_BLEND_ONE, 127, XE_BLENDOP_ADD}
-    },
-    {
-        {XE_BLEND_ONE, XE_BLEND_SRCALPHA, 255, XE_BLENDOP_ADD},
-        {XE_BLEND_SRCALPHA, XE_BLEND_ONE, 255, XE_BLENDOP_ADD}
-    },
-    {
-        {XE_BLEND_ZERO, XE_BLEND_INVSRCCOLOR, 255, XE_BLENDOP_ADD},
-        {XE_BLEND_ZERO, XE_BLEND_INVSRCCOLOR, 255, XE_BLENDOP_ADD}
-    },
-/* original */    
-//    {
-//        {XE_BLEND_SRCALPHA, XE_BLEND_ONE, 127, XE_BLENDOP_ADD},
-//        {XE_BLEND_INVSRCALPHA, XE_BLEND_ONE, 255, XE_BLENDOP_ADD}
-//    }    
-    {
-        {XE_BLEND_ZERO, XE_BLEND_ONE, 127, XE_BLENDOP_REVSUBTRACT},
-        {XE_BLEND_ONE, XE_BLEND_ONE, 255, XE_BLENDOP_REVSUBTRACT}
-    }
-};
-
-////////////////////////////////////////////////////////////////////////
-
-SemiTransParams MultiColTransSets[4] = {
-    {XE_BLEND_SRCALPHA, XE_BLEND_SRCALPHA, 127, XE_BLENDOP_ADD},
-    {XE_BLEND_ONE, XE_BLEND_ONE, 255 , XE_BLENDOP_ADD},
-    {XE_BLEND_ZERO, XE_BLEND_INVSRCCOLOR, 255, XE_BLENDOP_ADD},
-//    {XE_BLEND_SRCALPHA, XE_BLEND_ONE, 127, XE_BLENDOP_ADD}, // ORIGINAL 
-    {XE_BLEND_ONE, XE_BLEND_ONE, 127, XE_BLENDOP_REVSUBTRACT}
-};
-
-////////////////////////////////////////////////////////////////////////
-
-static void SetSemiTransMulti(int Pass) {
-    static GLenum bm1 = XE_BLEND_ZERO;
-    static GLenum bm2 = XE_BLEND_ONE;
-    
-    static int blendOp = XE_BLENDOP_ADD;
-
-    ubGloAlpha = 255;
-    ubGloColAlpha = 255;
-
-    // are we enabling SemiTransparent mode?
-    if (DrawSemiTrans) {
-        if (bDrawTextured) {
-            bm1 = MultiTexTransSets[GlobalTextABR][Pass].srcFac;
-            bm2 = MultiTexTransSets[GlobalTextABR][Pass].dstFac;
-            ubGloAlpha = MultiTexTransSets[GlobalTextABR][Pass].alpha;
-            blendOp = MultiTexTransSets[GlobalTextABR][Pass].blendop;
-        }// no texture
-        else {
-            bm1 = MultiColTransSets[GlobalTextABR].srcFac;
-            bm2 = MultiColTransSets[GlobalTextABR].dstFac;
-            ubGloColAlpha = MultiColTransSets[GlobalTextABR].alpha;
-            blendOp = MultiColTransSets[GlobalTextABR].blendop;
-        }
-    }// no shading
-    else {
-        if (Pass == 0) {
-            // disable blending
-            bm1 = XE_BLEND_ONE;
-            bm2 = XE_BLEND_ZERO;
-            blendOp = (XE_BLENDOP_ADD);
-        } else {
-            // disable blending, but add src col a second time
-            bm1 = XE_BLEND_ONE;
-            bm2 = XE_BLEND_ONE;
-            blendOp = (XE_BLENDOP_ADD);
-        }
-    }
-
-    if (!bBlendEnable) {
-        gpuRenderer.EnableBlend();
-        bBlendEnable = TRUE;
-    } // wanna blend
-
-    //if (bm1 != obm1 || bm2 != obm2) {
-    gpuRenderer.SetBlendFunc(bm1, bm2); // set blend func
-    obm1 = bm1;
-    obm2 = bm2;
-    //}
-    gpuRenderer.SetBlendOp(blendOp);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -689,38 +543,43 @@ static __inline void SetRenderColor(uint32_t DrawAttributes) {
 ////////////////////////////////////////////////////////////////////////
 
 static void SetRenderMode(uint32_t DrawAttributes, BOOL bSCol) {
-    if ((bUseMultiPass) && (bDrawTextured) && !(bDrawNonShaded)) {
-        bDrawMultiPass = TRUE;
-        SetSemiTransMulti(0);
-    } else {
-        bDrawMultiPass = FALSE;
-        SetSemiTrans();
-    }
+
+    SetSemiTrans();
 
     if (bDrawTextured) // texture ? build it/get it from cache
     {
+
         GpuTex * currTex;
-        if (bUsingTWin) currTex = LoadTextureWnd(GlobalTexturePage, GlobalTextTP, ulClutID);
-        else if (bUsingMovie) currTex = LoadTextureMovie();
-        else currTex = SelectSubTextureS(GlobalTextTP, ulClutID);
+        if (bUsingTWin) {
 
-        if (gTexName != currTex) {
-            gTexName = currTex;
-            //glBindTexture(GL_TEXTURE_2D,currTex);
+            currTex = LoadTextureWnd(GlobalTexturePage, GlobalTextTP, ulClutID);
+        }
+        else if (bUsingMovie) {
+
+            currTex = LoadTextureMovie();
+        }
+        else {
+            currTex = SelectSubTextureS(GlobalTextTP, ulClutID);
         }
 
-        if (!bTexEnabled) // -> turn texturing on
-        {
+        gTexName = currTex;
+
+        if (!bTexEnabled) 
             bTexEnabled = TRUE;
-            gpuRenderer.EnableTexture();
-        }
-        if (currTex)
-            gpuRenderer.SetTexture(currTex);
-    } else // no texture ?
-        if (bTexEnabled) {
-        bTexEnabled = FALSE;
+        
+        // -> turn texturing on
+        gpuRenderer.EnableTexture();
+        
+        gpuRenderer.SetTexture(currTex);
+    } 
+    else
+    {
+        // no texture ?
+        if (bTexEnabled)
+            bTexEnabled = FALSE;
+        // -> turn texturing off
         gpuRenderer.DisableTexture();
-    } // -> turn texturing off
+    } 
 
     if (bSCol) // also set color ?
     {
@@ -747,6 +606,7 @@ static void SetRenderMode(uint32_t DrawAttributes, BOOL bSCol) {
         //   else                  glShadeModel(GL_FLAT);
         bOldSmoothShaded = bDrawSmoothShaded;
     }
+    
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -757,7 +617,8 @@ static void SetOpaqueColor(uint32_t DrawAttributes) {
     if (bDrawNonShaded) return; // no shading? bye
 
     DrawAttributes = DoubleBGR2RGB(DrawAttributes); // multipass is just half color, so double it on opaque pass
-    vertex[0].c.lcol = DrawAttributes | 0xff000000;
+    vertex[0].c.lcol = DrawAttributes;
+    vertex[0].c.a = 0xFF;
     SETCOL(vertex[0]); // set color
 }
 
@@ -1185,6 +1046,7 @@ void PrepareFullScreenUpload(int Position) {
 unsigned char * LoadDirectMovieFast(void);
 
 static void UploadScreenEx(int Position) {
+    TR;
 #if 0
     short ya, yb, xa, xb, x, y, YStep, XStep, U, UStep, ux[4], vy[4];
 
@@ -1272,19 +1134,12 @@ static void UploadScreenEx(int Position) {
 ////////////////////////////////////////////////////////////////////////
 
 void UploadScreen(int Position) {
-    short x, y, YStep, XStep, U, s, UStep, ux[4], vy[4];
-    short xa, xb, ya, yb;
+    short YStep, XStep;
 
     if (xrUploadArea.x0 > 1023) xrUploadArea.x0 = 1023;
     if (xrUploadArea.x1 > 1024) xrUploadArea.x1 = 1024;
     if (xrUploadArea.y0 > iGPUHeightMask) xrUploadArea.y0 = iGPUHeightMask;
     if (xrUploadArea.y1 > iGPUHeight) xrUploadArea.y1 = iGPUHeight;
-
-    //    printf("UploadScreen %x\r\n",Position);
-    //    printf("xrUploadArea.x1 =%d\r\n",xrUploadArea.x1);
-    //    printf("xrUploadArea.x0 =%d\r\n",xrUploadArea.x0);
-    //    printf("xrUploadArea.y1 =%d\r\n",xrUploadArea.y1);
-    //    printf("xrUploadArea.y0 =%d\r\n\r\n",xrUploadArea.y0);
 
     if (xrUploadArea.x0 == xrUploadArea.x1) return;
     if (xrUploadArea.y0 == xrUploadArea.y1) return;
@@ -1301,103 +1156,47 @@ void UploadScreen(int Position) {
         return;
     }
 
+    
     bUsingMovie = TRUE;
-    bDrawTextured = TRUE; // just doing textures
+    bDrawTextured = TRUE;
     bDrawSmoothShaded = FALSE;
 
-    if (bGLBlend) vertex[0].c.lcol = 0xff7f7f7f; // set solid col
-    else vertex[0].c.lcol = 0xffffffff;
+    if (bGLBlend) 
+        vertex[0].c.lcol = 0xff7f7f7f; // set solid col
+    else 
+        vertex[0].c.lcol = 0xffffffff;
+    
     SETCOL(vertex[0]);
 
     SetOGLDisplaySettings(0);
-
-    YStep = 256; // max texture size
-    XStep = 256;
-
-    UStep = (PSXDisplay.RGB24 ? 128 : 0);
-
-    ya = xrUploadArea.y0;
-    yb = xrUploadArea.y1;
-    xa = xrUploadArea.x0;
-    xb = xrUploadArea.x1;
-
-    for (y = ya; y <= yb; y += YStep) // loop y
+  
     {
-        U = 0;
-        for (x = xa; x <= xb; x += XStep) // loop x
-        {
-            ly0 = ly1 = y; // -> get y coords
-            ly2 = y + YStep;
-            if (ly2 > yb) ly2 = yb;
-            ly3 = ly2;
+        YStep = PSXDisplay.DisplayMode.y; // max texture size
+        XStep = PSXDisplay.DisplayMode.x;
 
-            lx0 = lx3 = x; // -> get x coords
-            lx1 = x + XStep;
-            if (lx1 > xb) lx1 = xb;
-
-            lx2 = lx1;
-
-            ux[0] = ux[3] = (xa - x); // -> set tex x coords
-            if (ux[0] < 0) ux[0] = ux[3] = 0;
-            ux[2] = ux[1] = (xb - x);
-            if (ux[2] > 256) ux[2] = ux[1] = 256;
-
-            vy[0] = vy[1] = (ya - y); // -> set tex y coords
-            if (vy[0] < 0) vy[0] = vy[1] = 0;
-            vy[2] = vy[3] = (yb - y);
-            if (vy[2] > 256) vy[2] = vy[3] = 256;
-
-            if ((ux[0] >= ux[2]) || // -> cheaters never win...
-                    (vy[0] >= vy[2])) continue; //    (but winners always cheat...)
-
-            xrMovieArea.x0 = lx0 + U;
-            xrMovieArea.y0 = ly0;
-            xrMovieArea.x1 = lx2 + U;
-            xrMovieArea.y1 = ly2;
-
-            s = ux[2] - ux[0];
-            if (s > 255) s = 255;
-
-            gl_ux[2] = gl_ux[1] = s;
-            s = vy[2] - vy[0];
-            if (s > 255) s = 255;
-            gl_vy[2] = gl_vy[3] = s;
-            gl_ux[0] = gl_ux[3] = gl_vy[0] = gl_vy[1] = 0;
-
-            SetRenderState((uint32_t) 0x01000000);
-            SetRenderMode((uint32_t) 0x01000000, FALSE); // upload texture data
-            offsetScreenUpload(Position);
-            assignTextureVRAMWrite();
-
-            //            printf("gl_ux.0 =%d\r\n",gl_ux[0]);
-            //            printf("gl_ux.1 =%d\r\n",gl_ux[1]);
-            //            printf("gl_ux.2 =%d\r\n",gl_ux[2]);
-            //            printf("gl_ux.3 =%d\r\n\r\n",gl_ux[3]);
-            //            
-            //            printf("gl_vy.0 =%d\r\n",gl_vy[0]);
-            //            printf("gl_vy.1 =%d\r\n",gl_vy[1]);
-            //            printf("gl_vy.2 =%d\r\n",gl_vy[2]);
-            //            printf("gl_vy.3 =%d\r\n\r\n",gl_vy[3]);
-            //            
-            //            printf("ly0 =%d\r\n",ly0);
-            //            printf("ly1 =%d\r\n",ly1);
-            //            printf("ly2 =%d\r\n",ly2);
-            //            printf("ly3 =%d\r\n",ly3);
-            //            printf("lx0 =%d\r\n",lx0);
-            //            printf("lx1 =%d\r\n",lx1);
-            //            printf("lx2 =%d\r\n",lx2);
-            //            printf("lx3 =%d\r\n\r\n",lx3);
-            //            
-            //            printf("xrMovieArea.x1 =%d\r\n",xrMovieArea.x1);
-            //            printf("xrMovieArea.x0 =%d\r\n",xrMovieArea.x0);
-            //            printf("xrMovieArea.y1 =%d\r\n",xrMovieArea.y1);
-            //            printf("xrMovieArea.y0 =%d\r\n\r\n",xrMovieArea.y0);
+        lx0 = lx3 = xrMovieArea.x0 = xrUploadArea.x0;
+        ly0 = ly1 = xrMovieArea.y0 = xrUploadArea.y0;
+        lx2 = lx1 = xrMovieArea.x1 = xrUploadArea.x1;
+        ly3 = ly2 = xrMovieArea.y1 = xrUploadArea.y1;
 
 
-            PRIMdrawTexturedQuad(&vertex[0], &vertex[1], &vertex[2], &vertex[3]);
+        SetRenderState((uint32_t) 0x01000000);
+        SetRenderMode((uint32_t) 0x01000000, FALSE); // upload texture data
+        offsetScreenUpload(Position);
+        
+        vertex[0].sow = 0;
+        vertex[0].tow = 0;
 
-            U += UStep;
-        }
+        vertex[1].sow = (float)((float)XStep/1024.f);
+        vertex[1].tow = 0.f;
+
+        vertex[2].sow = (float)((float)XStep/1024.f);
+        vertex[2].tow = 1.f*(float)((float)YStep/1024.f);
+
+        vertex[3].sow = 0;
+        vertex[3].tow = (float)((float)YStep/1024.f);
+                
+        PRIMdrawTexturedQuad(&vertex[0], &vertex[1], &vertex[2], &vertex[3]);
     }
 
     bUsingMovie = FALSE; // done...
@@ -1478,7 +1277,6 @@ static void cmdSTP(unsigned char * baseAddr) {
         bCheckMask = FALSE;
         if (iDepthFunc == 1) return;
         gpuRenderer.DepthFunc(XE_CMP_ALWAYS);
-        //gpuRenderer.DepthFunc(XE_CMP_NEVER);
         iDepthFunc = 1;
     }
 }
@@ -1609,49 +1407,6 @@ static void cmdTextureWindow(unsigned char *baseAddr) {
 #endif
     }
 }
-
-////////////////////////////////////////////////////////////////////////
-// mmm, Lewpy uses that in TileS ... I don't ;)
-////////////////////////////////////////////////////////////////////////
-
-/*
-void ClampToPSXDrawAreaOffset(short *x0, short *y0, short *x1, short *y1)
-{
- if (*x0 < PSXDisplay.DrawArea.x0)
-  {
- *x1 -= (PSXDisplay.DrawArea.x0 - *x0);
- *x0 = PSXDisplay.DrawArea.x0;
-  }
- else
- if (*x0 > PSXDisplay.DrawArea.x1)
-  {
- *x0 = PSXDisplay.DrawArea.x1;
- *x1 = 0;
-  }
-
- if (*y0 < PSXDisplay.DrawArea.y0)
-  {
- *y1 -= (PSXDisplay.DrawArea.y0 - *y0);
- *y0 = PSXDisplay.DrawArea.y0;
-  }
- else
- if (*y0 > PSXDisplay.DrawArea.y1)
-  {
- *y0 = PSXDisplay.DrawArea.y1;
- *y1 = 0;
-  }
-
- if (*x1 < 0) *x1 = 0;
-
- if ((*x1 + *x0) > PSXDisplay.DrawArea.x1)
- *x1 = (PSXDisplay.DrawArea.x1 -  *x0 + 1);
-
- if (*y1 < 0) *y1 = 0;
-
- if ((*y1 + *y0) > PSXDisplay.DrawArea.y1)
- *y1 = (PSXDisplay.DrawArea.y1 -  *y0 + 1);
-}
- */
 
 ////////////////////////////////////////////////////////////////////////
 // Check draw area dimensions
@@ -2476,40 +2231,6 @@ static void primTile16(unsigned char * baseAddr) {
 // helper: filter effect by multipass rendering
 ////////////////////////////////////////////////////////////////////////
 
-static void DrawMultiBlur(void) {
-    int lABR, lDST;
-    float fx, fy;
-
-    lABR = GlobalTextABR;
-    lDST = DrawSemiTrans;
-
-    fx = (float) PSXDisplay.DisplayMode.x / (float) (iResX);
-    fy = (float) PSXDisplay.DisplayMode.y / (float) (iResY);
-
-    vertex[0].x += fx;
-    vertex[1].x += fx;
-    vertex[2].x += fx;
-    vertex[3].x += fx;
-
-    GlobalTextABR = 0;
-    DrawSemiTrans = 1;
-    SetSemiTrans();
-
-    PRIMdrawTexturedQuad(&vertex[0], &vertex[1], &vertex[2], &vertex[3]);
-
-    vertex[0].y += fy;
-    vertex[1].y += fy;
-    vertex[2].y += fy;
-    vertex[3].y += fy;
-    PRIMdrawTexturedQuad(&vertex[0], &vertex[1], &vertex[2], &vertex[3]);
-
-    if (bDrawMultiPass) {
-        obm1 = obm2 = XE_BLEND_SRCALPHA;
-    }
-
-    GlobalTextABR = lABR;
-    DrawSemiTrans = lDST;
-}
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -2634,11 +2355,6 @@ static void primSprt8(unsigned char * baseAddr) {
     else
         PRIMdrawTexturedQuad(&vertex[0], &vertex[1], &vertex[2], &vertex[3]);
 
-    if (bDrawMultiPass) {
-        SetSemiTransMulti(1);
-        PRIMdrawTexturedQuad(&vertex[0], &vertex[1], &vertex[2], &vertex[3]);
-    }
-
     if (ubOpaqueDraw) {
         SetZMask4O();
         if (bUseMultiPass) SetOpaqueColor(GETLE32(&gpuData[0]));
@@ -2751,11 +2467,6 @@ static void primSprt16(unsigned char * baseAddr) {
         DrawMultiFilterSprite();
     else
         PRIMdrawTexturedQuad(&vertex[0], &vertex[1], &vertex[2], &vertex[3]);
-
-    if (bDrawMultiPass) {
-        SetSemiTransMulti(1);
-        PRIMdrawTexturedQuad(&vertex[0], &vertex[1], &vertex[2], &vertex[3]);
-    }
 
     if (ubOpaqueDraw) {
         SetZMask4O();
@@ -2936,11 +2647,6 @@ static void primSprtSRest(unsigned char * baseAddr, unsigned short type) {
     else
         PRIMdrawTexturedQuad(&vertex[0], &vertex[1], &vertex[2], &vertex[3]);
 
-    if (bDrawMultiPass) {
-        SetSemiTransMulti(1);
-        PRIMdrawTexturedQuad(&vertex[0], &vertex[1], &vertex[2], &vertex[3]);
-    }
-
     if (ubOpaqueDraw) {
         SetZMask4O();
         if (bUseMultiPass) SetOpaqueColor(GETLE32(&gpuData[0]));
@@ -3072,11 +2778,6 @@ static void primSprtS(unsigned char * baseAddr) {
         DrawMultiFilterSprite();
     else
         PRIMdrawTexturedQuad(&vertex[0], &vertex[1], &vertex[2], &vertex[3]);
-
-    if (bDrawMultiPass) {
-        SetSemiTransMulti(1);
-        PRIMdrawTexturedQuad(&vertex[0], &vertex[1], &vertex[2], &vertex[3]);
-    }
 
     if (ubOpaqueDraw) {
         SetZMask4O();
@@ -3378,11 +3079,6 @@ static BOOL DoLineCheck(uint32_t *gpuData) {
 
     PRIMdrawTexturedQuad(&vertex[0], &vertex[1], &vertex[3], &vertex[2]);
 
-    if (bDrawMultiPass) {
-        SetSemiTransMulti(1);
-        PRIMdrawTexturedQuad(&vertex[0], &vertex[1], &vertex[3], &vertex[2]);
-    }
-
     if (ubOpaqueDraw) {
         SetZMask4O();
         if (bUseMultiPass) SetOpaqueColor(GETLE32(&gpuData[0]));
@@ -3447,11 +3143,6 @@ static void primPolyFT3(unsigned char * baseAddr) {
     }
 
     PRIMdrawTexturedTri(&vertex[0], &vertex[1], &vertex[2]);
-
-    if (bDrawMultiPass) {
-        SetSemiTransMulti(1);
-        PRIMdrawTexturedTri(&vertex[0], &vertex[1], &vertex[2]);
-    }
 
     if (ubOpaqueDraw) {
         SetZMask3O();
@@ -3834,11 +3525,6 @@ static void primPolyFT4(unsigned char * baseAddr) {
 
     PRIMdrawTexturedQuad(&vertex[0], &vertex[1], &vertex[3], &vertex[2]);
 
-    if (bDrawMultiPass) {
-        SetSemiTransMulti(1);
-        PRIMdrawTexturedQuad(&vertex[0], &vertex[1], &vertex[3], &vertex[2]);
-    }
-
     if (ubOpaqueDraw) {
         SetZMask4O();
         if (bUseMultiPass) SetOpaqueColor(GETLE32(&gpuData[0]));
@@ -3947,11 +3633,6 @@ static void primPolyGT3(unsigned char *baseAddr) {
     vertex[0].c.a = vertex[1].c.a = vertex[2].c.a = ubGloAlpha;
 
     PRIMdrawTexGouraudTriColor(&vertex[0], &vertex[1], &vertex[2]);
-
-    if (bDrawMultiPass) {
-        SetSemiTransMulti(1);
-        PRIMdrawTexGouraudTriColor(&vertex[0], &vertex[1], &vertex[2]);
-    }
 
     if (ubOpaqueDraw) {
         SetZMask3O();
@@ -4065,7 +3746,7 @@ static void primPolyGT4(unsigned char *baseAddr) {
     assignTexture4();
 
     RectTexAlign();
-
+    
     if (bDrawNonShaded) {
         //if(!bUseMultiPass) vertex[0].lcol=DoubleBGR2RGB(gpuData[0]); else vertex[0].lcol=gpuData[0];
         if (bGLBlend) vertex[0].c.lcol = 0x7f7f7f;
@@ -4084,7 +3765,7 @@ static void primPolyGT4(unsigned char *baseAddr) {
         }
         return;
     }
-
+ 
     if (!bUseMultiPass && !bGLBlend) {
         vertex[0].c.lcol = DoubleBGR2RGB(GETLE32(&gpuData[0]));
         vertex[1].c.lcol = DoubleBGR2RGB(GETLE32(&gpuData[3]));
@@ -4101,11 +3782,6 @@ static void primPolyGT4(unsigned char *baseAddr) {
 
     PRIMdrawTexGouraudTriColorQuad(&vertex[0], &vertex[1], &vertex[3], &vertex[2]);
 
-    if (bDrawMultiPass) {
-        SetSemiTransMulti(1);
-        PRIMdrawTexGouraudTriColorQuad(&vertex[0], &vertex[1], &vertex[3], &vertex[2]);
-    }
-
     if (ubOpaqueDraw) {
         SetZMask4O();
         if (bUseMultiPass) {
@@ -4120,7 +3796,7 @@ static void primPolyGT4(unsigned char *baseAddr) {
         PRIMdrawTexGouraudTriColorQuad(&vertex[0], &vertex[1], &vertex[3], &vertex[2]);
         DEFOPAQUEOFF
     }
-
+    
     iDrawnSomething = 1;
 }
 

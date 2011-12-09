@@ -160,6 +160,10 @@ public:
     void SetTexture(GpuTex * s);
     void EnableTexture();
     void DisableTexture();
+    
+    /**
+     * 
+     */
 
     /**
      * Clear
@@ -255,6 +259,9 @@ public:
     // textures
     void DestroyTexture(GpuTex *surf);
     GpuTex * CreateTexture(unsigned int width, unsigned int height, int format);
+    
+    void * TextureLock(GpuTex *surf);
+    void TextureUnlock(GpuTex *surf);
 
     void SetTextureFiltering(int filtering_mode) {
 #ifndef WIN32
