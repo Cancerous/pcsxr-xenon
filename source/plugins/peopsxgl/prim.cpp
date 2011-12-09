@@ -1171,14 +1171,13 @@ void UploadScreen(int Position) {
     SetOGLDisplaySettings(0);
   
     {
-        YStep = PSXDisplay.DisplayMode.y; // max texture size
-        XStep = PSXDisplay.DisplayMode.x;
-
         lx0 = lx3 = xrMovieArea.x0 = xrUploadArea.x0;
         ly0 = ly1 = xrMovieArea.y0 = xrUploadArea.y0;
         lx2 = lx1 = xrMovieArea.x1 = xrUploadArea.x1;
         ly3 = ly2 = xrMovieArea.y1 = xrUploadArea.y1;
 
+        XStep = xrMovieArea.x1 - xrMovieArea.x0; // max texture size
+        YStep = xrMovieArea.y1 - xrMovieArea.y0;
 
         SetRenderState((uint32_t) 0x01000000);
         SetRenderMode((uint32_t) 0x01000000, FALSE); // upload texture data
@@ -1187,14 +1186,14 @@ void UploadScreen(int Position) {
         vertex[0].sow = 0;
         vertex[0].tow = 0;
 
-        vertex[1].sow = (float)((float)XStep/1024.f);
+        vertex[1].sow = ((float)XStep/1024.f);
         vertex[1].tow = 0.f;
 
-        vertex[2].sow = (float)((float)XStep/1024.f);
-        vertex[2].tow = 1.f*(float)((float)YStep/1024.f);
+        vertex[2].sow = ((float)XStep/1024.f);
+        vertex[2].tow = ((float)YStep/1024.f);
 
         vertex[3].sow = 0;
-        vertex[3].tow = (float)((float)YStep/1024.f);
+        vertex[3].tow = ((float)YStep/1024.f);
                 
         PRIMdrawTexturedQuad(&vertex[0], &vertex[1], &vertex[2], &vertex[3]);
     }
