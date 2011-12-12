@@ -259,6 +259,7 @@ public:
     // textures
     void DestroyTexture(GpuTex *surf);
     GpuTex * CreateTexture(unsigned int width, unsigned int height, int format);
+    GpuTex * GetFB();
     
     void * TextureLock(GpuTex *surf);
     void TextureUnlock(GpuTex *surf);
@@ -279,10 +280,9 @@ extern GpuRenderer gpuRenderer;
 // tex
 void xeGfx_setTextureData(void * tex, void * buffer);
 void XeTexSubImage(GpuTex * surf, int srcbpp, int dstbpp, int xoffset, int yoffset, int width, int height, const void * buffer);
+void XeTexCopyImage(GpuTex * surf, int srcbpp, int dstbpp, int xoffset, int yoffset, int width, int height, void * dest);
 
-static inline void DoBufferSwap() {
-    gpuRenderer.Render();
-}
+void DoBufferSwap();
 
 #endif	/* GPURENDERER_H */
 

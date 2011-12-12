@@ -19,10 +19,15 @@
 #ifndef _GPU_TEXTURE_H_
 #define _GPU_TEXTURE_H_
 
+//#define TEXTUREPAGESIZE 256 * 256
+//#define MAXTPAGES_MAX  64
+//#define MAXSORTTEX_MAX 196
+//#define MAXWNDTEXCACHE 128
+
 #define TEXTUREPAGESIZE 256 * 256
-#define MAXTPAGES_MAX  64
-#define MAXSORTTEX_MAX 196
-#define MAXWNDTEXCACHE 128
+#define MAXTPAGES_MAX  64*4
+#define MAXSORTTEX_MAX 196*4
+#define MAXWNDTEXCACHE 128*4
 
 // "texture window" cache entry
 typedef struct textureWndCacheEntryTag {

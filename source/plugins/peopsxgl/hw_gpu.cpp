@@ -955,6 +955,7 @@ EXTERN void CALLBACK GPUupdateLace(void) {
 
     if (PSXDisplay.Interlaced) // interlaced mode?
     {
+        printf("Interlaced\r\n");
         STATUSREG ^= 0x80000000;
         if (PSXDisplay.DisplayMode.x > 0 && PSXDisplay.DisplayMode.y > 0) {
             updateDisplay(); // -> swap buffers (new frame)
@@ -1400,6 +1401,8 @@ void CheckVRamReadEx(int x, int y, int dx, int dy) {
 
     if (y < 0) y = 0;
     if ((y + dy) > iResY) dy = iResY - y;
+    
+    TR;
 #if 0
     if (!pGfxCardScreen) {
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -1562,7 +1565,12 @@ void CheckVRamRead(int x, int y, int dx, int dy, BOOL bFront) {
 
     if (y < 0) y = 0;
     if ((y + dy) > iResY) dy = iResY - y;
+    
+    
+    
 #if 0
+    TR;
+    
     if (!pGfxCardScreen) {
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         pGfxCardScreen = (unsigned char *) malloc(iResX * iResY * 4);

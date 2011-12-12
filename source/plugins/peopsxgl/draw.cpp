@@ -354,8 +354,6 @@ void SetExtGLFuncs(void) {
     bBlendEnable = FALSE; // init blending: off
     gpuRenderer.DisableBlend();
 
-    bSmallAlpha = TRUE;
-
 
     printf("iUseExts = %d;\r\n bAdvancedBlend = %d;\r\nbUseMultiPass=%d\r\nubOpaqueDraw=%d\r\nbSmallAlpha=%d\r\n", iUseExts, bAdvancedBlend, bUseMultiPass, ubOpaqueDraw,bSmallAlpha);
 }

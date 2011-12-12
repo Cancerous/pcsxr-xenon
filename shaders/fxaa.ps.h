@@ -8,104 +8,32 @@
 // Parameters:
 //
 //   sampler2D Sampler;
-//   float2 texels;
 //
 //
 // Registers:
 //
 //   Name         Reg   Size
 //   ------------ ----- ----
-//   texels       c0       1
 //   Sampler      s0       1
-//
-//
-// Default values:
-//
-//   texels
-//     c0   = { 0.00078125, 0.00138889, 0, 0 };
 //
 
 // Shader type: pixel 
 
 xps_3_0
 defconst Sampler, sampler2d, object, [1, 1], s0
-defconst texels, float, vector, [1, 2], c0, { 0.000781250012, 0.00138888892, 0, 0 }
 config AutoSerialize=false
 config AutoResource=false
-config PsMaxReg=6
 // PsExportColorCount=1
 // PsSampleControl=centers
 
 dcl_texcoord r0
 
-def c252, 8, 0.25, -8, 0.03125
-def c253, -0.166666672, -0.5, 0.166666672, 0.5
-def c254, 0.114, 0.298999995, 0.587000012, 1
-def c255, 0.0078125, 0, 0, 0
-
 
     exec
-    mov r4.yz, r0.wwz
-    add r4.xw, r0.zw, c0.xy
-    tfetch2D r2.xyz_, r4.xw, tf0, UseComputedLOD=false
-    tfetch2D r1.xyz_, r4.xy, tf0, UseComputedLOD=false
-    tfetch2D r3._xyz, r0.zw, tf0, UseComputedLOD=false
-    tfetch2D r4.xyz_, r4.zw, tf0, UseComputedLOD=false
-    exec
-    serialize
-    dp3 r3.x, r4.zxy, c254.xyz
-    dp3 r3.y, r3.wyz, c254.xyz
-    dp3 r3.z, r1.zxy, c254.xyz
-    dp3 r3.w, r2.zxy, c254.xyz
-    add r1, r3.xzy, r3.wwzx
-    add r2.w, r1.z, r3.x
-    exec
-    dp4 r2.x, r2.zxyw, c254
-  + subs r1.z, r1.zx
-    mul r1.x, r2.x, c252.w
-  + subs r1.w, r1.wy
-    max r1.y, r1.x, c255.x
-  + mins r1.x, r1_abs.zw
-    add r1.x, r1.y, r1.x
-    min r2.xw, r3.xy, r3.wz
-  + rcp r1.y, r1.x
-    mul r1.x, r1.w, r1.y
-    exec
-    mul r1.y, -r1.z, r1.y
-    max r1.xy, r1.xy, c252.z
-    min r2.yz, r1.xxy, c252.x
-    mul r1, r2.zyzy, c253.xxy
-    mul r4, r2.zyzy, c253.zzw
-    mad r5, r4, c0.xyxy, r0.xyxy
-    exec
-    mad r6, r1, c0.xyxy, r0.xyxy
-    tfetch2D r4.xyz_, r6.zw, tf0, UseComputedLOD=false
-    tfetch2D r1.xyz_, r5.zw, tf0, UseComputedLOD=false
-    tfetch2D r6.xyz_, r6.xy, tf0, UseComputedLOD=false
-    tfetch2D r5.xyz_, r5.xy, tf0, UseComputedLOD=false
-    tfetch2D r0.xyz_, r0.xy, tf0, UseComputedLOD=false
+    tfetch2D r0, r0.xy, tf0
     alloc colors
-    exec
-    dp3 r0.w, r0.zxy, c254.xyz
-    add r0.xyz, r6.zyx, r5.zyx
-    add r1.xyz, r4.zyx, r1.zyx
-    mul r1.xyz, r1.xyz, c252.y
-    mad r1.xyz, r0.zyx, c252.y, r1.zyx
-    dp3 r2.y, r1.zxy, c254.xyz
-  + maxs r2.z, r3.xw
-    exec    // PredicateClean=false
-    min r1.w, r2.w, r2.x
-  + maxs r2.w, r3.yz
-    min r2.x, r1.w, r0.w
-  + maxs r1.w, r2.wz
-    max r2.z, r1.w, r0.w
-    sgt r2.xy, r2.xy, r2.yz
-    adds r0.w, r2.xy
-    mul r0.xyz, r0.zyx, c253.w
-  + setp_eq r0._, r0.w
     exece
-    (!p0) mov r1.xyz, r0.xyz
-    mov oC0.xyz0, r1.xyz
+    mov oC0, r0
 
 // PDB hint 00000000-00000000-00000000
 
@@ -115,43 +43,14 @@ def c255, 0.0078125, 0, 0, 0
 
 const DWORD g_xps_ps_fxaa[] =
 {
-    0x102a1100, 0x0000010c, 0x00000298, 0x00000000, 0x00000024, 0x000000c0, 
-    0x000000e8, 0x00000000, 0x00000000, 0x00000098, 0x0000001c, 0x0000008b, 
-    0xffff0300, 0x00000002, 0x0000001c, 0x00000000, 0x00000084, 0x00000044, 
-    0x00030000, 0x00010000, 0x0000004c, 0x00000000, 0x0000005c, 0x00020000, 
-    0x00010000, 0x00000064, 0x00000074, 0x53616d70, 0x6c657200, 0x0004000c, 
-    0x00010001, 0x00010000, 0x00000000, 0x74657865, 0x6c7300ab, 0x00010003, 
-    0x00010002, 0x00010000, 0x00000000, 0x3a4ccccd, 0x3ab60b61, 0x00000000, 
-    0x00000000, 0x70735f33, 0x5f300032, 0x2e302e32, 0x30333533, 0x2e3000ab, 
-    0x00000000, 0x00000001, 0x00000000, 0x00000000, 0x00000014, 0x01fc0010, 
-    0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000040, 0x00000258, 
-    0x10000600, 0x00000004, 0x00000000, 0x00001021, 0x00010001, 0x00000001, 
-    0x0000f050, 0x41000000, 0x3e800000, 0xc1000000, 0x3d000000, 0xbe2aaaab, 
-    0xbf000000, 0x3e2aaaab, 0x3f000000, 0x3de978d5, 0x3e991687, 0x3f1645a2, 
-    0x3f800000, 0x3c000000, 0x00000000, 0x00000000, 0x00000000, 0x05506005, 
-    0x600b1200, 0x12000002, 0x00006011, 0x60171200, 0x12000000, 0x0554601d, 
-    0x00001200, 0xc4000000, 0x00006023, 0x60291200, 0x10000000, 0x0000202f, 
-    0x00002200, 0x00000000, 0xc8060004, 0x00cbcb00, 0xe2000000, 0xc8090004, 
-    0x001ab000, 0xa0000000, 0x30082081, 0x0f1ffe88, 0x00004000, 0x10081081, 
-    0x0f1ffe88, 0x00004000, 0xb8083001, 0x0f1ff447, 0x00004000, 0xb8084081, 
-    0x0f1ffe88, 0x00004000, 0xc8010003, 0x00bec000, 0xb004fe00, 0xc8020003, 
-    0x00c3c000, 0xb003fe00, 0xc8040003, 0x00bec000, 0xb001fe00, 0xc8080003, 
-    0x00bec000, 0xb002fe00, 0xc80f0001, 0x00b44b00, 0xe0030300, 0xc8080002, 
-    0x00c66c00, 0xe0010300, 0x64410102, 0x003e00cc, 0xaf02fe01, 0x64810101, 
-    0x006c1b11, 0xa102fc01, 0x18120101, 0x006c6ccb, 0xa201ff81, 0xc8010001, 
-    0x00b16c00, 0xe0010100, 0x4c290102, 0x00b0c76c, 0xe3030301, 0xc8010001, 
-    0x001bb100, 0xe1010100, 0xc8020001, 0x04c6b100, 0xe1010100, 0xc8030001, 
-    0x00b0c600, 0xa201fc00, 0xc8060002, 0x00bc6c00, 0xa301fc00, 0xc80f0001, 
-    0x0082bc00, 0xa102fd00, 0xc80f0004, 0x00821600, 0xa102fd00, 0xc80f0005, 
-    0x0000a0a0, 0xab040000, 0xc80f0006, 0x0000a0a0, 0xab010000, 0xb80840c1, 
-    0x0f1ffe88, 0x00004000, 0xb80810a1, 0x0f1ffe88, 0x00004000, 0x100860c1, 
-    0x0f1ffe88, 0x00004000, 0x100850a1, 0x0f1ffe88, 0x00004000, 0x10080001, 
-    0x0f1ffe88, 0x00004000, 0xc8080000, 0x00bec000, 0xb000fe00, 0xc8070000, 
-    0x00626200, 0xe0060500, 0xc8070001, 0x00626200, 0xe0040100, 0xc8070001, 
-    0x00c0b100, 0xa101fc00, 0xc8070001, 0x0062b162, 0xab00fc01, 0x14420202, 
-    0x00bec06b, 0xb001fe03, 0x14880201, 0x001b6cb6, 0xe3020203, 0x14810102, 
-    0x001b1b16, 0xe3010002, 0xc8040002, 0x001b1b00, 0xe2010000, 0xc8030002, 
-    0x00b0c500, 0xe5020200, 0x00800000, 0x00000061, 0xe2000002, 0x6c070000, 
-    0x00621b1b, 0xa100fd00, 0xc8070001, 0x10c0c000, 0xe2000000, 0xc807c000, 
-    0x00c0c000, 0xe2010100, 0x00000000, 0x00000000, 0x00000000
+    0x102a1100, 0x000000a8, 0x0000003c, 0x00000000, 0x00000024, 0x00000000, 
+    0x00000084, 0x00000000, 0x00000000, 0x0000005c, 0x0000001c, 0x0000004f, 
+    0xffff0300, 0x00000001, 0x0000001c, 0x00000000, 0x00000048, 0x00000030, 
+    0x00030000, 0x00010000, 0x00000038, 0x00000000, 0x53616d70, 0x6c657200, 
+    0x0004000c, 0x00010001, 0x00010000, 0x00000000, 0x70735f33, 0x5f300032, 
+    0x2e302e32, 0x30333533, 0x2e3000ab, 0x00000000, 0x0000003c, 0x10000000, 
+    0x00000004, 0x00000000, 0x00001021, 0x00010001, 0x00000001, 0x0000f050, 
+    0x00011002, 0x00001200, 0xc4000000, 0x00001003, 0x00002200, 0x00000000, 
+    0x10080001, 0x1f1ff688, 0x00004000, 0xc80f8000, 0x00000000, 0xe2000000, 
+    0x00000000, 0x00000000, 0x00000000
 };

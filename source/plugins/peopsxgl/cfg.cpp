@@ -40,7 +40,7 @@ namespace xegpu {
     {
         iResX = 1280;
         iResY = 720;
-        bGteAccuracy = TRUE; //bGteAccuracy = TRUE;
+        bGteAccuracy = FALSE; //bGteAccuracy = TRUE;
         bFullVRam = FALSE;
         
 //         0: None
@@ -54,7 +54,7 @@ namespace xegpu {
         
         bDrawDither = FALSE;
         bUseLines = FALSE;
-        bUseFrameLimit = TRUE;
+        bUseFrameLimit = FALSE;//bUseFrameLimit = TRUE;
         bUseFrameSkip = FALSE;
         iFrameLimit = 2;
         fFrameRate = 200.0f;
@@ -72,20 +72,20 @@ namespace xegpu {
 //         1: Black - Fast but no special effects
 //         2: Gfx card buffer - Can be slow
 //         3: Gfx card buffer & software - slow        
-        iFrameTexType = 0;
+        iFrameTexType = 2;
         
 //        0: Emulated vram - OK for most games
 //        1: Gfx card buffer reads
 //        2: Gfx card buffer moves
 //        3: Gfx card buffer reads & moves
 //        4: Full software drawing (FVP)
-        iFrameReadType = 0;
+        iFrameReadType = 3;
         
         bUse15bitMdec = FALSE;
         iShowFPS = 0;
         bKeepRatio = FALSE;
         iScanBlend = 0;
-        iVRamSize = 128;
+        iVRamSize = 256;
         iTexGarbageCollection = 1;
         iBlurBuffer = 0;
         iHiResTextures = 0; //0: None (standard) ,1: 2xSaI (much vram needed) ,2: Stretched (filtering needed)
@@ -98,7 +98,7 @@ namespace xegpu {
          * ff7
          */
         bUseFixes = TRUE;
-        dwCfgFixes = 0x1;//f7 fixe
+        dwCfgFixes = 0x3;//f7 fixe
     }
 
 }

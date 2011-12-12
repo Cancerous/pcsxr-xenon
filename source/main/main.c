@@ -89,7 +89,7 @@ extern PluginTable plugins[];
 //#define cdfile "sda:/hdd1/xenon/psx/CTR - Crash Team Racing (USA)/CTR - Crash Team Racing (USA).bin.Z"
 //#define cdfile "sda:/hdd1/xenon/psx/Tekken 3 (USA)/Tekken 3 (USA) (Track 1).bin.Z"
 //#define cdfile "sda:/hdd1/xenon/psx/R4 - Ridge Racer Type 4 (USA).bin"
-//#define cdfile "uda:/CTR - Crash Team Racing (USA).bin"
+#define cdfile "uda:/CTR - Crash Team Racing (USA).bin"
 //#define cdfile "uda:/Street Fighter Alpha - Warriors' Dreams (USA) (Track 01).bin"
 //#define cdfile "uda:/Tekken 3 (USA) (Track 1).bin.Z"
 //

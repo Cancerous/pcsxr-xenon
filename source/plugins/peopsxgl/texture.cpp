@@ -517,7 +517,7 @@ void CheckTextureMemory(void) {
 #endif
     
     
-    iSortTexCnt = 8;
+    //iSortTexCnt = 8;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1075,6 +1075,7 @@ unsigned char * CheckTextureInSubSCache(int TextureMode, uint32_t GivenClutId, u
         if (iMax >= SOFFB - 2) {
             if (iTexGarbageCollection) // gc mode?
             {
+                TR;
                 if (*pCache == 0) {
                     dwTexPageComp |= (1 << GlobalTexturePage);
                     *pCache = 0xffff;
@@ -1121,7 +1122,10 @@ unsigned char * CheckTextureInSubSCache(int TextureMode, uint32_t GivenClutId, u
     // now get a free texture space
     //----------------------------------------------------//
 
-    if (iTexGarbageCollection) usLRUTexPage = 0;
+    if (iTexGarbageCollection){
+        TR;
+        usLRUTexPage = 0;
+    }
 
 ENDLOOP3:
 

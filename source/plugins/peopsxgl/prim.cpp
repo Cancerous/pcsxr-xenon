@@ -4243,3 +4243,14 @@ namespace xegpu{
         primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI
     };
 }
+
+
+void DoBufferSwap() {
+    if(PSXDisplay.Interlaced)
+        printf("Interlaced\r\n");
+    if(PSXDisplay.InterlacedNew)
+        printf("InterlacedNew\r\n");
+    if(PSXDisplay.InterlacedTest)
+        printf("InterlacedTest\r\n");
+    gpuRenderer.Render();
+}

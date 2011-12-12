@@ -50,6 +50,7 @@ VS_OUTPUT vs_fxaa(VS_INPUT Input)
 	return Output;
 }
 
+#if 0
 float4 ps_fxaa(PS_INPUT Input) : COLOR
 {
 	//return tex2D(Sampler, Input.TexCoord);
@@ -75,3 +76,12 @@ float4 ps_fxaa(PS_INPUT Input) : COLOR
 		0.0f
 	);
 }
+#else
+float4 ps_fxaa(PS_INPUT Input) : COLOR
+{
+	return tex2D(Sampler, Input.TexCoord.xy);
+	//return float4(0.5,0.3,0.9,0.5);
+}
+#endif
+
+
