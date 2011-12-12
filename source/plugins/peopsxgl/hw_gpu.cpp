@@ -955,7 +955,7 @@ EXTERN void CALLBACK GPUupdateLace(void) {
 
     if (PSXDisplay.Interlaced) // interlaced mode?
     {
-        printf("Interlaced\r\n");
+//        printf("Interlaced\r\n");
         STATUSREG ^= 0x80000000;
         if (PSXDisplay.DisplayMode.x > 0 && PSXDisplay.DisplayMode.y > 0) {
             updateDisplay(); // -> swap buffers (new frame)
