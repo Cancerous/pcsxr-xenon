@@ -216,6 +216,7 @@ EXTERN long CALLBACK GPUinit() {
     // different ways of accessing PSX VRAM
 
     psxVSecure = (unsigned char *) malloc((iGPUHeight * 2)*1024 + (1024 * 1024)); // always alloc one extra MB for soft drawing funcs security
+    //psxVSecure = (unsigned char *)gpuRenderer.TextureLock(GetPsxVramSurf());
     if (!psxVSecure) return -1;
 
     psxVub = psxVSecure + 512 * 1024; // security offset into double sized psx vram!

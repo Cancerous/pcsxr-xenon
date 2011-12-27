@@ -1046,7 +1046,7 @@ void PrepareFullScreenUpload(int Position) {
 unsigned char * LoadDirectMovieFast(void);
 
 static void UploadScreenEx(int Position) {
-    TR;
+//    TR;
 #if 0
     short ya, yb, xa, xb, x, y, YStep, XStep, U, UStep, ux[4], vy[4];
 
@@ -1134,6 +1134,7 @@ static void UploadScreenEx(int Position) {
 ////////////////////////////////////////////////////////////////////////
 
 void UploadScreen(int Position) {
+    
     short YStep, XStep;
 
     if (xrUploadArea.x0 > 1023) xrUploadArea.x0 = 1023;
@@ -1201,7 +1202,101 @@ void UploadScreen(int Position) {
     bUsingMovie = FALSE; // done...
     bDisplayNotSet = TRUE;
 }
+void xxUploadScreen(int Position)
+{
+ short x, y, YStep, XStep, U, s, UStep,ux[4],vy[4];
+ short xa,xb,ya,yb;
 
+ if(xrUploadArea.x0>1023) xrUploadArea.x0=1023;
+ if(xrUploadArea.x1>1024) xrUploadArea.x1=1024;
+ if(xrUploadArea.y0>iGPUHeightMask)  xrUploadArea.y0=iGPUHeightMask;
+ if(xrUploadArea.y1>iGPUHeight)      xrUploadArea.y1=iGPUHeight;
+
+ if(xrUploadArea.x0==xrUploadArea.x1) return;
+ if(xrUploadArea.y0==xrUploadArea.y1) return;
+
+ if(PSXDisplay.Disabled && iOffscreenDrawing<4) return;
+
+ iDrawnSomething   = 2;
+ iLastRGB24=PSXDisplay.RGB24+1;
+
+ if(bSkipNextFrame) return;
+
+ if(dwActFixes & 2) {UploadScreenEx(Position);return;}
+
+ bUsingMovie       = TRUE;
+ bDrawTextured     = TRUE;                             // just doing textures
+ bDrawSmoothShaded = FALSE;
+
+ if(bGLBlend) vertex[0].c.lcol=0xff7f7f7f;             // set solid col
+ else          vertex[0].c.lcol=0xffffffff;
+ SETCOL(vertex[0]);
+
+ SetOGLDisplaySettings(0);
+
+ YStep = 256;                                          // max texture size
+ XStep = 256;
+
+ UStep = (PSXDisplay.RGB24 ? 128 : 0);
+
+ ya=xrUploadArea.y0;
+ yb=xrUploadArea.y1;
+ xa=xrUploadArea.x0;
+ xb=xrUploadArea.x1;
+
+ for(y=ya;y<=yb;y+=YStep)                              // loop y
+  {
+   U = 0;
+   for(x=xa;x<=xb;x+=XStep)                            // loop x
+    {
+     ly0 = ly1 = y;                                    // -> get y coords
+     ly2 = y + YStep;
+     if (ly2 > yb) ly2 = yb;
+     ly3 = ly2;
+
+     lx0 = lx3 = x;                                    // -> get x coords
+     lx1 = x + XStep;
+     if (lx1 > xb) lx1 = xb;
+
+     lx2 = lx1;
+
+     ux[0]=ux[3]=(xa - x);                             // -> set tex x coords
+     if (ux[0] < 0) ux[0]=ux[3]=0;
+     ux[2]=ux[1]=(xb - x);
+     if (ux[2] > 256) ux[2]=ux[1]=256;
+
+     vy[0]=vy[1]=(ya - y);                             // -> set tex y coords
+     if (vy[0] < 0) vy[0]=vy[1]=0;
+     vy[2]=vy[3]=(yb - y);
+     if (vy[2] > 256) vy[2]=vy[3]=256;
+
+     if ((ux[0] >= ux[2]) ||                           // -> cheaters never win...
+         (vy[0] >= vy[2])) continue;                   //    (but winners always cheat...)
+
+     xrMovieArea.x0=lx0+U; xrMovieArea.y0=ly0;
+     xrMovieArea.x1=lx2+U; xrMovieArea.y1=ly2;
+
+     s=ux[2] - ux[0]; if(s>255) s=255;
+
+     gl_ux[2] = gl_ux[1] = s;
+     s=vy[2] - vy[0]; if(s>255) s=255;
+     gl_vy[2] = gl_vy[3] = s;
+     gl_ux[0] = gl_ux[3] = gl_vy[0] = gl_vy[1] = 0;
+
+     SetRenderState((uint32_t)0x01000000);
+     SetRenderMode((uint32_t)0x01000000, FALSE);  // upload texture data
+     offsetScreenUpload(Position);
+     assignTextureVRAMWrite();
+
+     PRIMdrawTexturedQuad(&vertex[0], &vertex[1], &vertex[2], &vertex[3]);
+
+     U+=UStep;
+    }
+  }
+
+ bUsingMovie=FALSE;                                    // done...
+ bDisplayNotSet = TRUE;
+}
 ////////////////////////////////////////////////////////////////////////
 // Detect next screen
 ////////////////////////////////////////////////////////////////////////

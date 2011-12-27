@@ -76,7 +76,8 @@ extern "C" {
     void systemPoll(); // main.c
 }
 
-static int postprocessenabled = 0;
+static int postprocessenabled = 1;
+static int debug_draw = 0;
 
 extern "C" void enablePostProcess(int enable) {
     postprocessenabled = enable;
@@ -91,6 +92,23 @@ void GpuRenderer::BeginPostProcess() {
 void GpuRenderer::EndPostProcess() {
     //Xe_SetRenderTarget(xe, pRenderSurface);
 };
+
+static GpuTex * psxFmvSurf = NULL;
+static GpuTex * psxVramSurf = NULL;
+
+GpuTex * GetPsxVramSurf(){
+    if(psxVramSurf==NULL){
+        psxVramSurf = gpuRenderer.CreateTexture(2048,2048,FMT_A8R8G8B8);
+    }
+    return psxVramSurf;
+}
+
+GpuTex * GetFmvSurf(){
+    if(psxFmvSurf==NULL){
+        psxFmvSurf = gpuRenderer.CreateTexture(1024,1024,FMT_A8R8G8B8);
+    }
+    return psxFmvSurf;
+}
 
 /**
  * Slow
@@ -112,6 +130,7 @@ void GpuRenderer::RenderPostProcess() {
         Xe_SetShader(xe, SHADER_TYPE_VERTEX, g_pVertexShaderPost, 0);
         // 
         Xe_SetTexture(xe, 0, pPostRenderSurface);
+        //Xe_SetTexture(xe, 0, GetFmvSurf());
         //Xe_SetTexture(xe,0,pRenderSurface);
         //
         Xe_SetStreamSource(xe, 0, pVbPost, 0, sizeof (fxaa_vb));
@@ -126,6 +145,102 @@ void GpuRenderer::RenderPostProcess() {
         // restore shader
         Xe_SetShader(xe, SHADER_TYPE_VERTEX, g_pVertexShader, 0);
     }
+    if(debug_draw){
+        //extern unsigned char * psxVSecure;
+        //xeGfx_setTextureData(GetPsxVramSurf(),psxVSecure);
+        
+        Xe_ResolveInto(xe, pPostRenderSurface, XE_SOURCE_COLOR, XE_CLEAR_DS);
+        Xe_Sync(xe);
+
+        Xe_InvalidateState(xe);
+
+        EndPostProcess();
+
+        Xe_SetCullMode(xe, XE_CULL_NONE);
+
+        Xe_Clear(xe,~0);
+        
+        // set shaders
+        Xe_SetShader(xe, SHADER_TYPE_PIXEL, g_pPixelShaderPost, 0);
+        Xe_SetShader(xe, SHADER_TYPE_VERTEX, g_pVertexShaderPost, 0);
+        
+        //draw psx output
+        {
+            // 
+            Xe_SetTexture(xe, 0, pPostRenderSurface);
+            //
+            Xe_SetStreamSource(xe, 0, pVbPost, 0, sizeof (fxaa_vb));
+            Xe_SetIndices(xe, NULL);
+            // draw 
+            Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLESTRIP, 0, 2);
+        }
+        // draw fmv buff
+        if(psxFmvSurf)
+        {
+            Xe_SetTexture(xe, 0, psxFmvSurf);
+            //
+            Xe_SetStreamSource(xe, 0, pVbPost, 0, sizeof (fxaa_vb));
+            Xe_SetIndices(xe, NULL);
+            // draw 
+            Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLESTRIP, 4*sizeof(fxaa_vb), 2);
+        }
+        // draw vram
+//        {
+//            Xe_SetTexture(xe, 0, GetPsxVramSurf());
+//            //
+//            Xe_SetStreamSource(xe, 0, pVbPost, 0, sizeof (fxaa_vb));
+//            Xe_SetIndices(xe, NULL);
+//            // draw 
+//            Xe_DrawPrimitive(xe, XE_PRIMTYPE_TRIANGLELIST, 8*sizeof(fxaa_vb), 1);
+//        }
+        
+
+        // restore shader
+        Xe_SetShader(xe, SHADER_TYPE_VERTEX, g_pVertexShader, 0);
+    }
+    
+}
+
+fxaa_vb * BuildVb(fxaa_vb *Rect,int x,int y, int h,int w){
+    
+    {
+        if(!debug_draw){
+            ScreenUv[UvTop] = ScreenUv[UvTop]*2;
+            ScreenUv[UvLeft] = ScreenUv[UvLeft]*2;        
+        }
+        
+        // top left
+        Rect[0].x = x;
+        Rect[0].y = y;
+        Rect[0].u = ScreenUv[UvBottom];
+        Rect[0].v = ScreenUv[UvRight];
+
+        // bottom left
+        Rect[1].x = x;
+        Rect[1].y = y - h;
+        Rect[1].u = ScreenUv[UvBottom];
+        Rect[1].v = ScreenUv[UvLeft];
+
+        // top right
+        Rect[2].x = x + w;
+        Rect[2].y = y;
+        Rect[2].u = ScreenUv[UvTop];
+        Rect[2].v = ScreenUv[UvRight];
+
+        // top right
+        Rect[3].x = x + w;
+        Rect[3].y = y;
+        Rect[3].u = ScreenUv[UvTop];
+        Rect[3].v = ScreenUv[UvRight];
+
+        int i = 0;
+        for (i = 0; i < 3; i++) {
+            Rect[i].z = 0.0;
+            Rect[i].w = 1.0;
+        }
+    }
+    
+    return Rect;
 }
 
 void GpuRenderer::InitPostProcess() {
@@ -164,42 +279,21 @@ void GpuRenderer::InitPostProcess() {
         float h = 2.0f;
      */
 
-    pVbPost = Xe_CreateVertexBuffer(xe, 3 * sizeof (fxaa_vb));
-    fxaa_vb *Rect = (fxaa_vb *) Xe_VB_Lock(xe, pVbPost, 0, 3 * sizeof (fxaa_vb), XE_LOCK_WRITE);
+    pVbPost = Xe_CreateVertexBuffer(xe, 16 * sizeof (fxaa_vb));
+    fxaa_vb *Rect = (fxaa_vb *) Xe_VB_Lock(xe, pVbPost, 0, 16 * sizeof (fxaa_vb), XE_LOCK_WRITE);
+    
+    // post
+    if(debug_draw)
     {
-        ScreenUv[UvTop] = ScreenUv[UvTop]*2;
-        ScreenUv[UvLeft] = ScreenUv[UvLeft]*2;
-
-        // top left
-        Rect[0].x = x;
-        Rect[0].y = y;
-        Rect[0].u = ScreenUv[UvBottom];
-        Rect[0].v = ScreenUv[UvRight];
-
-        // bottom left
-        Rect[1].x = x;
-        Rect[1].y = y - h;
-        Rect[1].u = ScreenUv[UvBottom];
-        Rect[1].v = ScreenUv[UvLeft];
-
-        // top right
-        Rect[2].x = x + w;
-        Rect[2].y = y;
-        Rect[2].u = ScreenUv[UvTop];
-        Rect[2].v = ScreenUv[UvRight];
-
-        // top right
-        Rect[3].x = x + w;
-        Rect[3].y = y;
-        Rect[3].u = ScreenUv[UvTop];
-        Rect[3].v = ScreenUv[UvRight];
-
-        int i = 0;
-        for (i = 0; i < 3; i++) {
-            Rect[i].z = 0.0;
-            Rect[i].w = 1.0;
-        }
+        // 1/2 screen
+        BuildVb(&Rect[0],-1,1,1,1);
+        BuildVb(&Rect[4],0,0,1,1);
+        BuildVb(&Rect[8],0,-1,1,1);
     }
+    else{
+        Rect = BuildVb(Rect,x,y,w,h);
+    }
+    
     Xe_VB_Unlock(xe, pVbPost);
 
     BeginPostProcess();

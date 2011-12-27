@@ -92,13 +92,14 @@ namespace xegpu {
 
         if (iUseMask) iZBufferDepth = 16; // set zbuffer depth
         else iZBufferDepth = 0;
-        if (bUseFixes) dwActFixes = dwCfgFixes; // init game fix global
+        
         
         /**
          * ff7
          */
         bUseFixes = TRUE;
-        dwCfgFixes = 0x3;//f7 fixe
+        dwCfgFixes = 0x1;//f7 fixe
+        if (bUseFixes) dwActFixes = dwCfgFixes; // init game fix global
     }
 
 }

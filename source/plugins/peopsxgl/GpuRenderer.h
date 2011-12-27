@@ -284,5 +284,9 @@ void XeTexCopyImage(GpuTex * surf, int srcbpp, int dstbpp, int xoffset, int yoff
 
 void DoBufferSwap();
 
+
+GpuTex * GetPsxVramSurf();
+GpuTex * GetFmvSurf();
+
 #endif	/* GPURENDERER_H */
 
