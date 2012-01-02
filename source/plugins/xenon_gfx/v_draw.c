@@ -463,7 +463,8 @@ void DoBufferSwap(void) {
     Xe_SetPixelShaderConstantF(g_pVideoDevice, 0, texturesize, 1);
 
 
-    Xe_DrawPrimitive(g_pVideoDevice, XE_PRIMTYPE_TRIANGLELIST, 0, 2);
+    Xe_DrawPrimitive(g_pVideoDevice, XE_PRIMTYPE_RECTLIST, 0, 1);
+    //Xe_DrawPrimitive(g_pVideoDevice, XE_PRIMTYPE_TRIANGLELIST, 0, 2);
 
     Xe_Resolve(g_pVideoDevice);
     // while (!Xe_IsVBlank(g_pVideoDevice));//slowdown ...

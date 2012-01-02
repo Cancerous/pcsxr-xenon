@@ -6,7 +6,7 @@
 #include <time/time.h>
 #include <xenon_smc/xenon_smc.h>
 
-#if 1
+#if 0
 // miss in gligli libxenon
 int stat(const char * __restrict path, struct stat * __restrict buf) {
     int fd = -1;

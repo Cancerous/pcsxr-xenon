@@ -1,8 +1,8 @@
 // lzx.cpp : Defines the entry point for the application.
 //
+#include <config.h>
 
-//#ifdef LZX_GUI
-#if 0
+#ifdef LZX_GUI
 
 extern "C" {
     int pcsxmain(const char * cdfile);

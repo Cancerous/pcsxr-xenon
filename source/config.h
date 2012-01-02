@@ -16,7 +16,7 @@
 //#include <usb/usbmain.h>
 //#include <ppc/timebase.h>
 
-
+#define LZX_GUI 1
 #define MAXPATHLEN 256
 #define PACKAGE_VERSION "1.9"
 #define PREFIX "./"

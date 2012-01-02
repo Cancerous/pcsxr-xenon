@@ -18,7 +18,7 @@ MACHDEP =  -DXENON -m32 -mno-altivec -fno-pic  -fno-pic -mpowerpc64 -mhard-float
 TARGET		:=  $(notdir $(CURDIR))
 BUILD		:=  build
 #SOURCES		:=  source/shaders lib/zlib source/libpcsxcore_df source/main  source/main/usb source/plugins/xenon_input source/plugins/xenon_audio_repair source/fakegl   source/plugins/cdr   source/plugins/xenon_gfx source/ppc #  source/plugins/gxvideo # source/dynarec 
-PLUGINS		:=  source/plugins/dfinput source/shaders source/plugins/xenon_input source/plugins/xenon_audio_repair110  source/plugins/cdrcimg source/plugins/peopsxgl source/plugins/xenon_gfx
+PLUGINS		:=  source/plugins/dfinput source/shaders source/plugins/xenon_input source/plugins/xenon_audio_repair  source/plugins/cdrcimg source/plugins/peopsxgl source/plugins/xenon_gfx
 CORE		:=  lib/zlib source/libpcsxcore source/ppcr source/httpd	 # source/libpcsxcore/ppc #source/ppcr	
 #CORE		:=  lib/zlib source/libpcsxcore_df source/ppc
 #LIB		:=  source/fakegl
@@ -30,8 +30,8 @@ INCLUDES	:=  shaders include lib/zlib source/libpcsxcore
 # options for code generation
 #---------------------------------------------------------------------------------
 ASFLAGS	= -Wa,$(INCLUDE) -Wa,-a32
-#CFLAGS	= -ffunction-sections -fdata-sections -g -Ofast -fno-tree-vectorize -fno-tree-slp-vectorize -ftree-vectorizer-verbose=1 -Wall $(MACHDEP) $(INCLUDE) -DLOG_STDOUT -DLIBXENON -D__BIG_ENDIAN__ -D__ppc__ -D__powerpc__ -D__POWERPC__ -DELF -D__BIGENDIAN__ -D__PPC__ -D__BIGENDIAN__ -DLZX_GUI
-CFLAGS	= -ffunction-sections -fdata-sections -g -Ofast -fno-tree-vectorize -fno-tree-slp-vectorize -ftree-vectorizer-verbose=1 -Wall $(MACHDEP) $(INCLUDE) -DLOG_STDOUT -DLIBXENON -D__BIG_ENDIAN__ -D__ppc__ -D__powerpc__ -D__POWERPC__ -DELF -D__BIGENDIAN__ -D__PPC__ -D__BIGENDIAN__ 
+CFLAGS	= -ffunction-sections -fdata-sections -g -Ofast -flto -fuse-linker-plugin -mcpu=cell -mtune=cell -fno-tree-vectorize -fno-tree-slp-vectorize -ftree-vectorizer-verbose=1 -Wall $(MACHDEP) $(INCLUDE) -DLOG_STDOUT -DLIBXENON -D__BIG_ENDIAN__ -D__ppc__ -D__powerpc__ -D__POWERPC__ -DELF -D__BIGENDIAN__ -D__PPC__ -D__BIGENDIAN__ -DLZX_GUI
+#CFLAGS	= -ffunction-sections -fdata-sections -g -Ofast -flto -fuse-linker-plugin -mcpu=cell -mtune=cell -fno-tree-vectorize -fno-tree-slp-vectorize -ftree-vectorizer-verbose=1 -Wall $(MACHDEP) $(INCLUDE) -DLOG_STDOUT -DLIBXENON -D__BIG_ENDIAN__ -D__ppc__ -D__powerpc__ -D__POWERPC__ -DELF -D__BIGENDIAN__ -D__PPC__ -D__BIGENDIAN__ 
 
 CXXFLAGS	=	$(CFLAGS)
 
@@ -40,8 +40,8 @@ LDFLAGS	=	-g $(MACHDEP) -Wl,--gc-sections -Wl,-Map,$(notdir $@).map
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
 #---------------------------------------------------------------------------------
-#LIBS	:=	-lzlx  -lpng -lbz2  -lxenon -lm -lz
-LIBS	:=	-lpng -lbz2  -lxenon -lm -lz
+LIBS	:=	-lzlx  -lpng -lbz2  -lxenon -lm -lz
+#LIBS	:=	-lpng -lbz2  -lxenon -lm -lz
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
 # include and lib
